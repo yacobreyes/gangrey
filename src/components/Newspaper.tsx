@@ -165,7 +165,6 @@ export default function Feed({
           margin: 0;
           font-family: var(--font-headline);
           font-size: 26px; font-weight: 800; letter-spacing: -.02em;
-          text-transform: uppercase;
         }
         .hm-latest-head a {
           font-size: 17px; font-style: italic; color: #490000;
@@ -394,7 +393,7 @@ export default function Feed({
       {!q && cards.length > 0 && (
         <section className="hm-latest">
           <div className="hm-latest-head">
-            <h2>Our Picks</h2>
+            <h2>Above the Fold</h2>
             <Link href="/latest">View all stories →</Link>
           </div>
           <div className="hm-grid" ref={carouselRef} onScroll={onCarouselScroll}>
