@@ -393,7 +393,7 @@ export default function Feed({
       {!q && cards.length > 0 && (
         <section className="hm-latest">
           <div className="hm-latest-head">
-            <h2>Latest from the Magazine</h2>
+            <h2>Our Picks</h2>
             <Link href="/latest">View all stories →</Link>
           </div>
           <div className="hm-grid" ref={carouselRef} onScroll={onCarouselScroll}>
