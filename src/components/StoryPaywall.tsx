@@ -22,11 +22,6 @@ export default function StoryPaywall() {
           border-top: 1px solid #b8b8ba;
           padding: 28px 0 8px;
         }
-        .story-paywall-kicker {
-          font-family: var(--font-subhead);
-          font-size: 11px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase;
-          color: #490000; margin-bottom: 12px;
-        }
         .story-paywall-title {
           font-family: var(--font-headline);
           font-size: clamp(24px, 4vw, 32px); font-weight: 800; letter-spacing: -.02em;
@@ -51,7 +46,6 @@ export default function StoryPaywall() {
         }
       `}</style>
       <div className="story-paywall-inner">
-        <div className="story-paywall-kicker">Members Only</div>
         <h2 className="story-paywall-title">Keep reading with a membership</h2>
         <p className="story-paywall-sub">
           This story is for Gangrey members. Join to read it in full, unlock the archive, and support narrative nonfiction.
