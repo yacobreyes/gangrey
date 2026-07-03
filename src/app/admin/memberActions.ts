@@ -1,7 +1,7 @@
 "use server";
 
 import { requireAdmin } from "@/lib/adminAuth";
-import { listAllMembers, compMembership, revokeMembership, type Member, type MemberTier } from "@/lib/membership";
+import { listAllMembers, compMembership, revokeMembership, deleteMembership, type Member, type MemberTier } from "@/lib/membership";
 
 export async function listMembers(): Promise<Member[]> {
   await requireAdmin();
@@ -29,5 +29,15 @@ export async function revokeMember(email: string): Promise<{ ok: boolean; error?
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Couldn't revoke membership." };
+  }
+}
+
+export async function deleteMember(email: string): Promise<{ ok: boolean; error?: string }> {
+  await requireAdmin();
+  try {
+    await deleteMembership(email);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Couldn't remove member." };
   }
 }

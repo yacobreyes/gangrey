@@ -143,6 +143,13 @@ export async function revokeMembership(email: string): Promise<void> {
   await sanityMutate([{ patch: { id: _id, set: { status: "canceled" } } }]);
 }
 
+// Admin: permanently delete a member record (e.g. to clear a canceled row out
+// of the panel). Does not touch Stripe — revoke already cancels the sub.
+export async function deleteMembership(email: string): Promise<void> {
+  const _id = memberIdForEmail(email.trim().toLowerCase());
+  await sanityMutate([{ delete: { id: _id } }]);
+}
+
 // Update just the status/period on subscription lifecycle events, keyed by the
 // Stripe subscription id (which we don't have the email for in every event).
 export async function updateMemberBySubscription(input: {

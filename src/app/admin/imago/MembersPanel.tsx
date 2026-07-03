@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { listMembers, compMember, revokeMember } from "../memberActions";
+import { listMembers, compMember, revokeMember, deleteMember } from "../memberActions";
 import type { Member } from "@/lib/membership";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
 
@@ -52,6 +52,20 @@ export default function MembersPanel() {
     });
   }
 
+  function remove(m: Member) {
+    if (!confirm(`Permanently remove ${m.email} from the list?`)) return;
+    setMembers(prev => prev.filter(x => x._id !== m._id));
+    startTransition(async () => {
+      const r = await deleteMember(m.email);
+      if (!r.ok) { alert(r.error ?? "Failed."); refresh(); }
+    });
+  }
+
+  // Canceled subscriptions drop to a separate "Former members" list so the
+  // main list only shows people who currently have (or recently had) access.
+  const current = members.filter(m => m.status !== "canceled");
+  const former = members.filter(m => m.status === "canceled");
+
   return (
     <div style={{ maxWidth: 760 }}>
       <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: "0 0 1.25rem" }}>
@@ -85,26 +99,53 @@ export default function MembersPanel() {
           <p style={{ fontFamily: FONT, color: TEXT_MUTED, margin: 0 }}>No members yet.</p>
         </div>
       ) : (
-        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, overflow: "hidden" }}>
-          {members.map(m => {
-            const active = isActive(m);
-            return (
-              <div key={m._id} style={{ display: "flex", alignItems: "center", gap: "0.85rem", padding: "0.75rem 1.1rem", borderBottom: `1px solid ${BORDER}`, opacity: active ? 1 : 0.55 }}>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <p style={{ fontFamily: FONT, fontSize: "0.9rem", fontWeight: 600, color: TEXT_DARK, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.email}</p>
-                  <p style={{ fontFamily: FONT, fontSize: "0.75rem", color: TEXT_MUTED, margin: 0 }}>
-                    {TIER_LABEL[m.tier] ?? m.tier} · {active ? "Active" : m.status}{m.comped ? " · Comped" : ""}
-                  </p>
-                </div>
-                {active && (
-                  <button onClick={() => revoke(m)} style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 20, padding: "0.25rem 0.75rem", fontFamily: FONT, fontSize: "0.72rem", cursor: "pointer", color: CRIMSON, flexShrink: 0 }}>
-                    Revoke
-                  </button>
-                )}
+        <>
+          {current.length > 0 && (
+            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, overflow: "hidden" }}>
+              {current.map(m => {
+                const active = isActive(m);
+                return (
+                  <div key={m._id} style={{ display: "flex", alignItems: "center", gap: "0.85rem", padding: "0.75rem 1.1rem", borderBottom: `1px solid ${BORDER}`, opacity: active ? 1 : 0.7 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <p style={{ fontFamily: FONT, fontSize: "0.9rem", fontWeight: 600, color: TEXT_DARK, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.email}</p>
+                      <p style={{ fontFamily: FONT, fontSize: "0.75rem", color: TEXT_MUTED, margin: 0 }}>
+                        {TIER_LABEL[m.tier] ?? m.tier} · {active ? "Active" : m.status}{m.comped ? " · Comped" : ""}
+                      </p>
+                    </div>
+                    {active && (
+                      <button onClick={() => revoke(m)} style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 20, padding: "0.25rem 0.75rem", fontFamily: FONT, fontSize: "0.72rem", cursor: "pointer", color: CRIMSON, flexShrink: 0 }}>
+                        Revoke
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {former.length > 0 && (
+            <>
+              <p style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: TEXT_MUTED, margin: "1.75rem 0 0.6rem" }}>
+                Former members
+              </p>
+              <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, overflow: "hidden" }}>
+                {former.map(m => (
+                  <div key={m._id} style={{ display: "flex", alignItems: "center", gap: "0.85rem", padding: "0.75rem 1.1rem", borderBottom: `1px solid ${BORDER}`, opacity: 0.55 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <p style={{ fontFamily: FONT, fontSize: "0.9rem", fontWeight: 600, color: TEXT_DARK, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.email}</p>
+                      <p style={{ fontFamily: FONT, fontSize: "0.75rem", color: TEXT_MUTED, margin: 0 }}>
+                        {TIER_LABEL[m.tier] ?? m.tier} · {m.status}{m.comped ? " · Comped" : ""}
+                      </p>
+                    </div>
+                    <button onClick={() => remove(m)} style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 20, padding: "0.25rem 0.75rem", fontFamily: FONT, fontSize: "0.72rem", cursor: "pointer", color: TEXT_MUTED, flexShrink: 0 }}>
+                      Remove
+                    </button>
+                  </div>
+                ))}
               </div>
-            );
-          })}
-        </div>
+            </>
+          )}
+        </>
       )}
     </div>
   );
