@@ -63,9 +63,9 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
         }
 
         /* ---- Masthead: eyebrow / wordmark / vol-no bar ---- */
-        .mag-masthead { padding: 12px 76px 0; }
+        .mag-masthead { padding: 8px 76px 0; }
         .mag-eyebrow {
-          display: grid;
+          display: none;
           grid-template-columns: 1fr auto 1fr;
           align-items: center;
           font-family: var(--font-subhead);
@@ -77,7 +77,7 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
         }
         .mag-eyebrow .center { color: #000000; letter-spacing: .16em; text-align: center; white-space: nowrap; }
         .mag-eyebrow .right { text-align: right; }
-        .mag-wordmark-link { display: block; width: fit-content; margin: 10px auto 8px; line-height: 0; background: none; border: none; padding: 0; cursor: pointer; }
+        .mag-wordmark-link { display: block; width: fit-content; margin: 2px auto 8px; line-height: 0; background: none; border: none; padding: 0; cursor: pointer; }
         .mag-wordmark-img { display: block; height: 54px; width: auto; margin: 0 auto; }
         .mag-volno {
           border-top: 1px solid #000000;
