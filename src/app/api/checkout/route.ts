@@ -36,7 +36,10 @@ export async function POST(req: Request) {
         // can record which membership was purchased on every lifecycle event.
         metadata: { tier: item as string },
         subscription_data: { metadata: { tier: item as string } },
-        success_url: `${SITE_URL}/subscribe/success?session_id={CHECKOUT_SESSION_ID}`,
+        // Route the success redirect through /checkout-complete so the member
+        // is signed in immediately (it verifies the session, then forwards to
+        // the thank-you page).
+        success_url: `${SITE_URL}/api/member/checkout-complete?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${SITE_URL}/subscribe`,
       });
       return NextResponse.json({ url: session.url });
