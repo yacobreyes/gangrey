@@ -5,6 +5,7 @@ import MagFooter from "@/components/MagFooter";
 
 export const metadata: Metadata = {
   title: "Gangrey | Thank You",
+  robots: { index: false, follow: false },
 };
 
 export default function SubscribeSuccessPage() {

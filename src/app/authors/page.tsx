@@ -8,6 +8,7 @@ export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Gangrey | Authors",
+  alternates: { canonical: "/authors" },
   description: "Writers featured in Gangrey.",
 };
 

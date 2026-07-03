@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
 import HomeClient from "@/components/HomeClient";
 import { getPostsLight, getAboutPage, getLately, getWelcome, type SanityLately, type SanityWelcome } from "@/lib/sanity";
 import { ptToParagraphs } from "@/lib/parseBody";
 
 export const revalidate = 60;
+
+// Self-referencing canonical so Google indexes the clean homepage URL and
+// ignores query-string variants (?q=, ?tab=) as duplicates.
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 type Tab = "Home" | "About" | "Micro-Memoirs" | "Narratives" | "Essays" | "Archive";
 

@@ -8,6 +8,7 @@ export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Gangrey | About",
+  alternates: { canonical: "/about" },
   description: "About Gangrey, a literary magazine by Yacob Reyes.",
 };
 

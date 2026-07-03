@@ -60,6 +60,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: `Gangrey | ${seoTitle}`,
     description: seoDescription,
+    alternates: { canonical: `/stories/${slug}` },
     openGraph: {
       type: "article",
       url: postUrl,

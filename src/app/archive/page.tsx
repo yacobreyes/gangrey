@@ -10,6 +10,7 @@ export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Gangrey | Archive",
+  alternates: { canonical: "/archive" },
   description: "Writing once featured on the now-defunct Gangrey.com.",
 };
 

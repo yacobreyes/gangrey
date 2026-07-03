@@ -8,6 +8,7 @@ export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Gangrey | Issues",
+  alternates: { canonical: "/issues" },
   description: "Every newsletter issue from Gangrey, a literary magazine.",
 };
 

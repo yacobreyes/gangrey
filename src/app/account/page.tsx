@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Gangrey | Your Membership",
+  robots: { index: false, follow: false },
 };
 
 const TIER_LABEL: Record<string, string> = {

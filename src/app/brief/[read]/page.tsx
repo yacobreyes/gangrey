@@ -9,10 +9,14 @@ import ListingHeader from "@/components/ListingHeader";
 
 export const revalidate = 60;
 
-export const metadata: Metadata = {
-  title: "Gangrey | Life, in Brief.",
-  description: "Short reads, sized to your window. One-, three-, and five-minute stories from Gangrey.",
-};
+export async function generateMetadata({ params }: { params: Promise<{ read: string }> }): Promise<Metadata> {
+  const { read } = await params;
+  return {
+    title: "Gangrey | Life, in Brief.",
+    description: "Short reads, sized to your window. One-, three-, and five-minute stories from Gangrey.",
+    alternates: { canonical: `/brief/${read}` },
+  };
+}
 
 const BUCKETS = [
   { read: 1, label: "One-Minute Reads", match: (t: number) => t <= 1 },

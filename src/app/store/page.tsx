@@ -7,6 +7,7 @@ import type { MerchItem } from "@/lib/checkoutCatalog";
 
 export const metadata: Metadata = {
   title: "Gangrey | Shop",
+  alternates: { canonical: "/store" },
   description: "Merchandise and memberships from Gangrey, a literary magazine.",
 };
 

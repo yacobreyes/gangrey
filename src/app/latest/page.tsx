@@ -9,6 +9,7 @@ export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Gangrey | The Latest",
+  alternates: { canonical: "/latest" },
   description: "The newest writing from Gangrey.",
 };
 

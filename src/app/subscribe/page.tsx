@@ -9,6 +9,7 @@ import type { SubscriptionItem } from "@/lib/checkoutCatalog";
 export const metadata: Metadata = {
   title: "Gangrey | Subscribe",
   description: "Become a free or paid member of Gangrey, a literary magazine.",
+  alternates: { canonical: "/subscribe" },
 };
 
 const PAID_TIERS: { key: SubscriptionItem; name: string; price: string; per: string; desc: string }[] = [
