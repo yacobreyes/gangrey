@@ -189,9 +189,8 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
 
         @media (max-width: 1100px) {
           .mag-masthead { padding: 10px 20px 0; }
-          .mag-eyebrow { font-size: 8px; letter-spacing: .1em; gap: 4px 6px; row-gap: 4px; }
-          .mag-eyebrow .left, .mag-eyebrow .right, .mag-eyebrow .center { min-width: 0; }
-          .mag-wordmark-link { margin: 8px auto 6px; }
+          .mag-eyebrow { display: none; }
+          .mag-wordmark-link { margin: 4px auto 6px; }
           .mag-wordmark-img { height: 38px; }
           .mag-volno { flex-wrap: nowrap; font-size: 6.5px; letter-spacing: .04em; gap: 5px; padding: 5px 0; }
           .mag-volno .tag { white-space: nowrap; }
