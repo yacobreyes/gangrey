@@ -13,7 +13,7 @@ export const storyStyles = `
     width: 100%;
     max-width: 760px;
     margin: 0 auto;
-    padding: 44px 40px 26px;
+    padding: 20px 40px 26px;
     box-sizing: border-box;
     text-align: center;
   }
@@ -176,7 +176,7 @@ export const storyStyles = `
     box-sizing: border-box;
   }
   @media (max-width: 900px) {
-    .story-head { padding: 30px 22px 20px; }
+    .story-head { padding: 20px 22px 20px; }
     .story-hero-wrap { padding: 0 20px; }
     .story-cutline-wrap { padding: 0 20px; }
     .story-article { padding: 30px 22px 16px; }
