@@ -95,8 +95,7 @@ export default function Feed({
         body { margin: 0; color: #000000; font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
         a { color: inherit; text-decoration: none; }
 
-        /* HERO — magazine-cover layout: photo on top, text stacked below and
-           centered on every breakpoint (no overlay on the image). */
+        /* HERO */
         .hm-hero-wrap { padding: 20px 76px 0; }
         .hm-hero-link { display: block; color: inherit; }
         .hm-hero {
@@ -104,44 +103,57 @@ export default function Feed({
           display: block;
           aspect-ratio: 16 / 9;
           overflow: hidden;
+          color: #ffffff;
           background: linear-gradient(135deg, #4a3527 0%, #241a13 60%, #0f0b08 100%);
         }
+        .hm-kicker-onimage { display: none; }
+        .hm-hero-below { display: none; }
+        .hm-hero-credit-mobile { display: none; }
         .hm-hero-img {
           position: absolute; inset: 0; width: 100%; height: 100%;
           object-fit: cover; display: block;
         }
-        .hm-hero-credit-below {
-          margin-top: 8px;
-          font-family: var(--font-subhead);
-          font-size: 11px; letter-spacing: .03em; font-weight: 400;
-          color: #8a8a8c; text-align: center;
+        .hm-hero-scrim {
+          position: absolute; inset: 0;
+          background: linear-gradient(to top, rgba(15,11,8,.92) 0%, rgba(15,11,8,.5) 42%, rgba(15,11,8,.1) 100%);
+          pointer-events: none;
         }
-        .hm-hero-below { padding: 26px 4px 0; color: #000000; text-align: center; }
+        .hm-hero-credit {
+          position: absolute; top: 16px; right: 22px;
+          font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+          color: #ffffff;
+        }
+        .hm-hero-content {
+          position: absolute; left: 0; right: 0; bottom: 0;
+          padding: 0 40px 44px;
+          color: #ffffff;
+        }
         .hm-kicker {
           display: inline-block; white-space: nowrap;
           background: #490000; color: #ffffff;
           font-family: var(--font-subhead);
           font-weight: 800; font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
-          padding: 6px 11px;
+          padding: 6px 11px; margin-bottom: 18px;
         }
-        .hm-kicker-below { margin-bottom: 18px; }
-        .hm-h1-below {
-          margin: 0 auto; max-width: 900px;
+        .hm-h1 {
+          margin: 0; max-width: 780px;
           font-family: var(--font-headline);
-          font-size: clamp(40px, 4.6vw, 60px);
-          line-height: .98; letter-spacing: -.03em; font-weight: 800; color: #000000;
+          font-size: clamp(38px, 4.4vw, 58px);
+          line-height: .98; letter-spacing: -.03em; font-weight: 800;
+          text-shadow: 0 2px 24px rgba(0,0,0,.55);
         }
-        .hm-dek-below {
-          margin: 18px auto 0; max-width: 620px;
-          font-size: 20px; line-height: 1.4; font-style: italic; color: #392a22;
+        .hm-dek {
+          margin: 16px 0 0; max-width: 540px;
+          font-size: 19px; line-height: 1.4; font-style: italic;
+          text-shadow: 0 1px 12px rgba(0,0,0,.5);
         }
-        .hm-hero-meta-below {
-          margin-top: 22px;
-          display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 16px;
+        .hm-hero-meta {
+          margin-top: 26px;
+          display: flex; align-items: center; gap: 16px; white-space: nowrap;
           font-family: var(--font-subhead);
-          font-weight: 700; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: #000000;
+          font-weight: 700; font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
         }
-        .hm-hero-meta-below .hm-dot { color: #490000; }
+        .hm-hero-meta .hm-dot { opacity: .6; }
 
         /* LATEST */
         .hm-latest { padding: 36px 76px 40px; background: #ffffff; }
@@ -232,23 +244,37 @@ export default function Feed({
         /* MOBILE */
         @media (max-width: 900px) {
           .hm-hero-wrap { padding: 20px 20px 0; }
-          /* Same below-the-photo stack as desktop, tightened for phones: a
-             square photo, smaller headline/dek, and no kicker badge. */
+          /* Mobile hero, magazine-cover style: a big square photo with a
+             plain caption underneath, then a centered headline/dek/byline
+             stack below — no text/badge overlaid on the photo itself. */
           .hm-hero { aspect-ratio: 1 / 1; }
-          .hm-hero-below { padding: 22px 4px 0; }
-          .hm-kicker-below { display: none; }
-          .hm-h1-below {
-            font-size: clamp(28px, 8vw, 38px); line-height: 1.08;
-            letter-spacing: -.01em; max-width: none;
+          .hm-hero-scrim { display: none; }
+          .hm-hero-content { display: none; }
+          .hm-kicker-onimage { display: none; }
+          .hm-hero-credit { display: none; }
+          .hm-hero-credit-mobile {
+            display: block;
+            margin-top: 8px;
+            font-family: var(--font-subhead);
+            font-size: 11px; letter-spacing: .03em; font-weight: 400;
+            color: #8a8a8c;
           }
-          .hm-dek-below {
+          .hm-hero-below { display: block; padding: 22px 4px 0; color: #000000; text-align: center; }
+          .hm-h1-mobile {
+            margin: 0; font-family: var(--font-headline);
+            font-size: clamp(28px, 8vw, 38px); line-height: 1.08;
+            letter-spacing: -.01em; font-weight: 800; color: #000000;
+          }
+          .hm-dek-mobile {
             margin: 12px auto 0; font-family: var(--font-body); font-style: normal;
             font-size: 16px; line-height: 1.4; color: #000000; max-width: 340px;
           }
-          .hm-hero-meta-below {
-            margin-top: 14px; gap: 8px;
-            font-size: 10.5px; letter-spacing: .14em;
+          .hm-hero-meta-mobile {
+            margin-top: 14px; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px;
+            font-family: var(--font-subhead); font-weight: 700; font-size: 10.5px;
+            letter-spacing: .14em; text-transform: uppercase; color: #000000;
           }
+          .hm-hero-meta-mobile .hm-dot { color: #490000; }
 
           .hm-latest { padding: 36px 0 44px; }
           .hm-latest-head { flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 20px; padding: 0 20px; }
@@ -331,15 +357,29 @@ export default function Feed({
               // eslint-disable-next-line @next/next/no-img-element
               <img className="hm-hero-img" src={heroImg} alt={hero.image?.alt ?? hero.headline} />
             )}
+            <div className="hm-hero-scrim" />
+            {hero.image?.caption && <div className="hm-hero-credit">{hero.image.caption}</div>}
+            {/* On-image kicker: the only hero text that stays over the photo on
+                mobile — headline/dek/meta move below the image there instead
+                (matches a plain-photo mobile front page rather than a text
+                overlay). Desktop keeps the full bottom-left overlay. */}
+            <span className="hm-kicker hm-kicker-onimage">Worth Your Time</span>
+            <div className="hm-hero-content">
+              <span className="hm-kicker">Worth Your Time</span>
+              <h1 className="hm-h1">{hero.headline}</h1>
+              {hero.subheadline && <p className="hm-dek">{hero.subheadline}</p>}
+              <div className="hm-hero-meta">
+                <span>By {hero.byline}</span>
+                <span className="hm-dot">·</span>
+                <span>{postReadingTime(hero)} Min Read</span>
+              </div>
+            </div>
           </div>
-          {hero.image?.caption && <div className="hm-hero-credit-below">{hero.image.caption}</div>}
-          {/* Headline, dek and byline sit below the photo on every breakpoint —
-              a magazine-cover stack rather than a text overlay on the image. */}
+          {hero.image?.caption && <div className="hm-hero-credit-mobile">{hero.image.caption}</div>}
           <div className="hm-hero-below">
-            <span className="hm-kicker hm-kicker-below">Worth Your Time</span>
-            <h1 className="hm-h1-below">{hero.headline}</h1>
-            {hero.subheadline && <p className="hm-dek-below">{hero.subheadline}</p>}
-            <div className="hm-hero-meta-below">
+            <h2 className="hm-h1-mobile">{hero.headline}</h2>
+            {hero.subheadline && <p className="hm-dek-mobile">{hero.subheadline}</p>}
+            <div className="hm-hero-meta-mobile">
               <span>By {hero.byline}</span>
               <span className="hm-dot">·</span>
               <span>{postReadingTime(hero)} Min Read</span>
