@@ -40,7 +40,7 @@ export default function SubscribePage() {
     <div className="subscribe-page">
       <style>{`
         .subscribe-page { min-height: 100vh; display: flex; flex-direction: column; background: #ffffff; color: #000000; }
-        .subscribe-main { flex: 1; width: 100%; padding: 44px 76px 42px; box-sizing: border-box; }
+        .subscribe-main { flex: 1; width: 100%; padding: 20px 76px 42px; box-sizing: border-box; }
         .subscribe-header { border-bottom: 1px solid #000000; padding-bottom: 16px; margin-bottom: 32px; }
         .subscribe-h1 {
           margin: 0;
@@ -104,7 +104,7 @@ export default function SubscribePage() {
           font-size: 17px; font-style: italic; color: #392a22;
         }
         @media (max-width: 900px) {
-          .subscribe-main { padding: 40px 20px 48px; }
+          .subscribe-main { padding: 20px 20px 48px; }
           .tiers-grid { grid-template-columns: 1fr 1fr; gap: 28px 20px; }
           .tier-divider { display: none; }
           .tier-name { font-size: 18px; margin-bottom: 4px; }

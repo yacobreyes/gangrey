@@ -42,7 +42,7 @@ export default async function BriefReadPage({ params }: { params: Promise<{ read
     <div className="listing-page">
       <style>{`
         .listing-page { min-height: 100vh; display: flex; flex-direction: column; background: #ffffff; color: #000000; }
-        .listing-main { width: 100%; max-width: 1180px; margin: 0 auto; padding: 44px 44px 60px; box-sizing: border-box; flex: 1; }
+        .listing-main { width: 100%; max-width: 1180px; margin: 0 auto; padding: 20px 44px 60px; box-sizing: border-box; flex: 1; }
         .brief-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 36px; }
         .brief-tab {
           font-family: var(--font-subhead);
@@ -53,7 +53,7 @@ export default async function BriefReadPage({ params }: { params: Promise<{ read
         .brief-tab:hover { border-color: #490000; color: #490000; }
         .brief-tab.active { background: #490000; border-color: #490000; color: #ffffff; }
         .listing-empty { font-family: var(--font-headline); font-size: 22px; font-style: italic; color: #000000; margin-top: 24px; }
-        @media (max-width: 900px) { .listing-main { padding: 40px 24px 64px; } }
+        @media (max-width: 900px) { .listing-main { padding: 20px 24px 64px; } }
       `}</style>
       <MagHeader />
       <main className="listing-main">

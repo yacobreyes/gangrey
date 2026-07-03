@@ -38,7 +38,7 @@ export default async function AuthorsPage() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#ffffff" }}>
       <MagHeader />
-      <main style={{ flex: 1, width: "100%", maxWidth: 1100, margin: "0 auto", padding: "44px 44px 100px", boxSizing: "border-box" }}>
+      <main style={{ flex: 1, width: "100%", maxWidth: 1100, margin: "0 auto", padding: "20px 44px 100px", boxSizing: "border-box" }}>
         <AuthorsClient authors={authors} />
       </main>
       <MagFooter />
