@@ -358,7 +358,6 @@ export default function Feed({
               <img className="hm-hero-img" src={heroImg} alt={hero.image?.alt ?? hero.headline} />
             )}
             <div className="hm-hero-scrim" />
-            {hero.image?.caption && <div className="hm-hero-credit">{hero.image.caption}</div>}
             {/* On-image kicker: the only hero text that stays over the photo on
                 mobile — headline/dek/meta move below the image there instead
                 (matches a plain-photo mobile front page rather than a text
