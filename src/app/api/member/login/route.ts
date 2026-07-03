@@ -35,13 +35,33 @@ export async function POST(req: Request) {
 
   const token = makeLoginToken(email);
   const link = `${SITE_URL}/api/member/callback?token=${encodeURIComponent(token)}`;
-  const html = `
-    <div style="font-family:Georgia,serif;max-width:440px;margin:0 auto;padding:24px;color:#000">
-      <p style="font-size:18px;margin:0 0 16px">Sign in to your Gangrey membership</p>
-      <p style="font-size:15px;line-height:1.5;color:#392a22;margin:0 0 24px">Click the button below to sign in. This link expires in 15 minutes.</p>
-      <a href="${link}" style="display:inline-block;background:#490000;color:#fff;text-decoration:none;padding:12px 22px;font-family:Helvetica,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;border-radius:2px">Sign In</a>
-      <p style="font-size:12px;color:#8a8a8c;margin:24px 0 0">If you didn't request this, you can ignore this email.</p>
-    </div>`;
+  // Full HTML doc with a forced light color scheme + bgcolor table button so
+  // dark-mode mail clients (Apple Mail especially) can't invert the crimson
+  // button into pink with dark text.
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+</head>
+<body style="margin:0;padding:0;background-color:#ffffff;">
+  <div style="font-family:Georgia,serif;max-width:440px;margin:0 auto;padding:24px;color:#000000;background-color:#ffffff;">
+    <p style="font-size:18px;margin:0 0 16px;color:#000000;">Sign in to your Gangrey membership</p>
+    <p style="font-size:15px;line-height:1.5;color:#392a22;margin:0 0 24px;">Click the button below to sign in. This link expires in 15 minutes.</p>
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+      <tr>
+        <td bgcolor="#490000" style="background-color:#490000 !important;border-radius:2px;">
+          <a href="${link}" style="display:inline-block;background-color:#490000 !important;color:#ffffff !important;text-decoration:none;padding:12px 22px;font-family:Helvetica,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;border-radius:2px;">
+            <span style="color:#ffffff !important;">Sign In</span>
+          </a>
+        </td>
+      </tr>
+    </table>
+    <p style="font-size:12px;color:#8a8a8c;margin:24px 0 0;">If you didn't request this, you can ignore this email.</p>
+  </div>
+</body>
+</html>`;
 
   try {
     const resend = new Resend(apiKey);
