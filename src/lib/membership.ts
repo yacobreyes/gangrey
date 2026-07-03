@@ -16,6 +16,8 @@ export interface Member {
   stripeSubscriptionId?: string;
   currentPeriodEnd?: number; // unix seconds
   createdAt?: string;
+  // Comped members are granted access manually (no Stripe subscription).
+  comped?: boolean;
 }
 
 export function memberIdForEmail(email: string): string {
@@ -39,7 +41,7 @@ export async function getMemberByEmail(email: string): Promise<Member | null> {
   const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
   if (!projectId) return null;
   const id = memberIdForEmail(email);
-  const query = encodeURIComponent(`*[_id == "${id}"][0]{ _id, email, tier, status, stripeCustomerId, stripeSubscriptionId, currentPeriodEnd, createdAt }`);
+  const query = encodeURIComponent(`*[_id == "${id}"][0]{ _id, email, tier, status, stripeCustomerId, stripeSubscriptionId, currentPeriodEnd, createdAt, comped }`);
   try {
     const res = await fetch(
       `https://${projectId}.apicdn.sanity.io/v2024-01-01/data/query/${dataset}?query=${query}`,
@@ -89,6 +91,39 @@ export async function upsertMember(input: {
       },
     },
   ]);
+}
+
+// Admin: list every member (comped + Stripe), newest first. Uses the write
+// token so drafts/unpublished are visible and reads are always fresh.
+export async function listAllMembers(): Promise<Member[]> {
+  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
+  const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
+  const token = process.env.SANITY_API_WRITE_TOKEN ?? process.env.SANITY_WRITE_TOKEN;
+  if (!projectId) return [];
+  const query = encodeURIComponent(`*[_type == "member"] | order(coalesce(createdAt, "") desc){ _id, email, tier, status, stripeCustomerId, stripeSubscriptionId, currentPeriodEnd, createdAt, comped }`);
+  const res = await fetch(
+    `https://${projectId}.api.sanity.io/v2024-01-01/data/query/${dataset}?query=${query}`,
+    { headers: token ? { Authorization: `Bearer ${token}` } : {}, cache: "no-store" }
+  );
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.result as Member[]) ?? [];
+}
+
+// Admin: grant a comped membership by email — active, no Stripe subscription.
+export async function compMembership(email: string, tier: MemberTier = "founding"): Promise<void> {
+  const clean = email.trim().toLowerCase();
+  const _id = memberIdForEmail(clean);
+  await sanityMutate([
+    { createIfNotExists: { _id, _type: "member", email: clean, createdAt: new Date().toISOString() } },
+    { patch: { id: _id, set: { email: clean, tier, status: "active", comped: true, currentPeriodEnd: null } } },
+  ]);
+}
+
+// Admin: revoke a member's access (comped or Stripe) by marking canceled.
+export async function revokeMembership(email: string): Promise<void> {
+  const _id = memberIdForEmail(email.trim().toLowerCase());
+  await sanityMutate([{ patch: { id: _id, set: { status: "canceled" } } }]);
 }
 
 // Update just the status/period on subscription lifecycle events, keyed by the
