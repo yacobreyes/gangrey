@@ -23,13 +23,19 @@ export async function POST(req: Request) {
   const genericOk = NextResponse.json({ ok: true });
 
   const member = await getMemberByEmail(email);
-  if (!member) return genericOk;
+  if (!member) {
+    // Server-log only (Vercel function logs) — the client response stays
+    // identical to the sent case so membership can't be enumerated.
+    console.log(`[member-login] no member record for ${email}; skipping send`);
+    return genericOk;
+  }
 
   const apiKey = process.env.GANGREY_RESEND_KEY ?? process.env.RESEND_API_KEY;
   const from = process.env.NEWSLETTER_FROM;
   if (!apiKey || !from) {
     // Email isn't configured — surface a real error to the admin/dev, not the
     // silent-success path, since nothing would arrive.
+    console.log(`[member-login] missing ${!apiKey ? "GANGREY_RESEND_KEY/RESEND_API_KEY" : "NEWSLETTER_FROM"}`);
     return NextResponse.json({ error: "Login email isn't configured yet." }, { status: 500 });
   }
 
@@ -65,11 +71,18 @@ export async function POST(req: Request) {
 
   try {
     const resend = new Resend(apiKey);
-    await resend.emails.send({ from, to: [email], subject: "Sign in to Gangrey", html });
-  } catch {
-    // Don't leak send failures to the client beyond a generic message.
+    // Resend reports API failures via the returned `error`, not by throwing —
+    // ignoring it means "success" with no email ever arriving.
+    const { error } = await resend.emails.send({ from, to: [email], subject: "Sign in to Gangrey", html });
+    if (error) {
+      console.log(`[member-login] resend error for ${email}: ${error.message}`);
+      return NextResponse.json({ error: "Couldn't send the login email. Try again." }, { status: 500 });
+    }
+  } catch (err) {
+    console.log(`[member-login] send threw for ${email}: ${err instanceof Error ? err.message : String(err)}`);
     return NextResponse.json({ error: "Couldn't send the login email. Try again." }, { status: 500 });
   }
 
+  console.log(`[member-login] sent login link to ${email}`);
   return genericOk;
 }
