@@ -18,6 +18,19 @@ const nextConfig: NextConfig = {
       { source: "/essays", destination: "/?tab=Essays" },
     ];
   },
+  // Canonical host is the bare gangrey.org — 301 any www.gangrey.org request to
+  // it so Google only ever indexes one hostname (avoids the www/non-www
+  // "duplicate" split in Search Console).
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.gangrey.org" }],
+        destination: "https://gangrey.org/:path*",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
