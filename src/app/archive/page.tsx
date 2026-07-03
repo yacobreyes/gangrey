@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { getAllPosts } from "@/lib/sanity";
+import { getArchivePosts } from "@/lib/sanity";
 import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
 import GangreyArchive from "@/components/GangreyArchive";
 import ListingHeader from "@/components/ListingHeader";
 import { normalizeHeadline } from "@/lib/gangreyDedup";
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Gangrey | Archive",
@@ -14,15 +14,10 @@ export const metadata: Metadata = {
 };
 
 export default async function GangreyPage() {
-  let posts = [] as Awaited<ReturnType<typeof getAllPosts>>;
-  try { posts = await getAllPosts(); } catch {}
+  let gangrey = [] as Awaited<ReturnType<typeof getArchivePosts>>;
+  try { gangrey = await getArchivePosts(); } catch {}
 
-  const gangrey = posts
-    .filter(p => {
-      const pub = !p.status || p.status === "published" ||
-        (p.status === "scheduled" && p.scheduledAt && new Date(p.scheduledAt) <= new Date());
-      return pub && p.section === "Archive";
-    })
+  gangrey = gangrey
     .sort((a, b) => {
       const dt = new Date(b.date).getTime() - new Date(a.date).getTime();
       if (dt !== 0) return dt;

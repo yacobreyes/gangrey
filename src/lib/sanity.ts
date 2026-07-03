@@ -198,6 +198,38 @@ export async function getArchivePostsAdmin(): Promise<SanityPost[]> {
   return posts.map(straightenPost);
 }
 
+// Public archive listing. The old /archive page pulled full portable-text
+// bodies for every published post via getAllPosts() — thousands of docs — which
+// blew past Sanity's response limits and left the page empty. Here we fetch
+// ONLY archive posts and only their plain text (pt::text), then wrap it in a
+// single synthetic block so the GangreyArchive component (which reads
+// body[].children[].text for search/excerpt/reading-time) works unchanged.
+export async function getArchivePosts(): Promise<SanityPost[]> {
+  type Row = { _id: string; slug: string; section: SanityPost["section"]; headline: string; byline: string; date: string; status?: SanityPost["status"]; sortOrder?: number; plain?: string };
+  const rows: Row[] = await clientCdn.fetch(
+    `*[_type == "post" && !(_id in path("drafts.**")) && section == "Archive" && (status == "published" || !defined(status))] | order(date desc) {
+      _id, "slug": slug.current, section, headline, byline, date, status, sortOrder,
+      "plain": pt::text(body)
+    }`,
+    {},
+    { next: { revalidate: 300 } }
+  );
+  return rows.map(r => straightenPost({
+    _id: r._id,
+    slug: r.slug,
+    section: r.section,
+    headline: r.headline,
+    subheadline: "",
+    byline: r.byline,
+    date: r.date,
+    status: r.status,
+    sortOrder: r.sortOrder,
+    body: r.plain
+      ? [{ _type: "block", _key: "t", style: "normal", markDefs: [], children: [{ _type: "span", _key: "s", text: r.plain, marks: [] }] }]
+      : [],
+  } as SanityPost));
+}
+
 // Newsletter list for the dashboard, server-rendered so drafts appear on first
 // paint instead of popping in after a client fetch. Mirrors the shape returned
 // by /api/newsletter (which the client uses for live refreshes).
