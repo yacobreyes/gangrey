@@ -9,7 +9,7 @@ import { normalizeHeadline } from "@/lib/gangreyDedup";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "Gangrey | The Archive",
+  title: "Gangrey | Archive",
   description: "Writing once featured on the now-defunct Gangrey.com.",
 };
 
@@ -53,7 +53,7 @@ export default async function GangreyPage() {
       `}</style>
       <MagHeader />
       <main className="gr-wrap">
-        <ListingHeader title="The Archive" sub="Writing once featured on the original Gangrey blog." marginBottom={28} />
+        <ListingHeader title="Archive" sub="Writing once featured on the original Gangrey blog." marginBottom={28} />
         {deduped.length === 0
           ? <p style={{ fontFamily: "var(--font-headline)", fontSize: 22, fontStyle: "italic", color: "#000000" }}>No stories yet.</p>
           : <GangreyArchive posts={deduped} />

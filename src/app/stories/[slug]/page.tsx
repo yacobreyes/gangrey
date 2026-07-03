@@ -14,7 +14,7 @@ import { storyStyles, storyPtComponents, splitCaption } from "@/components/story
 
 function sectionLabel(section: string) {
   if (section === "Micro-Memoir") return "Micro-Memoir";
-  if (section === "Archive") return "The Archive";
+  if (section === "Archive") return "Archive";
   return section;
 }
 
