@@ -123,7 +123,7 @@ export default function SubscribePage() {
       <main className="subscribe-main">
         <div className="subscribe-header">
           <h1 className="subscribe-h1">Subscribe</h1>
-          <p className="subscribe-dek">Gangrey is a reader-supported publication. To receive new issues and support the work, consider becoming a free or paid member.</p>
+          <p className="subscribe-dek">To receive new issues and support the work, consider becoming a free or paid member.</p>
         </div>
 
         <div className="tiers-grid">
