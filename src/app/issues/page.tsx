@@ -24,7 +24,7 @@ export default async function IssuesPage() {
     <div className="issues-page">
       <style>{`
         .issues-page { min-height: 100vh; display: flex; flex-direction: column; background: #ffffff; color: #000000; }
-        .issues-main { flex: 1; width: 100%; max-width: 1180px; margin: 0 auto; padding: 20px 44px 42px; box-sizing: border-box; }
+        .issues-main { flex: 1; width: 100%; padding: 20px 76px 42px; box-sizing: border-box; }
         .issues-header { border-bottom: 1px solid #000000; padding-bottom: 18px; margin-bottom: 34px; }
         .issues-h1 {
           margin: 0;

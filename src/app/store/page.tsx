@@ -21,7 +21,7 @@ export default function StorePage() {
     <div className="store-page">
       <style>{`
         .store-page { min-height: 100vh; display: flex; flex-direction: column; background: #ffffff; color: #000000; }
-        .store-main { flex: 1; width: 100%; max-width: 1180px; margin: 0 auto; padding: 20px 44px 42px; box-sizing: border-box; }
+        .store-main { flex: 1; width: 100%; padding: 20px 76px 42px; box-sizing: border-box; }
         .store-header { border-bottom: 1px solid #000000; padding-bottom: 18px; margin-bottom: 34px; }
         .store-h1 {
           margin: 0;
@@ -59,6 +59,9 @@ export default function StorePage() {
           grid-template-columns: repeat(3, 1fr);
           gap: 40px 36px;
         }
+        /* Keep each product's text + price/Buy Now row aligned to the image
+           width, so "Buy Now" never sticks out past the image's right edge. */
+        .store-grid > div { max-width: 240px; }
         .product-img {
           display: flex; align-items: center; justify-content: center;
           width: 100%; max-width: 240px; aspect-ratio: 1 / 1;
@@ -102,6 +105,7 @@ export default function StorePage() {
           .store-band-desc { font-size: 12px; }
           .store-join { font-size: 10.5px; gap: 0; flex-shrink: 0; }
           .store-grid { grid-template-columns: repeat(2, 1fr); gap: 28px 20px; }
+          .store-grid > div { max-width: 160px; }
           .product-img { max-width: 160px; }
           .product-name { font-size: 18px; }
         }

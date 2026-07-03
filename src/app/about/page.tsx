@@ -20,16 +20,16 @@ export default async function AboutPage() {
     <div className="about-page">
       <style>{`
         .about-page { min-height: 100vh; display: flex; flex-direction: column; background: #ffffff; color: #000000; }
-        .about-main { flex: 1; width: 100%; max-width: 820px; margin: 0 auto; padding: 20px 40px 42px; box-sizing: border-box; }
+        .about-main { flex: 1; width: 100%; padding: 20px 76px 42px; box-sizing: border-box; }
         .about-h1 {
-          margin: 0; text-align: center;
+          margin: 0; text-align: left;
           font-family: var(--font-headline);
           font-size: 38px; line-height: 1; letter-spacing: -.03em; font-weight: 800;
         }
         .about-body { margin-top: 34px; font-family: var(--font-body); font-size: 18.5px; line-height: 1.62; color: #000000; }
         .about-body p { margin: 0 0 20px; }
         .about-body a { color: #490000; text-decoration: underline; }
-        .about-empty { margin-top: 34px; font-family: var(--font-headline); font-size: 22px; font-style: italic; color: #000000; text-align: center; }
+        .about-empty { margin-top: 34px; font-family: var(--font-headline); font-size: 22px; font-style: italic; color: #000000; text-align: left; }
         .about-cols {
           margin-top: 40px;
           display: grid;
@@ -56,7 +56,7 @@ export default async function AboutPage() {
           text-decoration: none;
         }
         @media (max-width: 900px) {
-          .about-main { padding: 20px 24px 48px; }
+          .about-main { padding: 20px 20px 48px; }
           .about-h1 { font-size: clamp(30px, 9vw, 38px); }
           .about-cols { grid-template-columns: 1fr; }
           .about-col-left { padding-right: 0; border-right: 0; padding-bottom: 28px; border-bottom: 1px dotted #8a8a8c; }
@@ -99,7 +99,7 @@ export default async function AboutPage() {
           </div>
           <div className="about-col-right">
             <div className="about-label">Submit</div>
-            <p className="about-submit-p">We accept submissions throughout the year. Send the full piece, a brief note, and your bio.</p>
+            <p className="about-submit-p">We accept submissions throughout the year. Send us the full piece, a brief note, and your bio.</p>
             <p className="about-rights">Authors retain copyright to their work. For each accepted piece, Gangrey provides a $45 honorarium and a one-year membership. In accepting publication, the author grants Gangrey first serial rights and the nonexclusive right to archive and promote the work with proper credit.</p>
             <a className="about-submit-btn" href="mailto:submissions@gangrey.org">submissions@gangrey.org</a>
           </div>
