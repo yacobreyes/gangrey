@@ -1,4 +1,5 @@
 import { sanityMutate } from "./sanityWrite";
+import { getStripe } from "./stripe";
 
 // Reader memberships are stored as `member` documents in Sanity, keyed
 // deterministically by email so the Stripe webhook can upsert idempotently and
@@ -121,8 +122,24 @@ export async function compMembership(email: string, tier: MemberTier = "founding
 }
 
 // Admin: revoke a member's access (comped or Stripe) by marking canceled.
+// If there's a live Stripe subscription behind this member, it must be
+// canceled there too — otherwise the next subscription webhook (renewal,
+// dunning retry, anything) re-syncs status from Stripe and silently
+// resurrects the membership we just revoked.
 export async function revokeMembership(email: string): Promise<void> {
-  const _id = memberIdForEmail(email.trim().toLowerCase());
+  const clean = email.trim().toLowerCase();
+  const _id = memberIdForEmail(clean);
+  const member = await getMemberByEmail(clean);
+  if (member?.stripeSubscriptionId) {
+    try {
+      await getStripe().subscriptions.cancel(member.stripeSubscriptionId);
+    } catch (err) {
+      // Already canceled/missing on Stripe's side is fine to ignore; anything
+      // else should surface so the admin knows the cancel may not have stuck.
+      const code = (err as { code?: string })?.code;
+      if (code !== "resource_missing") throw err;
+    }
+  }
   await sanityMutate([{ patch: { id: _id, set: { status: "canceled" } } }]);
 }
 
