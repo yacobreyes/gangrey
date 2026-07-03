@@ -194,6 +194,9 @@ export async function savePost(formData: FormData) {
   const imageCaption = formData.get("imageCaption") as string | null;
   const imageAlt = formData.get("imageAlt") as string | null;
   const status = (formData.get("status") as string) || "draft";
+  // Reader access. Archive posts are always members-only, so their access field
+  // is irrelevant; other sections default to "free" unless marked "paid".
+  const access = (formData.get("access") as string) === "paid" ? "paid" : "free";
   const scheduledAt = (formData.get("scheduledAt") as string) || null;
   const shouldSnapshot = formData.get("snapshot") === "1";
   const seoHeadline = (formData.get("seoHeadline") as string) || null;
@@ -219,7 +222,7 @@ export async function savePost(formData: FormData) {
     _type: "post",
     headline: sq(headline), subheadline: sq(subheadline),
     slug: { _type: "slug", current: slug },
-    section, byline: sq(byline), date, body: straightBody, status,
+    section, byline: sq(byline), date, body: straightBody, status, access,
     ...(readingTime ? { readingTime } : { readingTime: null }),
     ...(sortOrder != null ? { sortOrder } : {}),
     ...(scheduledAt ? { scheduledAt } : {}),

@@ -9,8 +9,11 @@ import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
 import StoryBackLink from "@/components/StoryBackLink";
 import StoryVisitTracker from "@/components/StoryVisitTracker";
+import StoryPaywall from "@/components/StoryPaywall";
 import { postReadingTime } from "@/lib/readingTime";
 import { storyStyles, storyPtComponents, splitCaption } from "@/components/storyTheme";
+import { storyRequiresMembership, previewBody } from "@/lib/storyAccess";
+import { isCurrentVisitorActiveMember } from "@/lib/currentMember";
 
 function sectionLabel(section: string) {
   if (section === "Micro-Memoir") return "Micro-Memoir";
@@ -81,6 +84,13 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
   const post = await getPost(slug);
   if (!post) notFound();
 
+  // Members-only stories show a preview + paywall to non-members. Reading the
+  // session cookie makes this route render per-request (opts out of caching)
+  // for gated stories, which is correct — a paywall can't be statically cached.
+  const gated = storyRequiresMembership(post);
+  const unlocked = gated ? await isCurrentVisitorActiveMember() : true;
+  const bodyToRender = unlocked ? post.body : previewBody(post.body);
+
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org";
   const jsonLd = {
     "@context": "https://schema.org",
@@ -93,6 +103,16 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
     publisher: { "@type": "Organization", name: "Gangrey", url: siteUrl },
     url: `${siteUrl}/stories/${slug}`,
     ...(post.image?.asset ? { image: urlFor(post.image.asset).width(1200).height(630).url() } : {}),
+    // Google's paywalled-content signal — declares the gated body so serving a
+    // preview to crawlers isn't treated as cloaking.
+    ...(gated ? {
+      isAccessibleForFree: false,
+      hasPart: {
+        "@type": "WebPageElement",
+        isAccessibleForFree: false,
+        cssSelector: ".story-body",
+      },
+    } : {}),
   };
 
   const caption = post.image?.caption ? splitCaption(post.image.caption) : null;
@@ -141,8 +161,9 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
 
       <article className="story-article">
         <div className="story-body">
-          <PortableText value={post.body} components={storyPtComponents} />
+          <PortableText value={bodyToRender} components={storyPtComponents} />
         </div>
+        {!unlocked && <StoryPaywall />}
       </article>
 
       <div className="story-foot">

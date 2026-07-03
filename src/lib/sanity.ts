@@ -47,6 +47,9 @@ export interface SanityPost {
   status?: "draft" | "published" | "scheduled" | "trashed";
   scheduledAt?: string;
   scheduledBy?: string;
+  // Reader access: "free" (public, default) or "paid" (members only).
+  // Archive posts are always members-only regardless of this field.
+  access?: "free" | "paid";
   seoHeadline?: string;
   socialHeadline?: string;
   socialDescription?: string;
@@ -71,6 +74,7 @@ const POST_LIST_FIELDS = `
   "body": [],
   image { asset, caption, alt },
   status,
+  access,
   scheduledAt,
   "readingTime": coalesce(readingTime, round(length(pt::text(body)) / 1100) + 1),
   sortOrder
@@ -96,6 +100,7 @@ const POST_FIELDS = `
   body,
   image { asset, caption, alt },
   status,
+  access,
   scheduledAt,
   seoHeadline,
   socialHeadline,

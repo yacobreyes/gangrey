@@ -46,6 +46,7 @@ type FormState = {
   headline: string; subheadline: string; byline: string; slug: string;
   section: string; date: string; body: JSONContent;
   status: "draft" | "published" | "scheduled";
+  access: "free" | "paid";
   seoHeadline: string; socialHeadline: string; socialDescription: string;
   readingTime: string; sortOrder: string;
 };
@@ -105,6 +106,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
     date: post.date ?? new Date().toISOString().slice(0, 10),
     body: post.body?.length ? portableTextToTiptap(post.body) : EMPTY_DOC,
     status: post.status === "published" || !post.status ? "published" : post.status === "scheduled" ? "scheduled" : "draft",
+    access: post.access === "paid" ? "paid" : "free",
     seoHeadline: post.seoHeadline ?? "",
     socialHeadline: post.socialHeadline ?? "",
     socialDescription: post.socialDescription ?? "",
@@ -723,6 +725,24 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                   <option>Essays</option>
                   <option value="Archive">The Archive</option>
                 </select>
+              </div>
+              <div>
+                <label style={LABEL}>Access</label>
+                {form.section === "Archive" ? (
+                  <p style={{ fontFamily: FONT, fontSize: "0.8rem", color: TEXT_MUTED, margin: 0, lineHeight: 1.5 }}>
+                    Archive stories are always members-only.
+                  </p>
+                ) : (
+                  <>
+                    <select style={INPUT} value={form.access} onChange={e => updateForm({ access: e.target.value as "free" | "paid" })}>
+                      <option value="free">Free — anyone can read</option>
+                      <option value="paid">Paid — members only</option>
+                    </select>
+                    <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, margin: "0.4rem 0 0", lineHeight: 1.5 }}>
+                      Paid stories show a preview + join prompt to non-members.
+                    </p>
+                  </>
+                )}
               </div>
               <div><label style={LABEL}>Author</label><input style={INPUT} value={form.byline} onChange={e => updateForm({ byline: straightenQuotes(e.target.value) })} /></div>
               <div>

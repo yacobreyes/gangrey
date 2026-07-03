@@ -41,6 +41,7 @@ export default function MagFooter() {
         <Link href="/authors">Authors</Link>
         <a href="mailto:submissions@gangrey.org">Submit</a>
         <Link href="/subscribe">Subscribe</Link>
+        <Link href="/account">Sign In</Link>
       </nav>
       <p className="mag-footer-copy">© 2026 Gangrey | A Literary Magazine. All Rights Reserved.</p>
     </footer>

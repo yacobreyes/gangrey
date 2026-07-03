@@ -32,6 +32,10 @@ export async function POST(req: Request) {
           },
           quantity: 1,
         }],
+        // Tier travels on both the session and the subscription so the webhook
+        // can record which membership was purchased on every lifecycle event.
+        metadata: { tier: item as string },
+        subscription_data: { metadata: { tier: item as string } },
         success_url: `${SITE_URL}/subscribe/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${SITE_URL}/subscribe`,
       });
