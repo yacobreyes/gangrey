@@ -3,7 +3,6 @@ import Link from "next/link";
 import { getAllIssues } from "@/lib/sanity";
 import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
-import IssueSignupForm from "@/components/IssueSignupForm";
 
 export const revalidate = 60;
 
@@ -43,6 +42,12 @@ export default async function IssuesPage() {
         .issues-band-title {
           font-family: var(--font-headline);
           font-size: 30px; font-weight: 800; letter-spacing: -.02em; line-height: 1.08;
+        }
+        .issues-band-cta {
+          color: #ffffff; white-space: nowrap; flex-shrink: 0;
+          font-family: var(--font-subhead);
+          font-weight: 800; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+          text-decoration: underline; text-underline-offset: 4px;
         }
         .issues-recent-label {
           font-family: var(--font-subhead);
@@ -91,7 +96,7 @@ export default async function IssuesPage() {
           .issues-band { padding: 16px 18px; gap: 14px; margin-bottom: 34px; flex-wrap: nowrap; align-items: center; }
           .issues-band > div:first-child { flex: 0 1 auto; min-width: 0; }
           .issues-band-title { font-size: 16px; line-height: 1.1; }
-          .issue-signup { flex: 1; min-width: 0; }
+          .issues-band-cta { font-size: 11px; }
           .issue-row { grid-template-columns: 1fr auto; gap: 6px 20px; }
           .issue-no { grid-column: 1 / -1; padding-top: 0; }
         }
@@ -104,7 +109,7 @@ export default async function IssuesPage() {
 
         <div className="issues-band">
           <div><div className="issues-band-title">Read it in your inbox.</div></div>
-          <IssueSignupForm />
+          <Link href="/subscribe" className="issues-band-cta">Subscribe →</Link>
         </div>
 
         {issues.length > 0 ? (
