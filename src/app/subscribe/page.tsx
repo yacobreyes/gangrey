@@ -1,9 +1,9 @@
 import { Fragment } from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
 import CheckoutButton from "@/components/CheckoutButton";
+import SubscribeButton from "@/components/SubscribeButton";
 import type { SubscriptionItem } from "@/lib/checkoutCatalog";
 
 export const metadata: Metadata = {
@@ -131,7 +131,7 @@ export default function SubscribePage() {
             <h2 className="tier-name">Free Reader</h2>
             <div className="tier-price">$0</div>
             <p className="tier-desc">Get announcements, select posts, calls for submissions, and our monthly Gangrey Classics newsletter.</p>
-            <Link href="/issues" className="tier-join">Join →</Link>
+            <SubscribeButton className="tier-join">Join →</SubscribeButton>
           </div>
           {PAID_TIERS.map(tier => (
             <Fragment key={tier.name}>
