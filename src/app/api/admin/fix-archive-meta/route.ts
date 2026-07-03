@@ -25,10 +25,23 @@ type Fix = { d?: string; b?: string; pri?: number };
 const BY_SLUG = (fixes as { bySlug: Record<string, Fix> }).bySlug ?? {};
 const BY_HEADLINE = (fixes as { byHeadline: Record<string, Fix> }).byHeadline ?? {};
 
-// WordPress usernames → display bylines. "ben" is Ben Montgomery, gangrey.com's
-// founder. Anything unmapped gets title-cased as a best effort.
+// WordPress usernames → display bylines, from the harvested creator list.
+// "ben" is Ben Montgomery, gangrey.com's founder; "t lake"/"t.lake" is Thomas
+// Lake and "kruse" is Michael Kruse, both longtime gangrey contributors.
+// Ambiguous single-name usernames (jones, wright, seth w., tlohnd…) are left
+// unmapped and just title-cased — extend this map as identities are confirmed.
 const DISPLAY_NAMES: Record<string, string> = {
-  ben: "Ben Montgomery",
+  "ben": "Ben Montgomery",
+  "t lake": "Thomas Lake",
+  "t.lake": "Thomas Lake",
+  "kruse": "Michael Kruse",
+  "janine": "Janine Anderson",
+  "janine anderson": "Janine Anderson",
+  "mark johnson": "Mark Johnson",
+  "bill marvel": "Bill Marvel",
+  "matt tullis": "Matt Tullis",
+  "si rosenbaum": "S.I. Rosenbaum",
+  "anonymous": "Anonymous",
 };
 
 function displayByline(username?: string): string {
