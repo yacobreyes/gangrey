@@ -96,7 +96,7 @@ export default function Feed({
         a { color: inherit; text-decoration: none; }
 
         /* HERO */
-        .hm-hero-wrap { max-width: 1180px; margin: 0 auto; padding: 20px 44px 0; }
+        .hm-hero-wrap { padding: 20px 76px 0; }
         .hm-hero-link { display: block; color: inherit; }
         .hm-hero {
           position: relative;
@@ -156,7 +156,7 @@ export default function Feed({
         .hm-hero-meta .hm-dot { opacity: .6; }
 
         /* LATEST */
-        .hm-latest { max-width: 1180px; margin: 0 auto; padding: 36px 44px 40px; background: #ffffff; }
+        .hm-latest { padding: 36px 76px 40px; background: #ffffff; }
         .hm-latest-head {
           display: flex; align-items: baseline; justify-content: space-between;
           margin-bottom: 30px;
