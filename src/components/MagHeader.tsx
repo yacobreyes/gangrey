@@ -4,33 +4,12 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-function computeDateStr() {
-  return new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-}
-
-// Module-level (not component state) so it survives across MagHeader
-// remounts during client-side page navigation within the same tab — the
-// value is set once real browser local time is known and reused instantly
-// on every subsequent page, avoiding a blank-then-populate "blink." It
-// starts empty so the very first server-rendered paint matches hydration
-// exactly (no SSR/client mismatch, since the server's clock/timezone can
-// legitimately differ from the visitor's — e.g. showing "tomorrow" hours
-// before the visitor's real local midnight).
-let cachedDateStr = "";
-
 export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQ, setSearchQ] = useState("");
-  const [dateStr, setDateStr] = useState(cachedDateStr);
   const searchInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const d = computeDateStr();
-    cachedDateStr = d;
-    setDateStr(d);
-  }, []);
 
   useEffect(() => {
     if (searchOpen) searchInputRef.current?.focus();
@@ -62,21 +41,8 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
           z-index: 20;
         }
 
-        /* ---- Masthead: eyebrow / wordmark / vol-no bar ---- */
+        /* ---- Masthead: wordmark / vol-no bar ---- */
         .mag-masthead { padding: 8px 76px 0; }
-        .mag-eyebrow {
-          display: none;
-          grid-template-columns: 1fr auto 1fr;
-          align-items: center;
-          font-family: var(--font-subhead);
-          font-weight: 700;
-          font-size: 9px;
-          letter-spacing: .18em;
-          text-transform: uppercase;
-          color: #490000;
-        }
-        .mag-eyebrow .center { color: #000000; letter-spacing: .16em; text-align: center; white-space: nowrap; }
-        .mag-eyebrow .right { text-align: right; }
         .mag-wordmark-link { display: block; width: fit-content; margin: 2px auto 8px; line-height: 0; background: none; border: none; padding: 0; cursor: pointer; }
         .mag-wordmark-img { display: block; height: 54px; width: auto; margin: 0 auto; }
         .mag-volno {
@@ -189,7 +155,6 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
 
         @media (max-width: 1100px) {
           .mag-masthead { padding: 10px 20px 0; }
-          .mag-eyebrow { display: none; }
           .mag-wordmark-link { margin: 4px auto 6px; }
           .mag-wordmark-img { height: 38px; }
           .mag-volno { flex-wrap: nowrap; font-size: 6.5px; letter-spacing: .04em; gap: 5px; padding: 5px 0; }
@@ -258,11 +223,6 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
       `}</style>
 
       <div className="mag-masthead">
-        <div className="mag-eyebrow">
-          <span className="left">A Literary Magazine</span>
-          <span className="center">{dateStr}</span>
-          <span className="right">gangrey.org</span>
-        </div>
         {onLogoClick ? (
           <button className="mag-wordmark-link" onClick={onLogoClick} aria-label="Home">{logoInner}</button>
         ) : (
