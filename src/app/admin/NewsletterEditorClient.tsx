@@ -16,7 +16,8 @@ import ScheduleModal from "@/components/ScheduleModal";
 import type { JSONContent, Editor } from "@tiptap/react";
 import type { PortableTextBlock } from "@portabletext/types";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
-import { diffLines, portableToLines, relativeTime } from "@/lib/editorDiff";
+import { portableToLines, relativeTime } from "@/lib/editorDiff";
+import VersionCompare from "@/components/admin/VersionCompare";
 
 const FONT = "var(--font-inter), sans-serif";
 
@@ -1137,56 +1138,22 @@ export default function NewsletterEditorClient({
         </div>
       </div>
 
-      {/* Version compare ("what changed") — side-by-side old vs current draft */}
+      {/* Version compare — Google-Docs-style inline redline */}
       {nlCompare && nlVersions.find(v => v.id === nlCompare) && (() => {
         const v = nlVersions.find(x => x.id === nlCompare)!;
         const oldLines = [v.subject ?? "", v.preview ?? "", ...((v.cards ?? []) as StoredCard[]).flatMap(c => [c.headline ?? "", ...portableToLines(c.body)])].map(s => (s ?? "").trim()).filter(Boolean);
         // Serialize live cards through the same tiptap → portable-text pipeline
         // the snapshot used, so unchanged content doesn't show as a diff.
         const newLines = [nlSubject, nlPreview, ...nlCards.flatMap(c => [c.headline, ...portableToLines(tiptapToPortableText(c.doc))])].map(s => (s ?? "").trim()).filter(Boolean);
-        const ops = diffLines(oldLines, newLines);
-        const changes = ops.filter(o => o.type !== "same").length;
-        const cell: React.CSSProperties = { flex: 1, minWidth: 0, padding: "0.35rem 0.6rem", fontFamily: FONT, fontSize: "0.85rem", lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" };
         return (
-          <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: isMobile ? 0 : "2rem" }} onClick={() => setNlCompare(null)}>
-            <div style={{ background: "white", borderRadius: isMobile ? 0 : 10, width: isMobile ? "100vw" : "min(940px, 96vw)", height: isMobile ? "100dvh" : "min(680px, 90vh)", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 8px 40px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
-              <div style={{ padding: "1rem 1.5rem", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
-                <div style={{ minWidth: 0 }}>
-                  <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1rem", margin: 0, color: TEXT_DARK }}>What changed</p>
-                  <p style={{ fontFamily: FONT, fontSize: "0.75rem", color: TEXT_MUTED, margin: "0.2rem 0 0" }}>
-                    {formatVersionTime(v.createdAt)} → current draft · {changes === 0 ? "no differences" : `${changes} change${changes === 1 ? "" : "s"}`}
-                  </p>
-                </div>
-                <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
-                  <button type="button" onClick={() => { setNlCompare(null); restoreNlVersion(v); }}
-                    style={{ background: CRIMSON, color: "white", border: "none", borderRadius: 20, padding: "0.4rem 1rem", fontFamily: FONT, fontSize: "0.8rem", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-                    Restore this version
-                  </button>
-                  <button type="button" onClick={() => setNlCompare(null)}
-                    style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 20, padding: "0.4rem 0.9rem", fontFamily: FONT, fontSize: "0.8rem", cursor: "pointer", color: TEXT_MUTED }}>
-                    Close
-                  </button>
-                </div>
-              </div>
-              <div style={{ display: "flex", padding: "0.5rem 1.25rem", borderBottom: `1px solid ${BORDER}`, fontFamily: FONT, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: TEXT_MUTED }}>
-                <span style={{ flex: 1 }}>This version</span>
-                <span style={{ flex: 1 }}>Current draft</span>
-              </div>
-              <div style={{ flex: 1, overflowY: "auto", padding: "0.5rem 0.65rem" }}>
-                {ops.map((op, k) => (
-                  <div key={k} style={{ display: "flex", gap: "0.4rem", alignItems: "stretch" }}>
-                    <div style={{ ...cell, background: op.type === "del" ? "#fdecec" : "transparent", color: op.type === "del" ? "#7a1a1a" : op.type === "add" ? "#bbb" : TEXT_DARK, textDecoration: op.type === "del" ? "line-through" : "none" }}>
-                      {op.type === "add" ? "" : op.text}
-                    </div>
-                    <div style={{ ...cell, background: op.type === "add" ? "#e9f7ec" : "transparent", color: op.type === "add" ? "#1a5a2a" : op.type === "del" ? "#bbb" : TEXT_DARK }}>
-                      {op.type === "del" ? "" : op.text}
-                    </div>
-                  </div>
-                ))}
-                {ops.length === 0 && <p style={{ fontFamily: FONT, color: TEXT_MUTED, padding: "1rem" }}>This version is empty.</p>}
-              </div>
-            </div>
-          </div>
+          <VersionCompare
+            label={formatVersionTime(v.createdAt)}
+            oldLines={oldLines}
+            newLines={newLines}
+            onRestore={() => { setNlCompare(null); restoreNlVersion(v); }}
+            onClose={() => setNlCompare(null)}
+            isMobile={isMobile}
+          />
         );
       })()}
     </div>
