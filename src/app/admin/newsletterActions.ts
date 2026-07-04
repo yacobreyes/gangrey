@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireAdmin } from "@/lib/adminAuth";
+import { fullName } from "@/lib/users";
 import { client } from "@/lib/sanity";
 import { renderNewsletterHtml, type NlCard } from "@/lib/newsletterEmail";
 import { Resend } from "resend";
@@ -145,7 +146,7 @@ async function syncIssueForNewsletter(newsletterId: string, payload: NlPayload, 
 
 // Creates or updates a newsletter document, then snapshots a (deduped) version.
 export async function saveNewsletter(payload: NlPayload): Promise<{ id: string; versions: NlVersion[]; syncError?: string }> {
-  await requireAuth();
+  const me = await requireAuth();
   const now = new Date().toISOString();
   const id = payload.id || `newsletter-${Date.now()}`;
 
@@ -169,6 +170,8 @@ export async function saveNewsletter(payload: NlPayload): Promise<{ id: string; 
     status: payload.status ?? existing?.status ?? "draft",
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
+    lastEditedBy: fullName(me),
+    lastEditedAt: now,
     ...(payload.scheduledAt ? { scheduledAt: payload.scheduledAt } : {}),
   };
   await mutate([{ createOrReplace: draftDoc }]);
