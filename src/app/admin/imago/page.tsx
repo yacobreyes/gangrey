@@ -23,7 +23,11 @@ export default async function AdminFlatplanPage({ searchParams }: { searchParams
         getAllNewslettersAdmin(),
         me?.role === "admin" ? listAllUsers() : Promise.resolve([]),
       ]);
-    } catch {}
+    } catch (err) {
+      // Surface the real Sanity error in Vercel function logs instead of
+      // silently rendering an empty dashboard (which reads as "data gone").
+      console.error("[imago] admin data load failed:", err instanceof Error ? err.message : err);
+    }
   }
   return (
     <AdminClient

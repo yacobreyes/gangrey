@@ -222,7 +222,11 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
     getVersions(post.slug).then(v => { if (Array.isArray(v)) setVersions(v); }).catch(() => {});
   }, [post.slug]);
 
-  useEffect(() => { refreshVersions(); }, [refreshVersions]);
+  // Fetch version history only when the Versions tab is opened (not on mount or
+  // on every save) so the editor doesn't hit Sanity for history it isn't showing.
+  const editorTabRef = useRef(editorTab);
+  editorTabRef.current = editorTab;
+  useEffect(() => { if (editorTab === "versions") refreshVersions(); }, [editorTab, refreshVersions]);
 
   function updateForm(patch: Partial<FormState>) { setForm(prev => ({ ...prev, ...patch })); }
 
@@ -249,7 +253,9 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
     startTransition(async () => {
       try {
         await savePost(fd);
-        refreshVersions();
+        // Only refetch the version list when the panel is actually open — avoids
+        // an extra Sanity read on every autosave.
+        if (editorTabRef.current === "versions") refreshVersions();
         setLastSaved({ ...form, status, date: saveDate });
         setLastSavedImg({ id: imageAssetId, caption: imageCaption, alt: imageAlt });
         setForm(f => ({ ...f, status, date: saveDate }));
@@ -315,18 +321,21 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
   }, [versions, editor]);
 
   const autosaveCount = useRef(0);
+  const lastSnapshotAt = useRef(0);
 
-  // Auto-save after 3s of inactivity (matches the newsletter editor). Snapshot
-  // every autosave — the server dedups against the latest version, so a version
-  // is only actually written when something changed. This keeps the history
-  // complete instead of only catching every 5th save.
+  // Auto-save after 3s of inactivity. Snapshot a version at most once every 20s
+  // of continuous editing (plus the server still dedups no-op snapshots) — this
+  // keeps a real history without a Sanity write on every keystroke pause.
   useEffect(() => {
     if (!isDirty || exitingRef.current) return;
     setSaveStatus("unsaved");
     const timer = setTimeout(() => {
       if (exitingRef.current) return;
       autosaveCount.current += 1;
-      doSave(form.status === "published" ? "published" : "draft", false, true);
+      const now = Date.now();
+      const snapshot = now - lastSnapshotAt.current > 20000;
+      if (snapshot) lastSnapshotAt.current = now;
+      doSave(form.status === "published" ? "published" : "draft", false, snapshot);
     }, 3000);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
