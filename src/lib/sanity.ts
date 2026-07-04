@@ -47,6 +47,9 @@ export interface SanityPost {
   status?: "draft" | "published" | "scheduled" | "trashed";
   scheduledAt?: string;
   scheduledBy?: string;
+  // Audit stamp — who saved this post last and when (set on every save).
+  lastEditedBy?: string;
+  lastEditedAt?: string;
   // Reader access: "free" (public, default) or "paid" (members only).
   // Archive posts are always members-only regardless of this field.
   access?: "free" | "paid";
@@ -76,6 +79,8 @@ const POST_LIST_FIELDS = `
   status,
   access,
   scheduledAt,
+  lastEditedBy,
+  lastEditedAt,
   "readingTime": coalesce(readingTime, round(length(pt::text(body)) / 1100) + 1),
   sortOrder
 `;
@@ -102,6 +107,8 @@ const POST_FIELDS = `
   status,
   access,
   scheduledAt,
+  lastEditedBy,
+  lastEditedAt,
   seoHeadline,
   socialHeadline,
   socialDescription,

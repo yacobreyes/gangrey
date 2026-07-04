@@ -228,6 +228,9 @@ export async function savePost(formData: FormData) {
     ...(scheduledAt ? { scheduledAt } : {}),
     // Record who scheduled it (cleared when it's no longer scheduled).
     scheduledBy: status === "scheduled" ? fullName(me) : null,
+    // Audit stamp — who last edited this post and when.
+    lastEditedBy: fullName(me),
+    lastEditedAt: new Date().toISOString(),
     ...(seoHeadline ? { seoHeadline: sq(seoHeadline) } : {}),
     ...(socialHeadline ? { socialHeadline: sq(socialHeadline) } : {}),
     ...(socialDescription ? { socialDescription: sq(socialDescription) } : {}),

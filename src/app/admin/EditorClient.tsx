@@ -35,12 +35,83 @@ function slugify(str: string) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
+// Live character count + Google-length guidance for SEO fields. `ideal` is the
+// recommended cap (titles ~60, meta descriptions ~160); `min` flags copy that's
+// too short to be useful. Turns amber near the limit and crimson past it.
+function SeoCount({ value, ideal, min }: { value: string; ideal: number; min?: number }) {
+  const len = value.trim().length;
+  const over = len > ideal;
+  const near = !over && len >= ideal - 10;
+  const short = min != null && len > 0 && len < min;
+  const color = over ? CRIMSON : near || short ? "#b8860b" : TEXT_MUTED;
+  const note = over
+    ? `${len - ideal} over — Google will truncate`
+    : short
+      ? "a little short"
+      : `${ideal - len} left`;
+  return (
+    <p style={{ fontFamily: FONT, fontSize: "0.72rem", color, margin: "0.35rem 0 0", display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
+      <span>{note}</span>
+      <span>{len}/{ideal}</span>
+    </p>
+  );
+}
+
 function formatTime(iso: string) {
   const d = new Date(iso);
   return d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
 }
 
+// "2 hours ago" style relative time for the audit stamp.
+function relativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const secs = Math.round((Date.now() - then) / 1000);
+  if (secs < 45) return "just now";
+  const mins = Math.round(secs / 60);
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.round(hours / 24);
+  if (days < 30) return `${days} day${days === 1 ? "" : "s"} ago`;
+  return formatTime(iso);
+}
+
 const EMPTY_DOC: JSONContent = { type: "doc", content: [{ type: "paragraph" }] };
+
+// --- Version diff ("what changed") -----------------------------------------
+type DiffOp = { type: "same" | "del" | "add"; text: string };
+
+// Line-level LCS diff: aligns unchanged paragraphs and flags removed/added ones.
+function diffLines(a: string[], b: string[]): DiffOp[] {
+  const n = a.length, m = b.length;
+  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--)
+    for (let j = m - 1; j >= 0; j--)
+      dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  const ops: DiffOp[] = [];
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (a[i] === b[j]) { ops.push({ type: "same", text: a[i] }); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) { ops.push({ type: "del", text: a[i] }); i++; }
+    else { ops.push({ type: "add", text: b[j] }); j++; }
+  }
+  while (i < n) ops.push({ type: "del", text: a[i++] });
+  while (j < m) ops.push({ type: "add", text: b[j++] });
+  return ops;
+}
+
+function portableToLines(body: import("@portabletext/types").PortableTextBlock[] | undefined): string[] {
+  return (body ?? [])
+    .filter(b => (b as { _type?: string })?._type === "block")
+    .map(b => ((b as { children?: { text?: string }[] }).children ?? []).map(c => c.text ?? "").join("").trim())
+    .filter(Boolean);
+}
+function tiptapToLines(doc: JSONContent): string[] {
+  return (doc.content ?? [])
+    .map(n => (n.content ?? []).map((c: JSONContent) => c.text ?? "").join("").trim())
+    .filter(Boolean);
+}
 
 type FormState = {
   headline: string; subheadline: string; byline: string; slug: string;
@@ -122,6 +193,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
   const [isPending, startTransition] = useTransition();
   const [showEllipsis, setShowEllipsis] = useState(false);
   const [versionMenu, setVersionMenu] = useState<number | null>(null);
+  const [compareVersion, setCompareVersion] = useState<number | null>(null);
   const [showScheduler, setShowScheduler] = useState(false);
   const [scheduledAt, setScheduledAt] = useState(post.scheduledAt?.slice(0, 16) ?? "");
   const [versions, setVersions] = useState<PostVersion[]>([]);
@@ -776,6 +848,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
               <div>
                 <label style={LABEL}>SEO Headline</label>
                 <input style={INPUT} value={form.seoHeadline} onChange={e => updateForm({ seoHeadline: e.target.value })} placeholder={form.headline || "Appears in Google search results"} />
+                <SeoCount value={form.seoHeadline || form.headline} ideal={60} min={30} />
               </div>
               <div>
                 <label style={LABEL}>Social Headline</label>
@@ -784,14 +857,20 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
               <div>
                 <label style={LABEL}>Social Description</label>
                 <textarea style={{ ...INPUT, resize: "vertical", minHeight: 80 }} value={form.socialDescription} onChange={e => updateForm({ socialDescription: e.target.value })} placeholder="Caption that appears under shared link" />
+                <SeoCount value={form.socialDescription} ideal={160} min={70} />
               </div>
             </div>
           )}
 
           {editorTab === "versions" && (
             <div style={{ maxWidth: 480 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem" }}>
+              <div style={{ marginBottom: "1.25rem" }}>
                 <h2 style={{ fontFamily: FONT, fontSize: "1rem", fontWeight: 700, color: TEXT_DARK, margin: 0 }}>Previous versions</h2>
+                {post.lastEditedBy && post.lastEditedAt && (
+                  <p style={{ fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, margin: "0.35rem 0 0" }}>
+                    Edited by {post.lastEditedBy} · {relativeTime(post.lastEditedAt)}
+                  </p>
+                )}
               </div>
               {versions.length === 0 ? (
                 <p style={{ fontFamily: FONT, fontSize: "0.88rem", color: TEXT_MUTED }}>No saves recorded yet.</p>
@@ -815,7 +894,14 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
                         </button>
                         {versionMenu === i && (
-                          <div style={{ position: "absolute", right: 0, top: "calc(100% + 4px)", zIndex: 50, background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", minWidth: 140, overflow: "hidden" }}>
+                          <div style={{ position: "absolute", right: 0, top: "calc(100% + 4px)", zIndex: 50, background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", minWidth: 160, overflow: "hidden" }}>
+                            <button
+                              type="button"
+                              onClick={() => { setVersionMenu(null); setCompareVersion(i); }}
+                              style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: `1px solid ${BORDER}`, textAlign: "left", padding: "0.6rem 1rem", fontFamily: FONT, fontSize: "0.85rem", color: TEXT_DARK, cursor: "pointer" }}
+                            >
+                              Compare changes
+                            </button>
                             <button
                               type="button"
                               onClick={() => { setVersionMenu(null); revertToVersion(i); }}
@@ -835,6 +921,57 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
         </div>
         </div>
       </div>
+
+      {/* Version compare ("what changed") — side-by-side old vs current draft */}
+      {compareVersion !== null && versions[compareVersion] && (() => {
+        const v = versions[compareVersion];
+        const oldLines = [v.headline, v.subheadline, ...portableToLines(v.body)].map(s => (s ?? "").trim()).filter(Boolean);
+        const newLines = [form.headline, form.subheadline, ...tiptapToLines(form.body)].map(s => s.trim()).filter(Boolean);
+        const ops = diffLines(oldLines, newLines);
+        const changes = ops.filter(o => o.type !== "same").length;
+        const cell: React.CSSProperties = { flex: 1, minWidth: 0, padding: "0.35rem 0.6rem", fontFamily: FONT, fontSize: "0.85rem", lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" };
+        return (
+          <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: isMobile ? 0 : "2rem" }} onClick={() => setCompareVersion(null)}>
+            <div style={{ background: "white", borderRadius: isMobile ? 0 : 10, width: isMobile ? "100vw" : "min(940px, 96vw)", height: isMobile ? "100dvh" : "min(680px, 90vh)", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 8px 40px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
+              <div style={{ padding: "1rem 1.5rem", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1rem", margin: 0, color: TEXT_DARK }}>What changed</p>
+                  <p style={{ fontFamily: FONT, fontSize: "0.75rem", color: TEXT_MUTED, margin: "0.2rem 0 0" }}>
+                    {formatTime(v.savedAt)} → current draft · {changes === 0 ? "no differences" : `${changes} change${changes === 1 ? "" : "s"}`}
+                  </p>
+                </div>
+                <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
+                  <button type="button" onClick={() => { const i = compareVersion; setCompareVersion(null); if (i !== null) revertToVersion(i); }}
+                    style={{ background: CRIMSON, color: "white", border: "none", borderRadius: 20, padding: "0.4rem 1rem", fontFamily: FONT, fontSize: "0.8rem", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+                    Restore this version
+                  </button>
+                  <button type="button" onClick={() => setCompareVersion(null)}
+                    style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 20, padding: "0.4rem 0.9rem", fontFamily: FONT, fontSize: "0.8rem", cursor: "pointer", color: TEXT_MUTED }}>
+                    Close
+                  </button>
+                </div>
+              </div>
+              <div style={{ display: "flex", padding: "0.5rem 1.25rem", borderBottom: `1px solid ${BORDER}`, fontFamily: FONT, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: TEXT_MUTED }}>
+                <span style={{ flex: 1 }}>This version</span>
+                <span style={{ flex: 1 }}>Current draft</span>
+              </div>
+              <div style={{ flex: 1, overflowY: "auto", padding: "0.5rem 0.65rem" }}>
+                {ops.map((op, k) => (
+                  <div key={k} style={{ display: "flex", gap: "0.4rem", alignItems: "stretch" }}>
+                    <div style={{ ...cell, background: op.type === "del" ? "#fdecec" : "transparent", color: op.type === "del" ? "#7a1a1a" : op.type === "add" ? "#bbb" : TEXT_DARK, textDecoration: op.type === "del" ? "line-through" : "none" }}>
+                      {op.type === "add" ? "" : op.text}
+                    </div>
+                    <div style={{ ...cell, background: op.type === "add" ? "#e9f7ec" : "transparent", color: op.type === "add" ? "#1a5a2a" : op.type === "del" ? "#bbb" : TEXT_DARK }}>
+                      {op.type === "del" ? "" : op.text}
+                    </div>
+                  </div>
+                ))}
+                {ops.length === 0 && <p style={{ fontFamily: FONT, color: TEXT_MUTED, padding: "1rem" }}>This version is empty.</p>}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Body image modal */}
       {showBodyImageModal && (
