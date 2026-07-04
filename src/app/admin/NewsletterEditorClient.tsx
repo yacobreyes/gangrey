@@ -16,7 +16,7 @@ import ScheduleModal from "@/components/ScheduleModal";
 import type { JSONContent, Editor } from "@tiptap/react";
 import type { PortableTextBlock } from "@portabletext/types";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
-import { diffLines, portableToLines, tiptapToLines, relativeTime } from "@/lib/editorDiff";
+import { diffLines, portableToLines, relativeTime } from "@/lib/editorDiff";
 
 const FONT = "var(--font-inter), sans-serif";
 
@@ -1141,7 +1141,9 @@ export default function NewsletterEditorClient({
       {nlCompare && nlVersions.find(v => v.id === nlCompare) && (() => {
         const v = nlVersions.find(x => x.id === nlCompare)!;
         const oldLines = [v.subject ?? "", v.preview ?? "", ...((v.cards ?? []) as StoredCard[]).flatMap(c => [c.headline ?? "", ...portableToLines(c.body)])].map(s => (s ?? "").trim()).filter(Boolean);
-        const newLines = [nlSubject, nlPreview, ...nlCards.flatMap(c => [c.headline, ...tiptapToLines(c.doc)])].map(s => (s ?? "").trim()).filter(Boolean);
+        // Serialize live cards through the same tiptap → portable-text pipeline
+        // the snapshot used, so unchanged content doesn't show as a diff.
+        const newLines = [nlSubject, nlPreview, ...nlCards.flatMap(c => [c.headline, ...portableToLines(tiptapToPortableText(c.doc))])].map(s => (s ?? "").trim()).filter(Boolean);
         const ops = diffLines(oldLines, newLines);
         const changes = ops.filter(o => o.type !== "same").length;
         const cell: React.CSSProperties = { flex: 1, minWidth: 0, padding: "0.35rem 0.6rem", fontFamily: FONT, fontSize: "0.85rem", lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" };

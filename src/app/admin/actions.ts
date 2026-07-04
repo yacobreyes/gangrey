@@ -302,15 +302,18 @@ async function snapshotVersion({ postId, slug, type, headline, subheadline, body
       wordCount: portableWordCount(body),
       headline, subheadline, body,
     };
-    // Existing versions at index >= 19 get pruned once this new one is added.
-    const stale: string[] = await client.fetch(
-      `*[_type == "postVersion" && slug == $slug] | order(savedAt desc) [19...100]._id`,
+    // Never delete a published snapshot — those are real milestones. Only prune
+    // the oldest *autosave* versions once there are more than KEEP_AUTOSAVES of
+    // them, so routine typing doesn't grow unbounded but real history survives.
+    const KEEP_AUTOSAVES = 60;
+    const staleAutosaves: string[] = await client.fetch(
+      `*[_type == "postVersion" && slug == $slug && type != "publish"] | order(savedAt desc) [${KEEP_AUTOSAVES}...1000]._id`,
       { slug },
       { cache: "no-store" }
     );
     await mutate([
       { createOrReplace: versionDoc },
-      ...stale.map(id => ({ delete: { id } })),
+      ...staleAutosaves.map(id => ({ delete: { id } })),
     ]);
   } catch (err) {
     // Version history is best-effort — never block a save on it.

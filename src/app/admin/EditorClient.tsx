@@ -17,7 +17,7 @@ import type { JSONContent } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
 import type { SanityPost } from "@/lib/sanity";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
-import { diffLines, portableToLines, tiptapToLines, relativeTime } from "@/lib/editorDiff";
+import { diffLines, portableToLines, relativeTime } from "@/lib/editorDiff";
 
 const FONT = "var(--font-inter), sans-serif";
 
@@ -315,16 +315,17 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
 
   const autosaveCount = useRef(0);
 
-  // Auto-save after 3s of inactivity (matches the newsletter editor); snapshot
-  // every 5th autosave to reduce Sanity load.
+  // Auto-save after 3s of inactivity (matches the newsletter editor). Snapshot
+  // every autosave — the server dedups against the latest version, so a version
+  // is only actually written when something changed. This keeps the history
+  // complete instead of only catching every 5th save.
   useEffect(() => {
     if (!isDirty || exitingRef.current) return;
     setSaveStatus("unsaved");
     const timer = setTimeout(() => {
       if (exitingRef.current) return;
       autosaveCount.current += 1;
-      const snapshot = autosaveCount.current % 5 === 0;
-      doSave(form.status === "published" ? "published" : "draft", false, snapshot);
+      doSave(form.status === "published" ? "published" : "draft", false, true);
     }, 3000);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -880,7 +881,10 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
       {compareVersion !== null && versions[compareVersion] && (() => {
         const v = versions[compareVersion];
         const oldLines = [v.headline, v.subheadline, ...portableToLines(v.body)].map(s => (s ?? "").trim()).filter(Boolean);
-        const newLines = [form.headline, form.subheadline, ...tiptapToLines(form.body)].map(s => s.trim()).filter(Boolean);
+        // Serialize the live draft through the SAME pipeline the snapshot was
+        // stored with (tiptap → portable text) so identical content compares
+        // equal instead of showing spurious diffs from serializer differences.
+        const newLines = [form.headline, form.subheadline, ...portableToLines(tiptapToPortableText(form.body))].map(s => s.trim()).filter(Boolean);
         const ops = diffLines(oldLines, newLines);
         const changes = ops.filter(o => o.type !== "same").length;
         const cell: React.CSSProperties = { flex: 1, minWidth: 0, padding: "0.35rem 0.6rem", fontFamily: FONT, fontSize: "0.85rem", lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" };

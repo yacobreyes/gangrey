@@ -203,12 +203,13 @@ export async function saveNewsletter(payload: NlPayload): Promise<{ id: string; 
       wordCount: payload.wordCount ?? 0,
       cards: payload.cards ?? [],
     };
-    const stale: string[] = await client.fetch(
-      `*[_type == "newsletterVersion" && newsletterId == $id] | order(createdAt desc)[19...100]._id`,
+    // Keep every published snapshot; only prune the oldest autosaves past 60.
+    const staleAutosaves: string[] = await client.fetch(
+      `*[_type == "newsletterVersion" && newsletterId == $id && type != "publish"] | order(createdAt desc)[60...1000]._id`,
       { id },
       { cache: "no-store" }
     );
-    await mutate([{ createOrReplace: versionDoc }, ...stale.map(sid => ({ delete: { id: sid } }))]);
+    await mutate([{ createOrReplace: versionDoc }, ...staleAutosaves.map(sid => ({ delete: { id: sid } }))]);
   }
 
   return { id, versions: await versionsFor(id), syncError };
