@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireAdmin } from "@/lib/adminAuth";
 import { fullName } from "@/lib/users";
-import { client } from "@/lib/sanity";
+import { client, withRetry } from "@/lib/sanity";
 import { renderNewsletterHtml, type NlCard } from "@/lib/newsletterEmail";
 import { Resend } from "resend";
 
@@ -237,11 +237,11 @@ function classifyByOpens(openedCount: number, lookbackCount: number): "active" |
 export async function getSubscribers(): Promise<Subscriber[]> {
   await requireAdmin();
   await reconcileSubscriberStatuses();
-  return client.fetch(
+  return withRetry(() => client.fetch(
     `*[_type == "subscriber"] | order(createdAt desc){ email, status, createdAt }`,
     {},
     { cache: "no-store" }
-  );
+  ));
 }
 
 // Recomputes every subscriber's status from their tracked opens, so the

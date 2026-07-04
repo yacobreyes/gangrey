@@ -32,6 +32,21 @@ const clientCdn = createClient({
 // createClient (this file) just to build an image URL.
 export { urlFor } from "./sanityImage";
 
+// Retry a Sanity read a few times with backoff. Sanity's authenticated API is
+// rate-limited; a transient 429/5xx would otherwise blank the whole admin
+// dashboard. Retrying turns a momentary throttle into a slightly slower load.
+export async function withRetry<T>(fn: () => Promise<T>, tries = 4): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < tries; i++) {
+    try { return await fn(); }
+    catch (e) {
+      lastErr = e;
+      if (i < tries - 1) await new Promise(r => setTimeout(r, 400 * (i + 1)));
+    }
+  }
+  throw lastErr;
+}
+
 export interface SanityPost {
   _id: string;
   _updatedAt?: string;
@@ -179,11 +194,11 @@ export async function getPostsLight(withSearch = false): Promise<SanityPost[]> {
 export async function getAllPostsAdmin(withSearch = false, excludeArchive = false): Promise<SanityPost[]> {
   const fields = withSearch ? POST_LIST_FIELDS_SEARCH : POST_LIST_FIELDS;
   const archiveFilter = excludeArchive ? ` && section != "Archive"` : "";
-  const posts: SanityPost[] = await client.fetch(
+  const posts: SanityPost[] = await withRetry(() => client.fetch(
     `*[_type == "post" && !(_id in path("drafts.**"))${archiveFilter}] | order(_updatedAt desc) { ${fields} }`,
     {},
     { cache: "no-store" }
-  );
+  ));
   return posts.map(straightenPost);
 }
 
@@ -246,13 +261,13 @@ export type AdminNewsletterListItem = {
   scheduledAt?: string; createdAt?: string; updatedAt?: string; sentAt?: string;
 };
 export async function getAllNewslettersAdmin(): Promise<AdminNewsletterListItem[]> {
-  const list: AdminNewsletterListItem[] = await client.fetch(
+  const list: AdminNewsletterListItem[] = await withRetry(() => client.fetch(
     `*[_type == "newsletter"] | order(coalesce(updatedAt, createdAt) desc){
       _id, subject, preview, author, wordCount, cards, status, scheduledAt, createdAt, updatedAt, sentAt
     }`,
     {},
     { cache: "no-store" }
-  );
+  ));
   return list ?? [];
 }
 
@@ -265,7 +280,7 @@ export type AdminMediaAsset = {
   usedIn?: { slug: string; headline: string }[];
 };
 export async function getMediaLibrary(): Promise<AdminMediaAsset[]> {
-  const [assets, posts] = await Promise.all([
+  const [assets, posts] = await withRetry(() => Promise.all([
     client.fetch(
       `*[_type == "sanity.imageAsset"] | order(_createdAt desc) {
         _id, _createdAt, url, originalFilename, title, description, altText,
@@ -279,7 +294,7 @@ export async function getMediaLibrary(): Promise<AdminMediaAsset[]> {
       {},
       { cache: "no-store" }
     ),
-  ]);
+  ]));
   const usageMap: Record<string, { slug: string; headline: string }[]> = {};
   for (const p of posts ?? []) {
     (usageMap[p.assetId] ??= []).push({ slug: p.slug, headline: p.headline });

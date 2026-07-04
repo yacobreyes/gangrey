@@ -17,17 +17,19 @@ export default async function AdminFlatplanPage({ searchParams }: { searchParams
   let newsletters: Awaited<ReturnType<typeof getAllNewslettersAdmin>> = [];
   let users: Awaited<ReturnType<typeof listAllUsers>> = [];
   if (authed) {
-    try {
-      [posts, newsletters, users] = await Promise.all([
-        getAllPostsAdmin(false, true),
-        getAllNewslettersAdmin(),
-        me?.role === "admin" ? listAllUsers() : Promise.resolve([]),
-      ]);
-    } catch (err) {
-      // Surface the real Sanity error in Vercel function logs instead of
-      // silently rendering an empty dashboard (which reads as "data gone").
-      console.error("[imago] admin data load failed:", err instanceof Error ? err.message : err);
-    }
+    // allSettled so one failing read (e.g. a rate-limited users query) can't
+    // blank the posts + newsletters lists. Each failure is logged, not swallowed.
+    const [postsR, newslettersR, usersR] = await Promise.allSettled([
+      getAllPostsAdmin(false, true),
+      getAllNewslettersAdmin(),
+      me?.role === "admin" ? listAllUsers() : Promise.resolve([]),
+    ]);
+    if (postsR.status === "fulfilled") posts = postsR.value;
+    else console.error("[imago] posts load failed:", postsR.reason instanceof Error ? postsR.reason.message : postsR.reason);
+    if (newslettersR.status === "fulfilled") newsletters = newslettersR.value;
+    else console.error("[imago] newsletters load failed:", newslettersR.reason instanceof Error ? newslettersR.reason.message : newslettersR.reason);
+    if (usersR.status === "fulfilled") users = usersR.value;
+    else console.error("[imago] users load failed:", usersR.reason instanceof Error ? usersR.reason.message : usersR.reason);
   }
   return (
     <AdminClient

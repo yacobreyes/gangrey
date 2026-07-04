@@ -1,5 +1,6 @@
 import { sanityMutate } from "./sanityWrite";
 import { getStripe } from "./stripe";
+import { withRetry } from "./sanity";
 
 // Reader memberships are stored as `member` documents in Sanity, keyed
 // deterministically by email so the Stripe webhook can upsert idempotently and
@@ -124,13 +125,21 @@ export async function listAllMembers(): Promise<Member[]> {
   const token = process.env.SANITY_API_WRITE_TOKEN ?? process.env.SANITY_WRITE_TOKEN;
   if (!projectId) return [];
   const query = encodeURIComponent(`*[_type == "member"] | order(coalesce(createdAt, "") desc){ _id, email, tier, status, stripeCustomerId, stripeSubscriptionId, currentPeriodEnd, createdAt, comped }`);
-  const res = await fetch(
-    `https://${projectId}.api.sanity.io/v2024-01-01/data/query/${dataset}?query=${query}`,
-    { headers: token ? { Authorization: `Bearer ${token}` } : {}, cache: "no-store" }
-  );
-  if (!res.ok) return [];
-  const data = await res.json();
-  return (data.result as Member[]) ?? [];
+  // Retry on transient errors (429/5xx) so a momentary Sanity throttle doesn't
+  // make the members list look empty.
+  try {
+    return await withRetry(async () => {
+      const res = await fetch(
+        `https://${projectId}.api.sanity.io/v2024-01-01/data/query/${dataset}?query=${query}`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {}, cache: "no-store" }
+      );
+      if (!res.ok) throw new Error(`members query ${res.status}`);
+      const data = await res.json();
+      return (data.result as Member[]) ?? [];
+    });
+  } catch {
+    return [];
+  }
 }
 
 // Admin: backfill — add every existing member to the subscriber list. Needed
