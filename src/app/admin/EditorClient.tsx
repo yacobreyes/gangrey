@@ -748,7 +748,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                   <option>Micro-Memoir</option>
                   <option>Narratives</option>
                   <option>Essays</option>
-                  <option value="Archive">The Archive</option>
+                  <option value="Archive">Archive</option>
                 </select>
               </div>
               <div>

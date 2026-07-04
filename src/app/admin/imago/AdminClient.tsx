@@ -178,6 +178,72 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
       .finally(() => setRemovingSubscriber(null));
   }
 
+  // Subscriber management UI — rendered inside the combined Members & Subscribers panel.
+  function renderSubscribers() {
+    return (
+      <div style={{ maxWidth: 600 }}>
+        {/* Add subscriber */}
+        <form onSubmit={async e => {
+          e.preventDefault();
+          setAddEmailError("");
+          setAddEmailPending(true);
+          const r = await addSubscriber(addEmailInput);
+          setAddEmailPending(false);
+          if (!r.ok) { setAddEmailError(r.error ?? "Failed."); return; }
+          setAddEmailInput("");
+          setSubscribers(prev => [{ email: addEmailInput.trim().toLowerCase(), status: "neutral", createdAt: new Date().toISOString() }, ...prev]);
+        }} style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "0.5rem", marginBottom: "1.25rem" }}>
+          <input value={addEmailInput} onChange={e => { setAddEmailInput(e.target.value); setAddEmailError(""); }} placeholder="name@example.com" type="email" style={{ flex: 1, minWidth: 0, fontFamily: FONT, fontSize: "0.88rem", padding: "0.5rem 0.75rem", border: `1px solid ${addEmailError ? CRIMSON : BORDER}`, borderRadius: 4, outline: "none", color: TEXT_DARK, boxSizing: "border-box" }} />
+          <button type="submit" disabled={addEmailPending || !addEmailInput.trim()} style={{ background: CRIMSON, color: "white", border: "none", borderRadius: 20, padding: "0.5rem 1.1rem", fontFamily: FONT, fontSize: "0.85rem", fontWeight: 600, cursor: addEmailPending || !addEmailInput.trim() ? "not-allowed" : "pointer", opacity: addEmailPending || !addEmailInput.trim() ? 0.6 : 1, whiteSpace: "nowrap" }}>
+            {addEmailPending ? "Adding…" : "Add subscriber"}
+          </button>
+        </form>
+        {addEmailError && <p style={{ fontFamily: FONT, fontSize: "0.8rem", color: CRIMSON, margin: "-0.75rem 0 1rem" }}>{addEmailError}</p>}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? "0.6rem" : "1rem", marginBottom: "1.25rem" }}>
+          <div style={{ minWidth: 0, background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: isMobile ? "0.75rem 0.9rem" : "1rem 1.25rem" }}>
+            <p style={LABEL}>Total subscribers</p>
+            <p style={{ fontFamily: FONT, fontSize: "1.6rem", fontWeight: 700, color: TEXT_DARK, margin: 0 }}>{subscribers.length}</p>
+          </div>
+          <div style={{ minWidth: 0, background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: isMobile ? "0.75rem 0.9rem" : "1rem 1.25rem" }}>
+            <p style={LABEL}>Active</p>
+            <p style={{ fontFamily: FONT, fontSize: "1.6rem", fontWeight: 700, color: CRIMSON, margin: 0 }}>{subscribers.filter(s => s.status === "active").length}</p>
+          </div>
+          <div style={{ minWidth: 0, background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: isMobile ? "0.75rem 0.9rem" : "1rem 1.25rem" }}>
+            <p style={LABEL}>Neutral</p>
+            <p style={{ fontFamily: FONT, fontSize: "1.6rem", fontWeight: 700, color: TEXT_DARK, margin: 0 }}>{subscribers.filter(s => (s.status ?? "neutral") === "neutral").length}</p>
+          </div>
+          <div style={{ minWidth: 0, background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: isMobile ? "0.75rem 0.9rem" : "1rem 1.25rem" }}>
+            <p style={LABEL}>Inactive</p>
+            <p style={{ fontFamily: FONT, fontSize: "1.6rem", fontWeight: 700, color: TEXT_MUTED, margin: 0 }}>{subscribers.filter(s => s.status === "inactive").length}</p>
+          </div>
+        </div>
+        {subscribersLoading ? (
+          <p style={{ fontFamily: FONT, color: TEXT_MUTED }}>Loading…</p>
+        ) : subscribers.length === 0 ? (
+          <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "3rem", textAlign: "center" }}>
+            <p style={{ fontFamily: FONT, color: TEXT_MUTED, margin: 0 }}>No subscribers yet.</p>
+          </div>
+        ) : (
+          <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, overflow: "hidden" }}>
+            {subscribers.map((s, i) => (
+              <div key={s.email + i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.75rem 1.25rem", borderBottom: `1px solid ${BORDER}`, gap: "0.75rem" }}>
+                <span style={{ fontFamily: FONT, fontSize: "0.9rem", color: TEXT_DARK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.email}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexShrink: 0 }}>
+                  <span style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: s.status === "active" ? "#392a22" : s.status === "inactive" ? "#490000" : TEXT_MUTED }}>{s.status ?? "neutral"}</span>
+                  <span style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, whiteSpace: "nowrap" }}>{s.createdAt ? s.createdAt.slice(0, 10) : "—"}</span>
+                  <button type="button" onClick={() => removeSub(s.email)} disabled={removingSubscriber === s.email}
+                    style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 20, padding: "0.25rem 0.7rem", fontFamily: FONT, fontSize: "0.72rem", cursor: removingSubscriber === s.email ? "default" : "pointer", color: TEXT_MUTED, opacity: removingSubscriber === s.email ? 0.5 : 1 }}>
+                    {removingSubscriber === s.email ? "Removing…" : "Remove"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth <= 700);
     check();
@@ -312,9 +378,9 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
       setCommentsLoading(adminComments.length === 0);
       fetch("/api/comments/all").then(r => r.json()).then(data => { if (Array.isArray(data)) setAdminComments(data); }).catch(() => {}).finally(() => setCommentsLoading(false));
     }
-    if (panel === "subscribers") {
-      // Only show the loading state if we have nothing yet — otherwise refresh
-      // silently behind the already-visible list.
+    if (panel === "members") {
+      // Subscribers live in the combined Members panel now — warm the list when
+      // it opens. Only show the loading state if we have nothing yet.
       setSubscribersLoading(subscribers.length === 0);
       getSubscribers().then(data => { if (Array.isArray(data)) setSubscribers(data); }).catch(() => {}).finally(() => setSubscribersLoading(false));
     }
@@ -496,9 +562,8 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
               ["media", "Media Library", <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>],
               ["archive", "Archive", <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>],
               ["comments", "Comments", <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>],
-              // Subscribers and Users management are admin-only.
+              // Members (with subscribers) and Users management are admin-only.
               ...(isAdmin ? [
-                ["subscribers", "Subscribers", <svg key="s" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>],
                 ["members", "Members", <svg key="m" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7a2.5 2.5 0 0 0-2.5-2.5C8 4.5 7 6 7 7h5z"/><path d="M12 7a2.5 2.5 0 0 1 2.5-2.5C16 4.5 17 6 17 7h-5z"/></svg>],
                 ["users", "Users", <svg key="u" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>],
               ] as [Panel, string, React.ReactNode][] : []),
@@ -576,7 +641,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                   </div>
                 ) : (
                   <span style={{ fontFamily: FONT, fontSize: "1rem", fontWeight: 700, color: TEXT_DARK }}>
-                    {activePanel === "media" ? "Media Library" : activePanel === "comments" ? "Comments" : activePanel === "about" ? "About" : activePanel === "subscribers" ? "Subscribers" : activePanel === "users" ? "Users" : activePanel === "members" ? "Members" : activePanel === "archive" ? "Archive" : ""}
+                    {activePanel === "media" ? "Media Library" : activePanel === "comments" ? "Comments" : activePanel === "about" ? "About" : activePanel === "users" ? "Users" : activePanel === "members" ? "Members & Subscribers" : activePanel === "archive" ? "Archive" : ""}
                   </span>
                 )}
               </div>
@@ -615,7 +680,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                   </div>
                 ) : (
                   <span style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, color: TEXT_MUTED }}>
-                    {activePanel === "media" ? "Media Library" : activePanel === "about" ? "About" : activePanel === "comments" ? "Comments" : activePanel === "subscribers" ? "Subscribers" : activePanel === "users" ? "Users" : activePanel === "members" ? "Members" : activePanel === "archive" ? "Archive" : ""}
+                    {activePanel === "media" ? "Media Library" : activePanel === "about" ? "About" : activePanel === "comments" ? "Comments" : activePanel === "users" ? "Users" : activePanel === "members" ? "Members & Subscribers" : activePanel === "archive" ? "Archive" : ""}
                   </span>
                 )}
               </div>
@@ -653,7 +718,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                   </button>
                 </div>
                 <div style={{ padding: "0.75rem", flex: 1 }}>
-                  {([["dashboard", "Posts"], ["about", "About"], ["media", "Media Library"], ["archive", "Archive"], ["comments", "Comments"], ...(isAdmin ? [["subscribers", "Subscribers"], ["members", "Members"], ["users", "Users"]] as [Panel, string][] : [])] as [Panel, string][]).map(([panel, label]) => (
+                  {([["dashboard", "Posts"], ["about", "About"], ["media", "Media Library"], ["archive", "Archive"], ["comments", "Comments"], ...(isAdmin ? [["members", "Members"], ["users", "Users"]] as [Panel, string][] : [])] as [Panel, string][]).map(([panel, label]) => (
                     <button key={panel} onClick={() => { tryNav(panel); setShowMobileNav(false); }} style={{ display: "block", width: "100%", background: activePanel === panel ? "#ffffff" : "none", border: "none", textAlign: "left", padding: "0.75rem", fontFamily: FONT, fontSize: "1rem", fontWeight: activePanel === panel ? 700 : 500, color: activePanel === panel ? CRIMSON : TEXT_DARK, cursor: "pointer", borderRadius: 6, marginBottom: "0.1rem" }}>
                       {label}
                     </button>
@@ -799,78 +864,24 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
             </div>
           )}
 
-          {/* SUBSCRIBERS (admin only) */}
-          {activePanel === "subscribers" && isAdmin && (
-            <div style={{ maxWidth: 600 }}>
-              {/* Add subscriber */}
-              <form onSubmit={async e => {
-                e.preventDefault();
-                setAddEmailError("");
-                setAddEmailPending(true);
-                const r = await addSubscriber(addEmailInput);
-                setAddEmailPending(false);
-                if (!r.ok) { setAddEmailError(r.error ?? "Failed."); return; }
-                setAddEmailInput("");
-                setSubscribers(prev => [{ email: addEmailInput.trim().toLowerCase(), status: "neutral", createdAt: new Date().toISOString() }, ...prev]);
-              }} style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "0.5rem", marginBottom: "1.25rem" }}>
-                <input value={addEmailInput} onChange={e => { setAddEmailInput(e.target.value); setAddEmailError(""); }} placeholder="name@example.com" type="email" style={{ flex: 1, minWidth: 0, fontFamily: FONT, fontSize: "0.88rem", padding: "0.5rem 0.75rem", border: `1px solid ${addEmailError ? CRIMSON : BORDER}`, borderRadius: 4, outline: "none", color: TEXT_DARK, boxSizing: "border-box" }} />
-                <button type="submit" disabled={addEmailPending || !addEmailInput.trim()} style={{ background: CRIMSON, color: "white", border: "none", borderRadius: 20, padding: "0.5rem 1.1rem", fontFamily: FONT, fontSize: "0.85rem", fontWeight: 600, cursor: addEmailPending || !addEmailInput.trim() ? "not-allowed" : "pointer", opacity: addEmailPending || !addEmailInput.trim() ? 0.6 : 1, whiteSpace: "nowrap" }}>
-                  {addEmailPending ? "Adding…" : "Add subscriber"}
-                </button>
-              </form>
-              {addEmailError && <p style={{ fontFamily: FONT, fontSize: "0.8rem", color: CRIMSON, margin: "-0.75rem 0 1rem" }}>{addEmailError}</p>}
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? "0.6rem" : "1rem", marginBottom: "1.25rem" }}>
-                <div style={{ minWidth: 0, background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: isMobile ? "0.75rem 0.9rem" : "1rem 1.25rem" }}>
-                  <p style={LABEL}>Total subscribers</p>
-                  <p style={{ fontFamily: FONT, fontSize: "1.6rem", fontWeight: 700, color: TEXT_DARK, margin: 0 }}>{subscribers.length}</p>
-                </div>
-                <div style={{ minWidth: 0, background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: isMobile ? "0.75rem 0.9rem" : "1rem 1.25rem" }}>
-                  <p style={LABEL}>Active</p>
-                  <p style={{ fontFamily: FONT, fontSize: "1.6rem", fontWeight: 700, color: CRIMSON, margin: 0 }}>{subscribers.filter(s => s.status === "active").length}</p>
-                </div>
-                <div style={{ minWidth: 0, background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: isMobile ? "0.75rem 0.9rem" : "1rem 1.25rem" }}>
-                  <p style={LABEL}>Neutral</p>
-                  <p style={{ fontFamily: FONT, fontSize: "1.6rem", fontWeight: 700, color: TEXT_DARK, margin: 0 }}>{subscribers.filter(s => (s.status ?? "neutral") === "neutral").length}</p>
-                </div>
-                <div style={{ minWidth: 0, background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: isMobile ? "0.75rem 0.9rem" : "1rem 1.25rem" }}>
-                  <p style={LABEL}>Inactive</p>
-                  <p style={{ fontFamily: FONT, fontSize: "1.6rem", fontWeight: 700, color: TEXT_MUTED, margin: 0 }}>{subscribers.filter(s => s.status === "inactive").length}</p>
-                </div>
-              </div>
-              {subscribersLoading ? (
-                <p style={{ fontFamily: FONT, color: TEXT_MUTED }}>Loading…</p>
-              ) : subscribers.length === 0 ? (
-                <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "3rem", textAlign: "center" }}>
-                  <p style={{ fontFamily: FONT, color: TEXT_MUTED, margin: 0 }}>No subscribers yet.</p>
-                </div>
-              ) : (
-                <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, overflow: "hidden" }}>
-                  {subscribers.map((s, i) => (
-                    <div key={s.email + i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.75rem 1.25rem", borderBottom: `1px solid ${BORDER}`, gap: "0.75rem" }}>
-                      <span style={{ fontFamily: FONT, fontSize: "0.9rem", color: TEXT_DARK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.email}</span>
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexShrink: 0 }}>
-                        <span style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: s.status === "active" ? "#392a22" : s.status === "inactive" ? "#490000" : TEXT_MUTED }}>{s.status ?? "neutral"}</span>
-                        <span style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, whiteSpace: "nowrap" }}>{s.createdAt ? s.createdAt.slice(0, 10) : "—"}</span>
-                        <button type="button" onClick={() => removeSub(s.email)} disabled={removingSubscriber === s.email}
-                          style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 20, padding: "0.25rem 0.7rem", fontFamily: FONT, fontSize: "0.72rem", cursor: removingSubscriber === s.email ? "default" : "pointer", color: TEXT_MUTED, opacity: removingSubscriber === s.email ? 0.5 : 1 }}>
-                          {removingSubscriber === s.email ? "Removing…" : "Remove"}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
 
           {/* USERS (admin only) */}
           {activePanel === "users" && isAdmin && currentUser && (
             <UsersPanel currentEmail={currentUser.email} initialUsers={usersData} />
           )}
 
-          {/* MEMBERS (admin only) */}
+          {/* MEMBERS & SUBSCRIBERS (admin only) — one combined audience window */}
           {activePanel === "members" && isAdmin && (
-            <MembersPanel />
+            <div style={{ maxWidth: 760 }}>
+              <h2 style={{ fontFamily: FONT, fontSize: "1.05rem", fontWeight: 700, color: TEXT_DARK, margin: "0 0 1rem" }}>Members</h2>
+              <MembersPanel />
+
+              <h2 style={{ fontFamily: FONT, fontSize: "1.05rem", fontWeight: 700, color: TEXT_DARK, margin: "2.5rem 0 1rem", paddingTop: "1.5rem", borderTop: `1px solid ${BORDER}` }}>Subscribers</h2>
+              <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: "0 0 1.25rem" }}>
+                Everyone on the newsletter list. Paid members are added here automatically.
+              </p>
+              {renderSubscribers()}
+            </div>
           )}
 
           {/* ABOUT EDITOR */}
