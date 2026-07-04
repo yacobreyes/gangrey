@@ -295,9 +295,33 @@ export async function deleteNewsletter(id: string) {
   await mutate([{ delete: { id } }, ...versionIds.map(vid => ({ delete: { id: vid } }))]);
 }
 
-// Sends a newsletter to every active subscriber via Resend.
+export type SendAudience = "all" | "free" | "members";
+
+// Active paid/comped member emails (lowercased). Used to split the subscriber
+// list into free vs paid audiences at send time.
+async function activeMemberEmails(): Promise<Set<string>> {
+  const rows: { email?: string; status?: string; currentPeriodEnd?: number }[] = await client.fetch(
+    `*[_type == "member"]{ email, status, currentPeriodEnd }`,
+    {},
+    { cache: "no-store" }
+  );
+  const now = Date.now();
+  const set = new Set<string>();
+  for (const m of rows ?? []) {
+    if (!m.email) continue;
+    if (m.status !== "active" && m.status !== "trialing") continue;
+    if (m.currentPeriodEnd && m.currentPeriodEnd * 1000 < now) continue;
+    set.add(m.email.trim().toLowerCase());
+  }
+  return set;
+}
+
+// Sends a newsletter via Resend. `audience` selects who receives it:
+//   "all"     — every subscriber (members are on this list too)
+//   "free"    — subscribers who are NOT active paid members
+//   "members" — subscribers who ARE active paid members
 // Gated on RESEND_API_KEY + NEWSLETTER_FROM — returns a clear error until they're set.
-export async function sendNewsletter(id: string): Promise<{ ok: boolean; sent?: number; failed?: number; error?: string }> {
+export async function sendNewsletter(id: string, audience: SendAudience = "all"): Promise<{ ok: boolean; sent?: number; failed?: number; error?: string }> {
   await requireAuth();
   // Prefer GANGREY_RESEND_KEY so the Vercel-Resend integration can't overwrite it.
   const apiKey = process.env.GANGREY_RESEND_KEY ?? process.env.RESEND_API_KEY;
@@ -325,6 +349,19 @@ export async function sendNewsletter(id: string): Promise<{ ok: boolean; sent?: 
   );
   if (!subscribers.length) return { ok: false, error: "No subscribers to send to yet." };
 
+  // Split the subscriber list into free vs paid using the current member list.
+  const subEmails = Array.from(new Set(subscribers.map(s => s.email).filter(Boolean).map(e => e.toLowerCase())));
+  let recipients = subEmails;
+  if (audience !== "all") {
+    const members = await activeMemberEmails();
+    recipients = audience === "members"
+      ? subEmails.filter(e => members.has(e))
+      : subEmails.filter(e => !members.has(e));
+  }
+  if (!recipients.length) {
+    return { ok: false, error: audience === "members" ? "No paid members on the list yet." : "No recipients in that audience." };
+  }
+
   const baseHtml = renderNewsletterHtml({
     subject: nl.subject,
     preview: nl.preview ?? "",
@@ -338,7 +375,7 @@ export async function sendNewsletter(id: string): Promise<{ ok: boolean; sent?: 
 
   const resend = new Resend(apiKey);
 
-  const emails = subscribers.map(s => s.email).filter(Boolean);
+  const emails = recipients;
   let sent = 0;
   const errors: string[] = [];
 

@@ -28,6 +28,12 @@ const INPUT: React.CSSProperties = {
 
 const EMPTY_DOC: JSONContent = { type: "doc", content: [{ type: "paragraph" }] };
 
+const AUDIENCE_LABEL: Record<"all" | "free" | "members", string> = {
+  all: "recipient",
+  free: "free subscriber",
+  members: "paid member",
+};
+
 function ptPlainText(blocks?: { _type?: string; children?: { text?: string }[] }[]): string {
   if (!blocks?.length) return "";
   return blocks
@@ -150,6 +156,7 @@ export default function NewsletterEditorClient({
   const [nlCompare, setNlCompare] = useState<string | null>(null);
   const [nlSaveStatus, setNlSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
   const [nlSending, setNlSending] = useState(false);
+  const [nlAudience, setNlAudience] = useState<"all" | "free" | "members">("all");
   const [nlImgPickerCard, setNlImgPickerCard] = useState<string | null>(null);
   const [showNlEllipsis, setShowNlEllipsis] = useState(false);
   const [showNlScheduler, setShowNlScheduler] = useState(false);
@@ -498,8 +505,9 @@ export default function NewsletterEditorClient({
     if (isAlreadyPublished) return;
     setNlSending(true);
     try {
-      const d = await sendNewsletter(newsletterId);
+      const d = await sendNewsletter(newsletterId, nlAudience);
       if (!d.ok) alert(d.error || "Send failed.");
+      else alert(`Sent to ${d.sent} ${AUDIENCE_LABEL[nlAudience]}${d.sent === 1 ? "" : "s"}.${d.failed ? ` ${d.failed} failed.` : ""}`);
     } catch { alert("Send failed."); }
     finally { setNlSending(false); }
   }
@@ -751,6 +759,17 @@ export default function NewsletterEditorClient({
 
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
           <span style={{ fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED }}>{nlReadOnly ? "Read only" : nlSending ? "Sending…" : nlSaveStatus === "saving" ? "Saving…" : nlSaveStatus === "unsaved" ? "Unsaved" : "Saved"}</span>
+          {!nlReadOnly && !isMobile && (
+            <select
+              value={nlAudience}
+              onChange={e => setNlAudience(e.target.value as "all" | "free" | "members")}
+              title="Who receives this send"
+              style={{ fontFamily: FONT, fontSize: "0.78rem", color: TEXT_DARK, border: `1px solid ${BORDER}`, borderRadius: 20, padding: "0.3rem 0.6rem", background: "white", cursor: "pointer", outline: "none" }}>
+              <option value="all">Everyone</option>
+              <option value="free">Free subscribers</option>
+              <option value="members">Paid members</option>
+            </select>
+          )}
           <button
             disabled={nlReadOnly || !nlSubject || nlSending}
             onClick={publishNewsletter}
@@ -778,12 +797,12 @@ export default function NewsletterEditorClient({
                 {nlStatus === "published" && (
                   <>
                     <button type="button" onClick={async () => {
-                      if (!confirm("Resend this newsletter to all subscribers?")) return;
+                      if (!confirm(`Resend this newsletter to ${nlAudience === "all" ? "all subscribers" : nlAudience === "members" ? "paid members" : "free subscribers"}?`)) return;
                       setNlSending(true);
                       try {
-                        const d = await sendNewsletter(newsletterId);
+                        const d = await sendNewsletter(newsletterId, nlAudience);
                         if (!d.ok) alert(d.error || "Send failed.");
-                        else alert(`Sent to ${d.sent} subscriber${d.sent === 1 ? "" : "s"}.${d.failed ? ` ${d.failed} failed.` : ""}`);
+                        else alert(`Sent to ${d.sent} ${AUDIENCE_LABEL[nlAudience]}${d.sent === 1 ? "" : "s"}.${d.failed ? ` ${d.failed} failed.` : ""}`);
                       } catch { alert("Send failed."); }
                       finally { setNlSending(false); }
                     }} style={{ display: "block", width: "100%", background: "none", border: "none", textAlign: "left", padding: "0.65rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: TEXT_DARK, cursor: "pointer" }}>Resend email</button>

@@ -21,6 +21,26 @@ export interface Member {
   comped?: boolean;
 }
 
+// Matches the subscriber id scheme in newsletterActions so paid members land
+// in the same newsletter list (idempotent createIfNotExists — never clobbers an
+// existing subscriber's status or open history).
+export function subscriberIdForEmail(email: string): string {
+  return "subscriber-" + email.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
+}
+
+function addSubscriberMutation(email: string) {
+  const clean = email.trim().toLowerCase();
+  return {
+    createIfNotExists: {
+      _id: subscriberIdForEmail(clean),
+      _type: "subscriber",
+      email: clean,
+      status: "neutral",
+      createdAt: new Date().toISOString(),
+    },
+  };
+}
+
 export function memberIdForEmail(email: string): string {
   return `member-${email.trim().toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
 }
@@ -91,6 +111,8 @@ export async function upsertMember(input: {
         },
       },
     },
+    // Paid members join the newsletter list too so they're reachable.
+    addSubscriberMutation(email),
   ]);
 }
 
@@ -118,6 +140,7 @@ export async function compMembership(email: string, tier: MemberTier = "founding
   await sanityMutate([
     { createIfNotExists: { _id, _type: "member", email: clean, createdAt: new Date().toISOString() } },
     { patch: { id: _id, set: { email: clean, tier, status: "active", comped: true, currentPeriodEnd: null } } },
+    addSubscriberMutation(clean),
   ]);
 }
 
