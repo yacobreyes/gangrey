@@ -853,6 +853,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
               <div>
                 <label style={LABEL}>Social Headline</label>
                 <input style={INPUT} value={form.socialHeadline} onChange={e => updateForm({ socialHeadline: e.target.value })} placeholder={form.headline || "Appears on shared link preview"} />
+                <SeoCount value={form.socialHeadline || form.headline} ideal={70} min={30} />
               </div>
               <div>
                 <label style={LABEL}>Social Description</label>
