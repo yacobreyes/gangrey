@@ -133,6 +133,17 @@ export async function listAllMembers(): Promise<Member[]> {
   return (data.result as Member[]) ?? [];
 }
 
+// Admin: backfill — add every existing member to the subscriber list. Needed
+// once for members created before members were auto-added on join. Idempotent.
+export async function syncMembersToSubscribers(): Promise<number> {
+  const members = await listAllMembers();
+  const muts = members.filter(m => m.email).map(m => addSubscriberMutation(m.email));
+  for (let i = 0; i < muts.length; i += 100) {
+    await sanityMutate(muts.slice(i, i + 100));
+  }
+  return muts.length;
+}
+
 // Admin: grant a comped membership by email — active, no Stripe subscription.
 export async function compMembership(email: string, tier: MemberTier = "founding"): Promise<void> {
   const clean = email.trim().toLowerCase();

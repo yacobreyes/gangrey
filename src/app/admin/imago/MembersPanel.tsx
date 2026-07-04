@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { listMembers, compMember, revokeMember, deleteMember } from "../memberActions";
+import { listMembers, compMember, revokeMember, deleteMember, syncMembers } from "../memberActions";
 import type { Member } from "@/lib/membership";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
 
@@ -66,10 +66,24 @@ export default function MembersPanel() {
   const current = members.filter(m => m.status !== "canceled");
   const former = members.filter(m => m.status === "canceled");
 
+  function sync() {
+    startTransition(async () => {
+      const r = await syncMembers();
+      alert(r.ok ? `Synced ${r.count ?? 0} member${r.count === 1 ? "" : "s"} to the subscriber list.` : (r.error ?? "Failed."));
+    });
+  }
+
   return (
     <div style={{ maxWidth: 760 }}>
-      <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: "0 0 1.25rem" }}>
+      <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: "0 0 0.75rem" }}>
         Paid members are added automatically after checkout. Comp a free membership below — they sign in with the same email (magic link) and get full access.
+      </p>
+      <p style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, margin: "0 0 1.25rem" }}>
+        Members created before this list existed?{" "}
+        <button type="button" onClick={sync} disabled={isPending}
+          style={{ background: "none", border: "none", padding: 0, color: CRIMSON, fontFamily: FONT, fontSize: "0.82rem", fontWeight: 600, cursor: isPending ? "default" : "pointer", textDecoration: "underline" }}>
+          Add all members to subscribers
+        </button>
       </p>
 
       <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "center", marginBottom: "1.5rem" }}>
