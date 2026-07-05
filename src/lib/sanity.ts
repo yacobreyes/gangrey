@@ -2,6 +2,7 @@ import { createClient } from "next-sanity";
 import { straightenQuotes, straightenBlocks } from "./straighten";
 import {
   isSqliteBackend, sqliteAllPublishedPosts, sqliteAllPostsAdmin, sqliteGetPost, sqliteGetSingleton,
+  sqliteDocsByType, sqliteListMedia,
 } from "./storage/sqlite";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SanityImageSource = any;
@@ -287,6 +288,10 @@ export type AdminNewsletterListItem = {
   scheduledAt?: string; createdAt?: string; updatedAt?: string; sentAt?: string;
 };
 export async function getAllNewslettersAdmin(): Promise<AdminNewsletterListItem[]> {
+  if (isSqliteBackend()) {
+    return sqliteDocsByType<AdminNewsletterListItem & { updatedAt?: string; createdAt?: string }>("newsletter")
+      .sort((a, b) => ((b.updatedAt ?? b.createdAt ?? "")).localeCompare(a.updatedAt ?? a.createdAt ?? ""));
+  }
   const list: AdminNewsletterListItem[] = await withRetry(() => client.fetch(
     `*[_type == "newsletter"] | order(coalesce(updatedAt, createdAt) desc){
       _id, subject, preview, author, wordCount, cards, status, scheduledAt, createdAt, updatedAt, sentAt
@@ -306,6 +311,16 @@ export type AdminMediaAsset = {
   usedIn?: { slug: string; headline: string }[];
 };
 export async function getMediaLibrary(): Promise<AdminMediaAsset[]> {
+  if (isSqliteBackend()) {
+    const usage: Record<string, { slug: string; headline: string }[]> = {};
+    for (const p of sqliteAllPostsAdmin(false)) {
+      if (p.image?.url) (usage[p.image.url] ??= []).push({ slug: p.slug, headline: p.headline });
+    }
+    return sqliteListMedia().map(m => ({
+      _id: m._id, _createdAt: m._createdAt, url: m.url, originalFilename: m.originalFilename,
+      metadata: { size: m.size }, usedIn: usage[m.url] ?? [],
+    }));
+  }
   const [assets, posts] = await withRetry(() => Promise.all([
     client.fetch(
       `*[_type == "sanity.imageAsset"] | order(_createdAt desc) {
@@ -333,6 +348,10 @@ export async function getMediaLibrary(): Promise<AdminMediaAsset[]> {
 // reconciles statuses against the provider.
 export type AdminSubscriber = { email: string; status?: "active" | "neutral" | "inactive"; createdAt?: string };
 export async function listSubscribers(): Promise<AdminSubscriber[]> {
+  if (isSqliteBackend()) {
+    return sqliteDocsByType<AdminSubscriber>("subscriber")
+      .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+  }
   const list: AdminSubscriber[] = await client.fetch(
     `*[_type == "subscriber"] | order(createdAt desc){ email, status, createdAt }`,
     {},
@@ -371,6 +390,11 @@ export interface SanityIssue {
 }
 
 export async function getAllIssues(): Promise<SanityIssue[]> {
+  if (isSqliteBackend()) {
+    return sqliteDocsByType<Omit<SanityIssue, "slug"> & { slug?: { current?: string } | string }>("issue")
+      .map(i => ({ ...i, slug: typeof i.slug === "object" && i.slug ? (i.slug.current ?? "") : ((i.slug as string) ?? "") }))
+      .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? "")) as SanityIssue[];
+  }
   return client.fetch(
     `*[_type == "issue"] | order(publishedAt desc) { _id, "slug": slug.current, number, title, description, publishedAt, url, newsletterId }`,
     {}, { next: { revalidate: 60 } }

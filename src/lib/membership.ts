@@ -1,6 +1,7 @@
 import { sanityMutate } from "./sanityWrite";
 import { getStripe } from "./stripe";
 import { withRetry } from "./sanity";
+import { isSqliteBackend, sqliteGetDoc, sqliteDocsByType } from "./storage/sqlite";
 
 // Reader memberships are stored as `member` documents in Sanity, keyed
 // deterministically by email so the Stripe webhook can upsert idempotently and
@@ -59,6 +60,7 @@ export function isActiveMember(member: Member | null | undefined): boolean {
 // Tokenless CDN read — member docs are non-sensitive membership metadata
 // (no card data ever touches Sanity), and this runs on every gated page view.
 export async function getMemberByEmail(email: string): Promise<Member | null> {
+  if (isSqliteBackend()) return sqliteGetDoc<Member>(memberIdForEmail(email));
   const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
   const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
   if (!projectId) return null;
@@ -120,6 +122,9 @@ export async function upsertMember(input: {
 // Admin: list every member (comped + Stripe), newest first. Uses the write
 // token so drafts/unpublished are visible and reads are always fresh.
 export async function listAllMembers(): Promise<Member[]> {
+  if (isSqliteBackend()) {
+    return sqliteDocsByType<Member>("member").sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+  }
   const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
   const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
   const token = process.env.SANITY_API_WRITE_TOKEN ?? process.env.SANITY_WRITE_TOKEN;
@@ -200,6 +205,12 @@ export async function updateMemberBySubscription(input: {
   status: MemberStatus;
   currentPeriodEnd?: number;
 }): Promise<void> {
+  if (isSqliteBackend()) {
+    const m = sqliteDocsByType<Member>("member").find(x => x.stripeSubscriptionId === input.stripeSubscriptionId);
+    if (!m) return;
+    await sanityMutate([{ patch: { id: m._id, set: { status: input.status, ...(input.currentPeriodEnd ? { currentPeriodEnd: input.currentPeriodEnd } : {}) } } }]);
+    return;
+  }
   const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
   const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
   if (!projectId) return;

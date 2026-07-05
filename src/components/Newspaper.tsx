@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import type { SanityPost, SanityLately, SanityWelcome } from "@/lib/sanity";
-import { urlFor } from "@/lib/sanityImage";
+import { postImageUrl } from "@/lib/sanityImage";
 import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
 import { postReadingTime } from "@/lib/readingTime";
@@ -84,9 +84,7 @@ export default function Feed({
     if (card) el.scrollTo({ left: card.offsetLeft - el.offsetLeft, behavior: "smooth" });
   }
 
-  const heroImg = hero?.image?.asset
-    ? urlFor(hero.image.asset).width(1600).height(900).fit("crop").auto("format").url()
-    : null;
+  const heroImg = postImageUrl(hero?.image, 1600, 900);
 
   return (
     <>
@@ -397,9 +395,7 @@ export default function Feed({
           </div>
           <div className="hm-grid" ref={carouselRef} onScroll={onCarouselScroll}>
             {latestCards.map((post, i) => {
-              const imgSrc = post.image?.asset
-                ? urlFor(post.image.asset).width(720).height(540).fit("crop").auto("format").url()
-                : null;
+              const imgSrc = postImageUrl(post.image, 720, 540);
               return (
                 <div key={post._id} style={{ display: "contents" }}>
                   {i > 0 && <div className="hm-divider" />}

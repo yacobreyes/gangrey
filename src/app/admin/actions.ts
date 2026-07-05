@@ -95,10 +95,14 @@ export async function straightenAllPosts(): Promise<{ scanned: number; updated: 
 
 export async function uploadImage(formData: FormData) {
   await requireAuth();
-  const { token, projectId, dataset } = sanityConfig();
   const file = formData.get("file") as File;
   if (!file) throw new Error("No file provided");
   const buf = Buffer.from(await file.arrayBuffer());
+  if (isSqliteBackend()) {
+    const { sqliteSaveMedia } = await import("@/lib/storage/sqlite");
+    return sqliteSaveMedia(file.name, buf);
+  }
+  const { token, projectId, dataset } = sanityConfig();
   const res = await fetch(
     `https://${projectId}.api.sanity.io/v1/assets/images/${dataset}`,
     {
@@ -426,11 +430,18 @@ export async function restorePost(id: string) {
 
 export async function deleteMediaAsset(assetId: string) {
   await requireAuth();
+  if (isSqliteBackend()) {
+    const { sqliteDeleteMedia } = await import("@/lib/storage/sqlite");
+    sqliteDeleteMedia(assetId);
+    return;
+  }
   await mutate([{ delete: { id: assetId } }]);
 }
 
 export async function updateMediaAsset(assetId: string, fields: { title?: string; description?: string; altText?: string }) {
   await requireAuth();
+  // Local files carry no editable metadata yet — no-op on the sqlite backend.
+  if (isSqliteBackend()) return;
   await mutate([{ patch: { id: assetId, set: fields } }]);
 }
 

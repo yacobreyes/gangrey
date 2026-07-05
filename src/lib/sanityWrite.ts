@@ -1,5 +1,9 @@
 // Shared server-side Sanity write helpers (mutate + asset upload). Used by the
 // admin server actions so the write-token boilerplate lives in one place.
+// On the self-hosted sqlite backend, the same mutation shapes are applied to
+// the local store instead — callers don't change.
+
+import { isSqliteBackend, sqliteMutate, sqliteSaveMedia } from "./storage/sqlite";
 
 export function sanityConfig() {
   const token = process.env.SANITY_API_WRITE_TOKEN ?? process.env.SANITY_WRITE_TOKEN;
@@ -10,6 +14,7 @@ export function sanityConfig() {
 }
 
 export async function sanityMutate(mutations: unknown[]) {
+  if (isSqliteBackend()) { sqliteMutate(mutations); return { results: [] }; }
   const { token, projectId, dataset } = sanityConfig();
   const res = await fetch(
     `https://${projectId}.api.sanity.io/v2024-01-01/data/mutate/${dataset}`,
@@ -24,6 +29,7 @@ export async function sanityMutate(mutations: unknown[]) {
 }
 
 export async function uploadImageAsset(file: File): Promise<{ assetId: string; url: string }> {
+  if (isSqliteBackend()) return sqliteSaveMedia(file.name, Buffer.from(await file.arrayBuffer()));
   const { token, projectId, dataset } = sanityConfig();
   const buf = Buffer.from(await file.arrayBuffer());
   const res = await fetch(

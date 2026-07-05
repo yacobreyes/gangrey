@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { SanityPost } from "@/lib/sanity";
-import { urlFor } from "@/lib/sanityImage";
+import { postImageUrl } from "@/lib/sanityImage";
 import { plainTextFromBlocks, postReadingTime } from "@/lib/readingTime";
 
 const plainText = plainTextFromBlocks;
@@ -82,9 +82,7 @@ export default function StoryCardGrid({ posts, variant = "default" }: { posts: S
       `}</style>
       {posts.map(post => {
         const plain = post.searchText ?? plainText(post.body);
-        const imgSrc = post.image?.asset
-          ? urlFor(post.image.asset).width(600).height(445).fit("crop").auto("format").url()
-          : null;
+        const imgSrc = postImageUrl(post.image, 600, 445);
         return (
           <article key={post._id} className="sg-card">
             <Link href={`/stories/${post.slug}`} className="sg-thumb">

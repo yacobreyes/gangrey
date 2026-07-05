@@ -6,6 +6,8 @@ import { fullName } from "@/lib/users";
 import { client, withRetry } from "@/lib/sanity";
 import { renderNewsletterHtml, type NlCard } from "@/lib/newsletterEmail";
 import { Resend } from "resend";
+import { sanityMutate } from "@/lib/sanityWrite";
+import { isSqliteBackend, sqliteGetDoc, sqliteDocsByType, sqliteAllPostsAdmin } from "@/lib/storage/sqlite";
 
 function sanityConfig() {
   const token = process.env.SANITY_API_WRITE_TOKEN ?? process.env.SANITY_WRITE_TOKEN;
@@ -15,18 +17,10 @@ function sanityConfig() {
   return { token, projectId, dataset };
 }
 
+// Delegates to the shared write helper, which routes to Sanity or the local
+// sqlite store depending on STORAGE_BACKEND.
 async function mutate(mutations: unknown[]) {
-  const { token, projectId, dataset } = sanityConfig();
-  const res = await fetch(
-    `https://${projectId}.api.sanity.io/v2024-01-01/data/mutate/${dataset}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ mutations }),
-    }
-  );
-  if (!res.ok) throw new Error(`Sanity error: ${await res.text()}`);
-  return res.json();
+  return sanityMutate(mutations);
 }
 
 export type NlPickablePost = {
@@ -46,6 +40,16 @@ export type NlPickablePost = {
 // byline/section/date are fetched just to render the picker list richly.
 export async function getPostsForNewsletter(): Promise<NlPickablePost[]> {
   await requireAuth();
+  if (isSqliteBackend()) {
+    return sqliteAllPostsAdmin(false)
+      .filter(p => p.status !== "trashed")
+      .map(p => ({
+        id: p._id, slug: p.slug, headline: p.headline, byline: p.byline,
+        section: p.section, date: p.date, status: p.status as NlPickablePost["status"],
+        body: p.body as NlCard["body"],
+        image: p.image?.url ? { assetId: p.image.url, url: p.image.url, caption: p.image.caption, alt: p.image.alt } : null,
+      }));
+  }
   return client.fetch(
     `*[_type == "post" && !(_id in path("drafts.**")) && status != "trashed"] | order(_updatedAt desc){
       "id": _id, "slug": slug.current, headline, byline, section, date, status, body,
@@ -70,6 +74,13 @@ export type NlVersion = {
 };
 
 async function versionsFor(newsletterId: string): Promise<NlVersion[]> {
+  if (isSqliteBackend()) {
+    return sqliteDocsByType<{ _id: string; newsletterId: string; createdAt: string } & Omit<NlVersion, "id">>("newsletterVersion")
+      .filter(v => v.newsletterId === newsletterId)
+      .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))
+      .slice(0, 20)
+      .map(({ _id, ...rest }) => ({ id: _id, ...rest })) as NlVersion[];
+  }
   const raw: ({ _id: string } & Record<string, unknown>)[] = await client.fetch(
     `*[_type == "newsletterVersion" && newsletterId == $id] | order(createdAt desc)[0...20]{ _id, createdAt, type, subject, preview, author, wordCount, cards }`,
     { id: newsletterId },
@@ -109,18 +120,22 @@ async function syncIssueForNewsletter(newsletterId: string, payload: NlPayload, 
 
   // Preserve the issue's number and publish date once assigned, so re-publishing
   // an edit doesn't renumber it or reset its date.
-  const existing = await client.fetch<{ number?: number; publishedAt?: string } | null>(
-    `*[_id == $id][0]{ number, publishedAt }`,
-    { id: issueId },
-    { cache: "no-store" }
-  );
+  const existing = isSqliteBackend()
+    ? sqliteGetDoc<{ number?: number; publishedAt?: string }>(issueId)
+    : await client.fetch<{ number?: number; publishedAt?: string } | null>(
+        `*[_id == $id][0]{ number, publishedAt }`,
+        { id: issueId },
+        { cache: "no-store" }
+      );
 
   let number = existing?.number;
   if (number == null) {
     if (payload.issue && !Number.isNaN(Number(payload.issue))) {
       number = Number(payload.issue);
     } else {
-      const numbers: number[] = await client.fetch(`*[_type == "issue"].number`, {}, { cache: "no-store" });
+      const numbers: number[] = isSqliteBackend()
+        ? sqliteDocsByType<{ number?: number }>("issue").map(i => i.number as number)
+        : await client.fetch(`*[_type == "issue"].number`, {}, { cache: "no-store" });
       number = (numbers ?? []).reduce((m, n) => (typeof n === "number" && n > m ? n : m), 0) + 1;
     }
   }
@@ -150,11 +165,13 @@ export async function saveNewsletter(payload: NlPayload): Promise<{ id: string; 
   const now = new Date().toISOString();
   const id = payload.id || `newsletter-${Date.now()}`;
 
-  const existing = await client.fetch(
-    `*[_id == $id][0]{ createdAt, status }`,
-    { id },
-    { cache: "no-store" }
-  );
+  const existing = isSqliteBackend()
+    ? sqliteGetDoc<{ createdAt?: string; status?: string }>(id)
+    : await client.fetch(
+        `*[_id == $id][0]{ createdAt, status }`,
+        { id },
+        { cache: "no-store" }
+      );
 
   const draftDoc: Record<string, unknown> = {
     _id: id,
@@ -181,11 +198,13 @@ export async function saveNewsletter(payload: NlPayload): Promise<{ id: string; 
   try { await syncIssueForNewsletter(id, payload, draftDoc.status as string); } catch (e) { syncError = String(e); }
 
   // Snapshot a version unless nothing changed since the latest.
-  const latest = await client.fetch(
-    `*[_type == "newsletterVersion" && newsletterId == $id] | order(createdAt desc)[0]{ subject, preview, author, wordCount, cards }`,
-    { id },
-    { cache: "no-store" }
-  );
+  const latest = isSqliteBackend()
+    ? (await versionsFor(id))[0] ?? null
+    : await client.fetch(
+        `*[_type == "newsletterVersion" && newsletterId == $id] | order(createdAt desc)[0]{ subject, preview, author, wordCount, cards }`,
+        { id },
+        { cache: "no-store" }
+      );
   const sameAsLast = latest &&
     JSON.stringify({ subject: latest.subject, preview: latest.preview, author: latest.author, wordCount: latest.wordCount, cards: latest.cards }) ===
     JSON.stringify({ subject: payload.subject, preview: payload.preview, author: payload.author, wordCount: payload.wordCount, cards: payload.cards });
@@ -204,11 +223,16 @@ export async function saveNewsletter(payload: NlPayload): Promise<{ id: string; 
       cards: payload.cards ?? [],
     };
     // Keep every published snapshot; only prune the oldest autosaves past 60.
-    const staleAutosaves: string[] = await client.fetch(
-      `*[_type == "newsletterVersion" && newsletterId == $id && type != "publish"] | order(createdAt desc)[60...1000]._id`,
-      { id },
-      { cache: "no-store" }
-    );
+    const staleAutosaves: string[] = isSqliteBackend()
+      ? sqliteDocsByType<{ _id: string; newsletterId: string; type?: string; createdAt?: string }>("newsletterVersion")
+          .filter(v => v.newsletterId === id && v.type !== "publish")
+          .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))
+          .slice(60).map(v => v._id)
+      : await client.fetch(
+          `*[_type == "newsletterVersion" && newsletterId == $id && type != "publish"] | order(createdAt desc)[60...1000]._id`,
+          { id },
+          { cache: "no-store" }
+        );
     await mutate([{ createOrReplace: versionDoc }, ...staleAutosaves.map(sid => ({ delete: { id: sid } }))]);
   }
 
@@ -236,6 +260,11 @@ function classifyByOpens(openedCount: number, lookbackCount: number): "active" |
 
 export async function getSubscribers(): Promise<Subscriber[]> {
   await requireAdmin();
+  if (isSqliteBackend()) {
+    // No open-tracking pixel data on self-hosted yet, so no status reconcile.
+    return sqliteDocsByType<Subscriber & { _id: string }>("subscriber")
+      .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+  }
   await reconcileSubscriberStatuses();
   return withRetry(() => client.fetch(
     `*[_type == "subscriber"] | order(createdAt desc){ email, status, createdAt }`,
@@ -288,11 +317,13 @@ export async function getNewsletterVersions(id: string): Promise<NlVersion[]> {
 
 export async function deleteNewsletter(id: string) {
   await requireAuth();
-  const versionIds: string[] = await client.fetch(
-    `*[_type == "newsletterVersion" && newsletterId == $id]._id`,
-    { id },
-    { cache: "no-store" }
-  );
+  const versionIds: string[] = isSqliteBackend()
+    ? sqliteDocsByType<{ _id: string; newsletterId: string }>("newsletterVersion").filter(v => v.newsletterId === id).map(v => v._id)
+    : await client.fetch(
+        `*[_type == "newsletterVersion" && newsletterId == $id]._id`,
+        { id },
+        { cache: "no-store" }
+      );
   await mutate([{ delete: { id } }, ...versionIds.map(vid => ({ delete: { id: vid } }))]);
 }
 
@@ -301,11 +332,13 @@ export type SendAudience = "all" | "free" | "members";
 // Active paid/comped member emails (lowercased). Used to split the subscriber
 // list into free vs paid audiences at send time.
 async function activeMemberEmails(): Promise<Set<string>> {
-  const rows: { email?: string; status?: string; currentPeriodEnd?: number }[] = await client.fetch(
-    `*[_type == "member"]{ email, status, currentPeriodEnd }`,
-    {},
-    { cache: "no-store" }
-  );
+  const rows: { email?: string; status?: string; currentPeriodEnd?: number }[] = isSqliteBackend()
+    ? sqliteDocsByType<{ email?: string; status?: string; currentPeriodEnd?: number }>("member")
+    : await client.fetch(
+        `*[_type == "member"]{ email, status, currentPeriodEnd }`,
+        {},
+        { cache: "no-store" }
+      );
   const now = Date.now();
   const set = new Set<string>();
   for (const m of rows ?? []) {
@@ -332,22 +365,26 @@ export async function sendNewsletter(id: string, audience: SendAudience = "all")
   }
   if (!id) return { ok: false, error: "missing id" };
 
-  const nl = await client.fetch(
-    `*[_id == $id][0]{ subject, preview, author, volume, issue, intro, cards }`,
-    { id },
-    { cache: "no-store" }
-  );
+  const nl = isSqliteBackend()
+    ? sqliteGetDoc<{ subject?: string; preview?: string; author?: string; volume?: string; issue?: string; intro?: string; cards?: NlCard[] }>(id)
+    : await client.fetch(
+        `*[_id == $id][0]{ subject, preview, author, volume, issue, intro, cards }`,
+        { id },
+        { cache: "no-store" }
+      );
   if (!nl) return { ok: false, error: "Newsletter not found" };
   if (!nl.subject?.trim()) return { ok: false, error: "Add a subject line before sending." };
 
   // Subscribers are sent to until they unsubscribe — "pending" subscribers
   // haven't opened an email yet and only flip to "active" once they do
   // (tracked via the open pixel below), so they must still receive sends.
-  const subscribers: { email: string }[] = await client.fetch(
-    `*[_type == "subscriber"]{ email }`,
-    {},
-    { cache: "no-store" }
-  );
+  const subscribers: { email: string }[] = isSqliteBackend()
+    ? sqliteDocsByType<{ email: string }>("subscriber")
+    : await client.fetch(
+        `*[_type == "subscriber"]{ email }`,
+        {},
+        { cache: "no-store" }
+      );
   if (!subscribers.length) return { ok: false, error: "No subscribers to send to yet." };
 
   // Split the subscriber list into free vs paid using the current member list.
@@ -409,11 +446,13 @@ export async function sendTestNewsletter(id: string): Promise<{ ok: boolean; err
   }
   if (!id) return { ok: false, error: "missing id" };
 
-  const nl = await client.fetch(
-    `*[_id == $id][0]{ subject, preview, author, volume, issue, intro, cards }`,
-    { id },
-    { cache: "no-store" }
-  );
+  const nl = isSqliteBackend()
+    ? sqliteGetDoc<{ subject?: string; preview?: string; author?: string; volume?: string; issue?: string; intro?: string; cards?: NlCard[] }>(id)
+    : await client.fetch(
+        `*[_id == $id][0]{ subject, preview, author, volume, issue, intro, cards }`,
+        { id },
+        { cache: "no-store" }
+      );
   if (!nl) return { ok: false, error: "Newsletter not found" };
 
   const html = renderNewsletterHtml({

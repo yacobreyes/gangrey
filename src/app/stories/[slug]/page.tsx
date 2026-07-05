@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { PortableText } from "@portabletext/react";
-import { getAllSlugs, getPost, urlFor } from "@/lib/sanity";
+import { getAllSlugs, getPost } from "@/lib/sanity";
+import { postImageUrl } from "@/lib/sanityImage";
 import CommentSection from "@/components/CommentSection";
 import LikeButton from "@/components/LikeButton";
 import ShareButton from "@/components/ShareButton";
@@ -47,9 +48,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const description = post.socialDescription || post.subheadline || bodyText;
   const seoDescription = post.socialDescription || post.subheadline || bodyText;
 
-  const imageUrl = post.image?.asset
-    ? urlFor(post.image.asset).width(1200).height(630).fit("crop").auto("format").url()
-    : null;
+  const imageUrl = postImageUrl(post.image, 1200, 630);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org";
   const postUrl = `${siteUrl}/stories/${slug}`;
@@ -103,7 +102,7 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
     dateModified: post._updatedAt ?? post.date,
     publisher: { "@type": "Organization", name: "Gangrey", url: siteUrl },
     url: `${siteUrl}/stories/${slug}`,
-    ...(post.image?.asset ? { image: urlFor(post.image.asset).width(1200).height(630).url() } : {}),
+    ...(postImageUrl(post.image, 1200, 630) ? { image: postImageUrl(post.image, 1200, 630) } : {}),
     // Google's paywalled-content signal — declares the gated body so serving a
     // preview to crawlers isn't treated as cloaking.
     ...(gated ? {
@@ -138,14 +137,14 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
         </div>
       </header>
 
-      {post.image?.asset && (
+      {postImageUrl(post.image) && (
         <>
           <div className="story-hero-wrap">
             <div className="story-hero">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={urlFor(post.image.asset).width(1600).height(900).fit("crop").auto("format").url()}
-                alt={post.image.alt ?? post.image.caption ?? ""}
+                src={postImageUrl(post.image, 1600, 900)!}
+                alt={post.image?.alt ?? post.image?.caption ?? ""}
               />
             </div>
           </div>

@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/adminAuth";
 import { client } from "@/lib/sanity";
 import { sanityMutate } from "@/lib/sanityWrite";
 import { fullName } from "@/lib/users";
+import { isSqliteBackend, sqliteGetDoc, sqliteDocsByType } from "@/lib/storage/sqlite";
 
 // A lock is considered live only if it was refreshed within this window. The
 // editor heartbeats every ~20s, so 45s tolerates a missed beat before a lock is
@@ -22,6 +23,7 @@ const isLive = (l: { heartbeatAt?: string } | null, nowMs: number) =>
 const toHolder = (l: LockDoc): LockHolder => ({ name: l.holderName, email: l.holderEmail, sessionId: l.sessionId, since: l.since });
 
 async function readLock(targetId: string): Promise<LockDoc | null> {
+  if (isSqliteBackend()) return sqliteGetDoc<LockDoc>(lockId(targetId));
   return client.fetch(`*[_id == $id][0]`, { id: lockId(targetId) }, { cache: "no-store" });
 }
 
@@ -88,7 +90,9 @@ export async function watchLock(targetId: string, nowIso: string): Promise<LockS
 export async function getActiveLocks(nowIso: string): Promise<Record<string, LockHolder>> {
   await requireAuth();
   const now = new Date(nowIso).getTime();
-  const locks: LockDoc[] = await client.fetch(`*[_type == "editLock"]`, {}, { cache: "no-store" });
+  const locks: LockDoc[] = isSqliteBackend()
+    ? sqliteDocsByType<LockDoc>("editLock")
+    : await client.fetch(`*[_type == "editLock"]`, {}, { cache: "no-store" });
   const out: Record<string, LockHolder> = {};
   for (const l of locks ?? []) {
     if (isLive(l, now)) out[l.targetId] = toHolder(l);

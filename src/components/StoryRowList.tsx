@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { SanityPost } from "@/lib/sanity";
-import { urlFor } from "@/lib/sanityImage";
+import { postImageUrl } from "@/lib/sanityImage";
 import { postReadingTime } from "@/lib/readingTime";
 
 // Horizontal story rows (thumbnail / kicker+headline+byline / reading time)
@@ -72,9 +72,7 @@ export default function StoryRowList({ posts }: { posts: SanityPost[] }) {
         }
       `}</style>
       {posts.map(post => {
-        const imgSrc = post.image?.asset
-          ? urlFor(post.image.asset).width(520).height(293).fit("crop").auto("format").url()
-          : null;
+        const imgSrc = postImageUrl(post.image, 520, 293);
         return (
           <Link key={post._id} href={`/stories/${post.slug}`} className="srl-row">
             <span className="srl-thumb">

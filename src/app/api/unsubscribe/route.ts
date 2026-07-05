@@ -1,25 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-function sanityConfig() {
-  const token = process.env.SANITY_API_WRITE_TOKEN ?? process.env.SANITY_WRITE_TOKEN;
-  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
-  const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
-  if (!token || !projectId) throw new Error("Missing Sanity config");
-  return { token, projectId, dataset };
-}
+import { sanityMutate } from "@/lib/sanityWrite";
 
+// Routed through the shared helper (Sanity or local sqlite per STORAGE_BACKEND).
 async function mutate(mutations: unknown[]) {
-  const { token, projectId, dataset } = sanityConfig();
-  const res = await fetch(
-    `https://${projectId}.api.sanity.io/v2024-01-01/data/mutate/${dataset}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ mutations }),
-    }
-  );
-  if (!res.ok) throw new Error(`Sanity error: ${await res.text()}`);
-  return res.json();
+  return sanityMutate(mutations);
 }
 
 // Mirrors the deterministic id used when subscribing.

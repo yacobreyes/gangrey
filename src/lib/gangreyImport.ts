@@ -577,6 +577,13 @@ export function toSanityDoc(s: GangreyStory) {
 }
 
 export async function writeDocs(docs: unknown[]): Promise<number> {
+  // Self-hosted: the same createOrReplace mutations apply to the local store,
+  // so the Wayback archive import works without Sanity.
+  if (process.env.STORAGE_BACKEND === "sqlite") {
+    const { sqliteMutate } = await import("./storage/sqlite");
+    sqliteMutate(docs.map(doc => ({ createOrReplace: doc })));
+    return docs.length;
+  }
   const token = process.env.SANITY_API_WRITE_TOKEN ?? process.env.SANITY_WRITE_TOKEN;
   const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
   const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
