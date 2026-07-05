@@ -4,8 +4,9 @@
 
 FROM node:22-slim AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json ./
+COPY package-lock.json* ./
+RUN npm install --no-audit --no-fund
 
 FROM node:22-slim AS build
 WORKDIR /app
