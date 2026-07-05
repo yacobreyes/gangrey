@@ -1,0 +1,22 @@
+services:
+  imago:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      # Everything the CMS owns lives here: imago.db (SQLite) + media uploads.
+      # Backing up the site = copying this one folder.
+      - ./data:/data
+    environment:
+      STORAGE_BACKEND: sqlite
+      DATA_DIR: /data
+      # Auth (required for the admin):
+      #   NEXTAUTH_SECRET: generate with `openssl rand -base64 32`
+      #   GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET: admin Google sign-in
+      #   ADMIN_GOOGLE_EMAIL: the bootstrap owner's email
+      # Optional integrations (features disable gracefully without them):
+      #   STRIPE_SECRET_KEY, GANGREY_RESEND_KEY, NEWSLETTER_FROM
+      NEXTAUTH_URL: http://localhost:3000
+    env_file:
+      - .env.selfhost
+    restart: unless-stopped

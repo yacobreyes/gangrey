@@ -6,6 +6,10 @@ import { requireAuth } from "@/lib/adminAuth";
 import { fullName } from "@/lib/users";
 import { client } from "@/lib/sanity";
 import { straightenQuotes, straightenBlocks } from "@/lib/straighten";
+import {
+  isSqliteBackend, sqliteSavePost, sqliteDeletePost, sqliteSetStatus,
+  sqliteSnapshotVersion, sqliteGetVersions, sqliteSetSingleton,
+} from "@/lib/storage/sqlite";
 
 // Enforce house style (straight quotes) on every text field at save time, so
 // stored data is straight regardless of where it was typed (rich editor or
@@ -114,8 +118,17 @@ export async function uploadImage(formData: FormData) {
 
 export async function createDraft(providedSlug?: string): Promise<{ slug: string }> {
   await requireAuth();
+  const slug0 = providedSlug ?? `untitled-${Date.now()}`;
+  if (isSqliteBackend()) {
+    sqliteSavePost({
+      _id: `post-${slug0}`, slug: slug0, section: "", headline: "", subheadline: "",
+      byline: "", date: new Date().toISOString().slice(0, 10), status: "draft", access: "free",
+      body: [],
+    });
+    return { slug: slug0 };
+  }
   const { token, projectId, dataset } = sanityConfig();
-  const slug = providedSlug ?? `untitled-${Date.now()}`;
+  const slug = slug0;
   const doc = {
     _id: `post-${slug}`,
     _type: "post",
@@ -245,6 +258,36 @@ export async function savePost(formData: FormData) {
     };
   }
 
+  if (isSqliteBackend()) {
+    sqliteSavePost({
+      _id: doc._id as string, slug, section, headline: sq(headline) as string,
+      subheadline: sq(subheadline) as string, byline: sq(byline) as string,
+      date, status, access, scheduledAt,
+      body: straightBody,
+      // Local backend stores images as plain src paths; the Sanity asset-ref
+      // pipeline doesn't apply. (Media uploads on sqlite land in /public/media.)
+      image: imageAssetId ? { src: imageAssetId, caption: sq(imageCaption ?? "") ?? undefined, alt: sq(imageAlt ?? "") ?? undefined } : null,
+      seoHeadline: sq(seoHeadline), socialHeadline: sq(socialHeadline), socialDescription: sq(socialDescription),
+      readingTime, sortOrder, lastEditedBy: fullName(me),
+    });
+    if (shouldSnapshot || status === "published") {
+      sqliteSnapshotVersion({
+        slug, type: status === "published" ? "publish" : "autosave",
+        headline, subheadline,
+        body: Array.isArray(body) ? body : [],
+        wordCount: portableWordCount(Array.isArray(body) ? body : []),
+      });
+    }
+    if (status === "published") {
+      revalidatePath(`/stories/${slug}`);
+      revalidatePath("/");
+      revalidatePath("/latest");
+      revalidatePath("/archive");
+      revalidatePath("/brief/[read]", "page");
+    }
+    return { slug };
+  }
+
   await mutate([{ createOrReplace: doc }]);
   if (shouldSnapshot || status === "published") {
     await snapshotVersion({
@@ -333,6 +376,7 @@ export interface PostVersion {
 
 export async function getVersions(slug: string): Promise<PostVersion[]> {
   await requireAuth();
+  if (isSqliteBackend()) return sqliteGetVersions(slug);
   return client.fetch(
     `*[_type == "postVersion" && slug == $slug] | order(savedAt desc){ _id, savedAt, type, wordCount, headline, subheadline, body }`,
     { slug },
@@ -343,6 +387,11 @@ export async function getVersions(slug: string): Promise<PostVersion[]> {
 export async function checkSlugsExist(slugs: string[]): Promise<string[]> {
   await requireAuth();
   if (!slugs.length) return [];
+  if (isSqliteBackend()) {
+    const { sqliteAllPostsAdmin } = await import("@/lib/storage/sqlite");
+    const set = new Set(slugs);
+    return sqliteAllPostsAdmin(false).filter(p => p.status !== "trashed" && set.has(p.slug)).map(p => p.slug);
+  }
   const found: { slug: string }[] = await client.fetch(
     `*[_type == "post" && slug.current in $slugs && status != "trashed"]{ "slug": slug.current }`,
     { slugs },
@@ -353,21 +402,25 @@ export async function checkSlugsExist(slugs: string[]): Promise<string[]> {
 
 export async function deletePost(id: string) {
   await requireAuth();
+  if (isSqliteBackend()) { sqliteDeletePost(id); return; }
   await mutate([{ delete: { id } }]);
 }
 
 export async function unpublishPost(id: string) {
   await requireAuth();
+  if (isSqliteBackend()) { sqliteSetStatus(id, "draft"); return; }
   await mutate([{ patch: { id, set: { status: "draft" } } }]);
 }
 
 export async function trashPost(id: string) {
   await requireAuth();
+  if (isSqliteBackend()) { sqliteSetStatus(id, "trashed"); return; }
   await mutate([{ patch: { id, set: { status: "trashed" } } }]);
 }
 
 export async function restorePost(id: string) {
   await requireAuth();
+  if (isSqliteBackend()) { sqliteSetStatus(id, "draft"); return; }
   await mutate([{ patch: { id, set: { status: "draft" } } }]);
 }
 
@@ -391,6 +444,7 @@ export async function saveAbout(formData: FormData) {
   } catch {
     body = parseBody(raw);
   }
+  if (isSqliteBackend()) { sqliteSetSingleton("about", { body }); return; }
   await mutate([{ createOrReplace: { _id: "about", _type: "about", body } }]);
 }
 
@@ -398,11 +452,16 @@ const CLOUD_DRAFT_ID = "admin-autosave";
 
 export async function saveDraftToCloud(data: string) {
   await requireAuth();
+  if (isSqliteBackend()) { sqliteSetSingleton(CLOUD_DRAFT_ID, { data, ts: Date.now() }); return; }
   await mutate([{ createOrReplace: { _id: CLOUD_DRAFT_ID, _type: "adminDraft", data, ts: Date.now() } }]);
 }
 
 export async function loadDraftFromCloud(): Promise<{ data: string; ts: number } | null> {
   await requireAuth();
+  if (isSqliteBackend()) {
+    const doc = (await import("@/lib/storage/sqlite")).sqliteGetSingleton<{ data: string; ts: number }>(CLOUD_DRAFT_ID);
+    return doc?.data ? { data: doc.data, ts: doc.ts ?? 0 } : null;
+  }
   const doc = await client.fetch(
     `*[_id == $id][0]{ data, ts }`,
     { id: CLOUD_DRAFT_ID },
@@ -413,11 +472,13 @@ export async function loadDraftFromCloud(): Promise<{ data: string; ts: number }
 
 export async function clearCloudDraft() {
   // no auth check — safe to call on mount to purge stale data
+  if (isSqliteBackend()) { try { sqliteSetSingleton(CLOUD_DRAFT_ID, { data: "", ts: 0 }); } catch {} return; }
   try { await mutate([{ delete: { id: CLOUD_DRAFT_ID } }]); } catch {}
 }
 
 export async function saveWelcome(headline: string, body: string) {
   await requireAuth();
+  if (isSqliteBackend()) { sqliteSetSingleton("welcome", { headline, body }); return; }
   await mutate([{ createOrReplace: { _id: "welcome", _type: "welcome", headline, body } }]);
 }
 
@@ -436,5 +497,6 @@ export async function saveLately(formData: FormData) {
     reading, readingAuthor, readingUrl, listening, listeningArtist, listeningUrl, watching, watchingUrl,
   };
 
+  if (isSqliteBackend()) { sqliteSetSingleton("lately", doc); return; }
   await mutate([{ createOrReplace: doc }]);
 }

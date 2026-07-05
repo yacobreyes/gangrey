@@ -1,5 +1,8 @@
 import { createClient } from "next-sanity";
 import { straightenQuotes, straightenBlocks } from "./straighten";
+import {
+  isSqliteBackend, sqliteAllPublishedPosts, sqliteAllPostsAdmin, sqliteGetPost, sqliteGetSingleton,
+} from "./storage/sqlite";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SanityImageSource = any;
 
@@ -158,7 +161,17 @@ function straightenPost(p: SanityPost): SanityPost {
   };
 }
 
+// Plain text of a post body — used to synthesize the searchText field that the
+// GROQ queries compute server-side, when serving from the SQLite backend.
+function bodyText(p: SanityPost): string {
+  return (p.body ?? [])
+    .filter(b => (b as { _type?: string })._type === "block")
+    .map(b => ((b as { children?: { text?: string }[] }).children ?? []).map(c => c.text ?? "").join(""))
+    .join(" ");
+}
+
 export async function getAllPosts(): Promise<SanityPost[]> {
+  if (isSqliteBackend()) return sqliteAllPublishedPosts().map(straightenPost);
   const posts: SanityPost[] = await client.fetch(POSTS_QUERY, {}, { next: { revalidate: 60 } });
   return posts.map(straightenPost);
 }
@@ -176,6 +189,10 @@ const POSTS_LIGHT_FILTER = `*[_type == "post" && (
 // `withSearch` pulls each post's full body text for client-side search. Default
 // (false) keeps the homepage payload small for fast navigation back to it.
 export async function getPostsLight(withSearch = false): Promise<SanityPost[]> {
+  if (isSqliteBackend()) {
+    // Local reads are cheap — serve full posts, adding searchText when asked.
+    return sqliteAllPublishedPosts().map(p => straightenPost(withSearch ? { ...p, searchText: bodyText(p) } : p));
+  }
   const fields = withSearch ? POST_LIST_FIELDS_SEARCH : POST_LIST_FIELDS;
   const posts: SanityPost[] = await client.fetch(
     `${POSTS_LIGHT_FILTER} { ${fields} }`,
@@ -192,6 +209,9 @@ export async function getPostsLight(withSearch = false): Promise<SanityPost[]> {
 // `excludeArchive` drops the bulk-imported Archive pieces (2500+) which would
 // otherwise make the editorial dashboard slow to load and unwieldy to scroll.
 export async function getAllPostsAdmin(withSearch = false, excludeArchive = false): Promise<SanityPost[]> {
+  if (isSqliteBackend()) {
+    return sqliteAllPostsAdmin(excludeArchive).map(p => straightenPost(withSearch ? { ...p, searchText: bodyText(p) } : p));
+  }
   const fields = withSearch ? POST_LIST_FIELDS_SEARCH : POST_LIST_FIELDS;
   const archiveFilter = excludeArchive ? ` && section != "Archive"` : "";
   const posts: SanityPost[] = await withRetry(() => client.fetch(
@@ -212,6 +232,9 @@ const ARCHIVE_LIST_FIELDS = `
   _updatedAt, _createdAt, status, "body": []
 `;
 export async function getArchivePostsAdmin(): Promise<SanityPost[]> {
+  if (isSqliteBackend()) {
+    return sqliteAllPostsAdmin(false).filter(p => p.section === "Archive").map(straightenPost);
+  }
   const posts: SanityPost[] = await clientCdn.fetch(
     `*[_type == "post" && !(_id in path("drafts.**")) && section == "Archive"] | order(date desc) { ${ARCHIVE_LIST_FIELDS} }`,
     {},
@@ -227,6 +250,9 @@ export async function getArchivePostsAdmin(): Promise<SanityPost[]> {
 // single synthetic block so the GangreyArchive component (which reads
 // body[].children[].text for search/excerpt/reading-time) works unchanged.
 export async function getArchivePosts(): Promise<SanityPost[]> {
+  if (isSqliteBackend()) {
+    return sqliteAllPublishedPosts().filter(p => p.section === "Archive").map(straightenPost);
+  }
   type Row = { _id: string; slug: string; section: SanityPost["section"]; headline: string; byline: string; date: string; status?: SanityPost["status"]; sortOrder?: number; plain?: string };
   const rows: Row[] = await clientCdn.fetch(
     `*[_type == "post" && !(_id in path("drafts.**")) && section == "Archive" && (status == "published" || !defined(status))] | order(date desc) {
@@ -316,6 +342,10 @@ export async function listSubscribers(): Promise<AdminSubscriber[]> {
 }
 
 export async function getPost(slug: string): Promise<SanityPost | null> {
+  if (isSqliteBackend()) {
+    const p = sqliteGetPost(slug);
+    return p ? straightenPost(p) : null;
+  }
   const post: SanityPost | null = await client.fetch(
     `*[_type == "post" && slug.current == $slug][0] { ${POST_FIELDS} }`,
     { slug },
@@ -325,6 +355,7 @@ export async function getPost(slug: string): Promise<SanityPost | null> {
 }
 
 export async function getAllSlugs(): Promise<string[]> {
+  if (isSqliteBackend()) return sqliteAllPostsAdmin(false).map(p => p.slug);
   return client.fetch(`*[_type == "post"].slug.current`, {}, { next: { revalidate: 300 } });
 }
 
@@ -351,6 +382,7 @@ export interface SanityAbout {
 }
 
 export async function getAboutPage(): Promise<SanityAbout | null> {
+  if (isSqliteBackend()) return sqliteGetSingleton<SanityAbout>("about");
   return client.fetch(`*[_type == "about" && _id == "about"][0] { body }`, {}, { next: { revalidate: 300 } });
 }
 
@@ -366,6 +398,7 @@ export interface SanityLately {
 }
 
 export async function getLately(): Promise<SanityLately | null> {
+  if (isSqliteBackend()) return sqliteGetSingleton<SanityLately>("lately");
   return client.fetch(
     `*[_type == "lately" && _id == "lately"][0] { reading, readingAuthor, readingUrl, listening, listeningArtist, listeningUrl, watching, watchingUrl }`,
     {}, { next: { revalidate: 300 } }
@@ -375,6 +408,7 @@ export async function getLately(): Promise<SanityLately | null> {
 export interface SanityWelcome { headline: string; body: string; }
 
 export async function getWelcome(): Promise<SanityWelcome | null> {
+  if (isSqliteBackend()) return sqliteGetSingleton<SanityWelcome>("welcome");
   return client.fetch(
     `*[_type == "welcome" && _id == "welcome"][0]{ headline, body }`,
     {}, { next: { revalidate: 60 } }
