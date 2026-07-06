@@ -368,14 +368,15 @@ export function sqliteSetMediaMeta(assetId: string, fields: { title?: string; de
 
 // --- Comments ----------------------------------------------------------------
 
-export type CommentRow = { _id: string; name: string; text: string; slug: string; approved: boolean; _createdAt: string };
+export type CommentRow = { _id: string; name: string; email?: string; text: string; slug: string; approved: boolean; _createdAt: string };
 
-export function sqliteAddComment(slug: string, name: string, text: string): void {
+export function sqliteAddComment(slug: string, name: string, text: string, email = ""): void {
   const id = `comment-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   // Arrives pending (approved: false) — an admin must approve it before it shows
-  // publicly. sqliteCommentsForSlug filters on approved.
+  // publicly. sqliteCommentsForSlug filters on approved. Email is stored for the
+  // admin only, never returned to the public comment feed.
   db().prepare(`INSERT INTO documents (id, type, data) VALUES (?, 'comment', ?)`)
-    .run(id, JSON.stringify({ slug, name, text, approved: false, _createdAt: new Date().toISOString() }));
+    .run(id, JSON.stringify({ slug, name, email, text, approved: false, _createdAt: new Date().toISOString() }));
 }
 
 export function sqliteSetCommentApproved(id: string, approved: boolean): void {

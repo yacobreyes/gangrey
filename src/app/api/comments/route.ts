@@ -40,13 +40,14 @@ export async function POST(req: NextRequest) {
   if (!rateLimit(ip, "comments", 5, 60 * 60 * 1000)) {
     return NextResponse.json({ error: "Too many comments. Try again later." }, { status: 429 });
   }
-  const { slug, name, text } = await req.json() as { slug: string; name: string; text: string };
-  if (!slug || !name?.trim() || !text?.trim()) {
-    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  const { slug, name, email, text } = await req.json() as { slug: string; name: string; email?: string; text: string };
+  const emailOk = !!email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
+  if (!slug || !name?.trim() || !emailOk || !text?.trim()) {
+    return NextResponse.json({ error: "Name, a valid email, and a comment are required." }, { status: 400 });
   }
   // New comments arrive pending; an admin approves them before they appear.
   if (isSqliteBackend()) {
-    sqliteAddComment(slug, name.trim().slice(0, 80), text.trim().slice(0, 1000));
+    sqliteAddComment(slug, name.trim().slice(0, 80), text.trim().slice(0, 1000), email.trim().slice(0, 120));
     return NextResponse.json({ ok: true, pending: true });
   }
   await mutate([{
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
       _type: "comment",
       slug,
       name: name.trim().slice(0, 80),
+      email: email.trim().slice(0, 120),
       text: text.trim().slice(0, 1000),
       approved: false,
     },
