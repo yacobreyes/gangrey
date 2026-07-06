@@ -21,7 +21,9 @@ services:
       #   ADMIN_GOOGLE_EMAIL: the bootstrap owner's email
       # Optional integrations (features disable gracefully without them):
       #   STRIPE_SECRET_KEY, GANGREY_RESEND_KEY, NEWSLETTER_FROM
-      NEXTAUTH_URL: http://localhost:3000
+      # NEXTAUTH_URL is set in .env.selfhost (e.g. https://gangrey.org in prod,
+      # http://localhost:3000 locally) so this tracked file stays environment-
+      # agnostic and doesn't conflict on pull.
     env_file:
       - .env.selfhost
     restart: unless-stopped
