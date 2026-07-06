@@ -39,7 +39,7 @@ export default function StorePage() {
         }
         .store-band-title {
           font-family: var(--font-headline);
-          font-size: 30px; font-weight: 800; letter-spacing: -.02em; line-height: 1.05;
+          font-size: 30px; font-weight: 800; letter-spacing: -.02em; line-height: 1;
           margin-bottom: 0;
         }
         .store-band-desc {
