@@ -53,6 +53,18 @@ image while the old container keeps serving, then swaps:
 OOM-kills itself on a 4GB box without it) and waits for a local 200 before
 declaring success.
 
+## Scheduled publishing
+
+Scheduling posts and newsletters needs a periodic tick (there's no Vercel cron
+here). Set `CRON_SECRET` in `.env.selfhost` (any long random string —
+`openssl rand -hex 32`), redeploy, then install the cron once:
+
+    ./publish-cron.sh --install   # runs every 5 minutes
+
+Each tick flips due scheduled posts to published and sends due scheduled
+newsletters. (Scheduled posts already appear in listings at their time via a
+query filter; this also flips their status and, crucially, sends newsletters.)
+
 ## www subdomain
 
 Only the bare `gangrey.org` has HTTPS by default. To serve `www.gangrey.org`

@@ -1,8 +1,35 @@
 import { NextResponse } from "next/server";
 import { renderNewsletterHtml, type NlCard } from "@/lib/newsletterEmail";
+import { isSqliteBackend, sqliteAllPostsAdmin, sqliteDocsByType, sqliteMutate } from "@/lib/storage/sqlite";
+import { deliverNewsletter } from "@/app/admin/newsletterActions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// Self-hosted (SQLite) scheduled-publish pass: flip due scheduled posts to
+// published and send any due scheduled newsletters. Mirrors the Sanity path
+// below. Driven by a system cron hitting this endpoint (see SELFHOST.md).
+async function runSqlite(): Promise<{ published: number; newslettersSent: number }> {
+  const now = Date.now();
+
+  const duePosts = sqliteAllPostsAdmin().filter(
+    p => p.status === "scheduled" && p.scheduledAt && new Date(p.scheduledAt).getTime() <= now
+  );
+  if (duePosts.length) {
+    sqliteMutate(duePosts.map(p => ({ patch: { id: p._id, set: { status: "published" } } })));
+  }
+
+  const dueNewsletters = sqliteDocsByType<{ _id: string; status?: string; scheduledAt?: string }>("newsletter").filter(
+    n => n.status === "scheduled" && n.scheduledAt && new Date(n.scheduledAt).getTime() <= now
+  );
+  let newslettersSent = 0;
+  for (const nl of dueNewsletters) {
+    const r = await deliverNewsletter(nl._id).catch(() => ({ ok: false }));
+    if (r.ok) newslettersSent++;
+  }
+
+  return { published: duePosts.length, newslettersSent };
+}
 
 async function sanityMutate(mutations: unknown[]) {
   const token = process.env.SANITY_API_WRITE_TOKEN ?? process.env.SANITY_WRITE_TOKEN;
@@ -95,6 +122,10 @@ export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (isSqliteBackend()) {
+    return NextResponse.json(await runSqlite());
   }
 
   const token = process.env.SANITY_API_WRITE_TOKEN ?? process.env.SANITY_WRITE_TOKEN;

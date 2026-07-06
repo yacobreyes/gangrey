@@ -85,6 +85,11 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
   const { slug } = await params;
   const post = await getPost(slug);
   if (!post) notFound();
+  // A scheduled story is hidden from listings until its time — but getPost
+  // returns it regardless, so guard the direct URL too. Not-yet-due scheduled
+  // (and trashed) posts 404 for the public; admins preview via /preview.
+  const notYetDue = post.status === "scheduled" && post.scheduledAt && new Date(post.scheduledAt).getTime() > Date.now();
+  if (notYetDue || post.status === "trashed") notFound();
 
   // Members-only stories show a preview + paywall to non-members. Reading the
   // session cookie makes this route render per-request (opts out of caching)

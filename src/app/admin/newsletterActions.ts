@@ -7,11 +7,12 @@ import { client, withRetry } from "@/lib/sanity";
 import { renderNewsletterHtml, type NlCard } from "@/lib/newsletterEmail";
 import { Resend } from "resend";
 import { sanityMutate } from "@/lib/sanityWrite";
-import { isSqliteBackend, sqliteGetDoc, sqliteDocsByType, sqliteAllPostsAdmin } from "@/lib/storage/sqlite";
+import { isSqliteBackend, sqliteGetDoc, sqliteDocsByType, sqliteAllPostsAdmin, sqliteMutate } from "@/lib/storage/sqlite";
 
 // Delegates to the shared write helper, which routes to Sanity or the local
 // sqlite store depending on STORAGE_BACKEND.
 async function mutate(mutations: unknown[]) {
+  if (isSqliteBackend()) return sqliteMutate(mutations);
   return sanityMutate(mutations);
 }
 
@@ -351,6 +352,13 @@ async function activeMemberEmails(): Promise<Set<string>> {
 // Gated on RESEND_API_KEY + NEWSLETTER_FROM — returns a clear error until they're set.
 export async function sendNewsletter(id: string, audience: SendAudience = "all"): Promise<{ ok: boolean; sent?: number; failed?: number; error?: string }> {
   await requireAuth();
+  return deliverNewsletter(id, audience);
+}
+
+// The actual send + status flip, with NO auth check — so the scheduled-publish
+// cron (which runs unauthenticated behind CRON_SECRET) can call it directly.
+// User-facing sends go through sendNewsletter, which gates on auth first.
+export async function deliverNewsletter(id: string, audience: SendAudience = "all"): Promise<{ ok: boolean; sent?: number; failed?: number; error?: string }> {
   // Prefer GANGREY_RESEND_KEY so the Vercel-Resend integration can't overwrite it.
   const apiKey = process.env.GANGREY_RESEND_KEY ?? process.env.RESEND_API_KEY;
   const from = process.env.NEWSLETTER_FROM;
