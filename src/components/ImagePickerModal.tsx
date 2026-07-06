@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { uploadImage, updateMediaAsset } from "@/app/admin/actions";
 import { straightenQuotes } from "@/lib/straighten";
+import { downscaleImage } from "@/lib/downscaleImage";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
 
 const FONT = "var(--font-inter), sans-serif";
@@ -79,7 +80,7 @@ export default function ImagePickerModal({
       if (!caption.trim()) { alert("Please add a caption & credit before using this image."); return; }
       setUploading(true);
       try {
-        const fd = new FormData(); fd.set("file", uploadFile);
+        const fd = new FormData(); fd.set("file", await downscaleImage(uploadFile));
         const { assetId, url } = await uploadImage(fd);
         await updateMediaAsset(assetId, { description: caption, ...(alt ? { altText: alt } : {}) });
         onSelect({ assetId, url, caption, alt });

@@ -27,6 +27,9 @@ export default function CropModal({
 }) {
   const [step, setStep] = useState(0);
   const ratio = CROP_RATIOS[step];
+  // Load a bounded preview for local images so a large source doesn't crawl —
+  // resizing preserves aspect ratio, so crop fractions stay correct.
+  const previewSrc = src.startsWith("/media/") ? `${src}?w=1600` : src;
   const imgRef = useRef<HTMLImageElement>(null);
   const [disp, setDisp] = useState({ w: 0, h: 0 });
   const [box, setBox] = useState<Box | null>(null);
@@ -115,7 +118,7 @@ export default function CropModal({
           <div style={{ position: "relative", lineHeight: 0, touchAction: "none", userSelect: "none" }}
                onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerUp}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img ref={imgRef} src={src} alt="" onLoad={measure}
+            <img ref={imgRef} src={previewSrc} alt="" onLoad={measure}
                  style={{ display: "block", maxWidth: isMobile ? "88vw" : "560px", maxHeight: isMobile ? "60vh" : "440px", width: "auto", height: "auto" }} draggable={false} />
             {box && (
               <>

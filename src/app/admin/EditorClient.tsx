@@ -13,6 +13,7 @@ import { useEditLock } from "./useEditLock";
 import EditLockBanner from "./EditLockBanner";
 import { watchLock, type LockHolder } from "./lockActions";
 import { straightenQuotes } from "@/lib/straighten";
+import { downscaleImage } from "@/lib/downscaleImage";
 import type { JSONContent } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
 import type { SanityPost } from "@/lib/sanity";
@@ -373,7 +374,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
     const file = e.target.files?.[0]; if (!file) return;
     setImagePreview(URL.createObjectURL(file)); setUploadingImage(true);
     try {
-      const fd = new FormData(); fd.set("file", file);
+      const fd = new FormData(); fd.set("file", await downscaleImage(file));
       const { assetId } = await uploadImage(fd); setImageAssetId(assetId); setImageCrops({});
     } catch { /* silent */ }
     finally { setUploadingImage(false); }
@@ -1096,7 +1097,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                   } else if (bodyImageTab === "upload" && bodyUploadFile) {
                     setBodyUploadingNew(true);
                     try {
-                      const fd = new FormData(); fd.set("file", bodyUploadFile);
+                      const fd = new FormData(); fd.set("file", await downscaleImage(bodyUploadFile));
                       const { assetId } = await uploadImage(fd);
                       if (bodyUploadAlt) await updateMediaAsset(assetId, { altText: bodyUploadAlt });
                       // fetch the URL back
