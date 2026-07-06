@@ -99,7 +99,7 @@ export default function Feed({
         .hm-hero {
           position: relative;
           display: block;
-          aspect-ratio: 16 / 9;
+          aspect-ratio: 2.1 / 1;
           overflow: hidden;
           color: #ffffff;
           background: linear-gradient(135deg, #4a3527 0%, #241a13 60%, #0f0b08 100%);
