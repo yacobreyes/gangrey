@@ -158,6 +158,14 @@ export default function Feed({
         .hm-latest-head {
           display: flex; align-items: baseline; justify-content: space-between;
           margin-bottom: 30px;
+          /* Keep this header on its own stable compositing layer so the crimson
+             text isn't re-rasterized during fast scroll — without this, Chrome/
+             Safari briefly drop the glyphs and the white section background
+             shows through, making "View all stories" flash white. */
+          transform: translateZ(0);
+          -webkit-transform: translateZ(0);
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
         }
         .hm-latest-head h2 {
           margin: 0;
