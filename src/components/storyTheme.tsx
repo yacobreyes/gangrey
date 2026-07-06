@@ -63,15 +63,15 @@ export const storyStyles = `
   .story-meta .rt { color: #490000; }
   .story-hero-wrap {
     width: 100%;
-    max-width: 1040px;
+    max-width: 680px;
     margin: 0 auto;
-    padding: 0 32px;
+    padding: 0 40px;
     box-sizing: border-box;
   }
   .story-hero {
     position: relative;
     width: 100%;
-    aspect-ratio: 2.1 / 1;
+    aspect-ratio: 16 / 9;
     overflow: hidden;
     background: linear-gradient(135deg, #4a3527, #181109);
     margin-bottom: 6px;
@@ -86,9 +86,9 @@ export const storyStyles = `
   }
   .story-cutline-wrap {
     width: 100%;
-    max-width: 1040px;
+    max-width: 680px;
     margin: 0 auto;
-    padding: 0 32px;
+    padding: 0 40px;
     box-sizing: border-box;
   }
   .story-cutline {
