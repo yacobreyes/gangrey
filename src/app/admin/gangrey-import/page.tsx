@@ -176,15 +176,32 @@ export default function GangreyImportPage() {
       <h1 style={{ fontFamily: 'var(--font-cormorant), Georgia, serif', fontSize: 40, margin: "0 0 4px" }}>Gangrey Archive Import</h1>
       {savedCount !== null && (
         <p style={{ fontFamily: "var(--font-subhead)", fontSize: 13, fontWeight: 700, color: "#392a22", margin: "0 0 8px" }}>
-          {savedCount} stories currently in Sanity
+          {savedCount} stories currently in the archive
         </p>
       )}
       <p style={{ color: "#392a22", margin: "0 0 24px" }}>
-        Pulls every story from the Wayback Machine snapshot of gangrey.com and imports it as a
-        Gangrey&nbsp;Redux post. Runs in batches — keep this tab open until it finishes.
-        Auto-retries on errors.
+        Pulls every story from the Wayback Machine snapshot of gangrey.com and imports it into the
+        site&apos;s Archive. Runs in batches — keep this tab open until it finishes. Auto-retries on
+        errors. Run the steps in order.
       </p>
 
+      <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid #b8b8ba" }}>
+        <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>Step 1 — Build the date map</h2>
+        <p style={{ fontSize: 13, color: "#392a22", margin: "0 0 12px" }}>
+          Harvests exact publication dates from Gangrey&apos;s archived RSS feeds (hundreds of Wayback
+          snapshots, 2005&ndash;2016). Run this <strong>before importing</strong> — without it, stories
+          get stamped with the Wayback capture date instead of their true publication date.
+        </p>
+        <button onClick={buildMap} disabled={buildingMap || running} style={{ ...btnStyle(false), fontSize: 14 }}>
+          {buildingMap ? "Building date map…" : "Build date map"}
+        </button>
+        {mapResult && <p style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>{mapResult}</p>}
+      </div>
+
+      <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>Step 2 — Import</h2>
+      <p style={{ fontSize: 13, color: "#392a22", margin: "0 0 12px" }}>
+        Do a test run first and spot-check bylines and dates in the log, then run the real import.
+      </p>
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20, flexWrap: "wrap" }}>
         <button onClick={() => run(0)} disabled={running} style={btnStyle(true)}>
           {running ? "Importing…" : dry ? "Test run (no writes)" : "Start import"}
@@ -217,19 +234,7 @@ export default function GangreyImportPage() {
       )}
 
       <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid #b8b8ba" }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>Fix story dates</h2>
-        <p style={{ fontSize: 13, color: "#392a22", margin: "0 0 12px" }}>
-          Harvests exact publication dates from Gangrey&apos;s archived RSS feeds (hundreds of Wayback
-          snapshots, 2005&ndash;2016). Run this first, then start a fresh import so the dates get applied.
-        </p>
-        <button onClick={buildMap} disabled={buildingMap || running} style={{ ...btnStyle(false), fontSize: 14 }}>
-          {buildingMap ? "Building date map…" : "Build date map"}
-        </button>
-        {mapResult && <p style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>{mapResult}</p>}
-      </div>
-
-      <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid #b8b8ba" }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>Probe feed snapshot</h2>
+        <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>Diagnostics — probe a feed snapshot (optional)</h2>
         <p style={{ fontSize: 13, color: "#392a22", margin: "0 0 12px" }}>
           Fetches one feed snapshot and shows the raw XML + how many dates were extracted. Use offset 0, 1, 2… to inspect different snapshots.
         </p>
@@ -262,12 +267,12 @@ export default function GangreyImportPage() {
       </div>
 
       <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid #b8b8ba" }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>Clean up duplicates</h2>
+        <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>Step 3 — Clean up duplicates</h2>
         <p style={{ fontSize: 13, color: "#392a22", margin: "0 0 12px" }}>
-          Finds stories with the same headline in Sanity and deletes the lower-quality copy (keeps the one with a byline and a path-based slug).
+          After the import, finds stories with the same headline and deletes the lower-quality copy (keeps the one with a byline and a path-based slug).
         </p>
         <button onClick={runDedup} disabled={deduping || running} style={{ ...btnStyle(false), fontSize: 14 }}>
-          {deduping ? "Deleting duplicates…" : "Delete duplicates from Sanity"}
+          {deduping ? "Deleting duplicates…" : "Delete duplicates"}
         </button>
         {dedupResult && <p style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>{dedupResult}</p>}
       </div>
