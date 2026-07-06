@@ -3,13 +3,13 @@
 import { useState, useTransition, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { savePost, deletePost, trashPost, restorePost, saveAbout, uploadImage, clearCloudDraft, deleteMediaAsset, updateMediaAsset, createDraft } from "../actions";
-import { deleteNewsletter as deleteNewsletterDoc, getSubscribers, removeSubscriber, addSubscriber, type Subscriber } from "../newsletterActions";
+import { deleteNewsletter as deleteNewsletterDoc, getSubscribers, type Subscriber } from "../newsletterActions";
 import type { NlCard } from "@/lib/newsletterEmail";
 import { tiptapToPortableText, portableTextToTiptap } from "@/lib/tiptapConvert";
 import RichBodyEditor, { type ToolbarHandles } from "@/components/RichBodyEditor";
 import ImagePickerModal from "@/components/ImagePickerModal";
 import UsersPanel from "./UsersPanel";
-import MembersPanel from "./MembersPanel";
+import AudiencePanel from "./AudiencePanel";
 import { getActiveLocks, type LockHolder } from "../lockActions";
 import { listUsers } from "../userActions";
 import type { JSONContent, Editor } from "@tiptap/react";
@@ -164,85 +164,6 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
   // Prefetched on mount so opening the Users panel is instant instead of waiting
   // on a server-action round-trip each time.
   const [usersData, setUsersData] = useState<FlatplanUser[]>(initialUsers);
-  const [removingSubscriber, setRemovingSubscriber] = useState<string | null>(null);
-  const [addEmailInput, setAddEmailInput] = useState("");
-  const [addEmailError, setAddEmailError] = useState("");
-  const [addEmailPending, setAddEmailPending] = useState(false);
-
-  function removeSub(email: string) {
-    if (!confirm(`Remove ${email} from the subscriber list? This cannot be undone.`)) return;
-    setRemovingSubscriber(email);
-    removeSubscriber(email)
-      .then(() => setSubscribers(prev => prev.filter(s => s.email !== email)))
-      .catch(() => alert("Failed to remove subscriber."))
-      .finally(() => setRemovingSubscriber(null));
-  }
-
-  // Subscriber management UI — rendered inside the combined Members & Subscribers panel.
-  function renderSubscribers() {
-    return (
-      <div style={{ maxWidth: 600 }}>
-        {/* Add subscriber */}
-        <form onSubmit={async e => {
-          e.preventDefault();
-          setAddEmailError("");
-          setAddEmailPending(true);
-          const r = await addSubscriber(addEmailInput);
-          setAddEmailPending(false);
-          if (!r.ok) { setAddEmailError(r.error ?? "Failed."); return; }
-          setAddEmailInput("");
-          setSubscribers(prev => [{ email: addEmailInput.trim().toLowerCase(), status: "neutral", createdAt: new Date().toISOString() }, ...prev]);
-        }} style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: "0.5rem", marginBottom: "1.25rem" }}>
-          <input value={addEmailInput} onChange={e => { setAddEmailInput(e.target.value); setAddEmailError(""); }} placeholder="name@example.com" type="email" style={{ flex: 1, minWidth: 0, fontFamily: FONT, fontSize: "0.88rem", padding: "0.5rem 0.75rem", border: `1px solid ${addEmailError ? CRIMSON : BORDER}`, borderRadius: 4, outline: "none", color: TEXT_DARK, boxSizing: "border-box" }} />
-          <button type="submit" disabled={addEmailPending || !addEmailInput.trim()} style={{ background: CRIMSON, color: "white", border: "none", borderRadius: 20, padding: "0.5rem 1.1rem", fontFamily: FONT, fontSize: "0.85rem", fontWeight: 600, cursor: addEmailPending || !addEmailInput.trim() ? "not-allowed" : "pointer", opacity: addEmailPending || !addEmailInput.trim() ? 0.6 : 1, whiteSpace: "nowrap" }}>
-            {addEmailPending ? "Adding…" : "Add subscriber"}
-          </button>
-        </form>
-        {addEmailError && <p style={{ fontFamily: FONT, fontSize: "0.8rem", color: CRIMSON, margin: "-0.75rem 0 1rem" }}>{addEmailError}</p>}
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? "0.6rem" : "1rem", marginBottom: "1.25rem" }}>
-          <div style={{ minWidth: 0, background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: isMobile ? "0.75rem 0.9rem" : "1rem 1.25rem" }}>
-            <p style={LABEL}>Total subscribers</p>
-            <p style={{ fontFamily: FONT, fontSize: "1.6rem", fontWeight: 700, color: TEXT_DARK, margin: 0 }}>{subscribers.length}</p>
-          </div>
-          <div style={{ minWidth: 0, background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: isMobile ? "0.75rem 0.9rem" : "1rem 1.25rem" }}>
-            <p style={LABEL}>Active</p>
-            <p style={{ fontFamily: FONT, fontSize: "1.6rem", fontWeight: 700, color: CRIMSON, margin: 0 }}>{subscribers.filter(s => s.status === "active").length}</p>
-          </div>
-          <div style={{ minWidth: 0, background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: isMobile ? "0.75rem 0.9rem" : "1rem 1.25rem" }}>
-            <p style={LABEL}>Neutral</p>
-            <p style={{ fontFamily: FONT, fontSize: "1.6rem", fontWeight: 700, color: TEXT_DARK, margin: 0 }}>{subscribers.filter(s => (s.status ?? "neutral") === "neutral").length}</p>
-          </div>
-          <div style={{ minWidth: 0, background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: isMobile ? "0.75rem 0.9rem" : "1rem 1.25rem" }}>
-            <p style={LABEL}>Inactive</p>
-            <p style={{ fontFamily: FONT, fontSize: "1.6rem", fontWeight: 700, color: TEXT_MUTED, margin: 0 }}>{subscribers.filter(s => s.status === "inactive").length}</p>
-          </div>
-        </div>
-        {subscribersLoading ? (
-          <p style={{ fontFamily: FONT, color: TEXT_MUTED }}>Loading…</p>
-        ) : subscribers.length === 0 ? (
-          <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "3rem", textAlign: "center" }}>
-            <p style={{ fontFamily: FONT, color: TEXT_MUTED, margin: 0 }}>No subscribers yet.</p>
-          </div>
-        ) : (
-          <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, overflow: "hidden" }}>
-            {subscribers.map((s, i) => (
-              <div key={s.email + i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.75rem 1.25rem", borderBottom: `1px solid ${BORDER}`, gap: "0.75rem" }}>
-                <span style={{ fontFamily: FONT, fontSize: "0.9rem", color: TEXT_DARK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.email}</span>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexShrink: 0 }}>
-                  <span style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: s.status === "active" ? "#392a22" : s.status === "inactive" ? "#490000" : TEXT_MUTED }}>{s.status ?? "neutral"}</span>
-                  <span style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, whiteSpace: "nowrap" }}>{s.createdAt ? s.createdAt.slice(0, 10) : "—"}</span>
-                  <button type="button" onClick={() => removeSub(s.email)} disabled={removingSubscriber === s.email}
-                    style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 20, padding: "0.25rem 0.7rem", fontFamily: FONT, fontSize: "0.72rem", cursor: removingSubscriber === s.email ? "default" : "pointer", color: TEXT_MUTED, opacity: removingSubscriber === s.email ? 0.5 : 1 }}>
-                    {removingSubscriber === s.email ? "Removing…" : "Remove"}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth <= 700);
@@ -870,18 +791,9 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
             <UsersPanel currentEmail={currentUser.email} initialUsers={usersData} />
           )}
 
-          {/* MEMBERS & SUBSCRIBERS (admin only) — one combined audience window */}
+          {/* MEMBERS & SUBSCRIBERS (admin only) — one unified audience list */}
           {activePanel === "members" && isAdmin && (
-            <div style={{ maxWidth: 760 }}>
-              <h2 style={{ fontFamily: FONT, fontSize: "1.05rem", fontWeight: 700, color: TEXT_DARK, margin: "0 0 1rem" }}>Members</h2>
-              <MembersPanel />
-
-              <h2 style={{ fontFamily: FONT, fontSize: "1.05rem", fontWeight: 700, color: TEXT_DARK, margin: "2.5rem 0 1rem", paddingTop: "1.5rem", borderTop: `1px solid ${BORDER}` }}>Subscribers</h2>
-              <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: "0 0 1.25rem" }}>
-                Everyone on the newsletter list. Paid members are added here automatically.
-              </p>
-              {renderSubscribers()}
-            </div>
+            <AudiencePanel subscribers={subscribers} setSubscribers={setSubscribers} subscribersLoading={subscribersLoading} />
           )}
 
           {/* ABOUT EDITOR */}
