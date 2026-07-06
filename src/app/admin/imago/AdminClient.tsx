@@ -136,7 +136,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
   const [mediaSearch, setMediaSearch] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
-  type AdminComment = { _id: string; name: string; text: string; slug: string; approved?: boolean; _createdAt: string };
+  type AdminComment = { _id: string; name: string; email?: string; text: string; slug: string; approved?: boolean; _createdAt: string };
   const [adminComments, setAdminComments] = useState<AdminComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   // Per-story page-view counts ({ slug: count }) for the Posts list.
@@ -956,6 +956,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                       <div style={{ minWidth: 0 }}>
                         <div style={{ display: "flex", gap: "0.75rem", alignItems: "baseline", marginBottom: "0.25rem", flexWrap: "wrap" }}>
                           <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: "0.78rem", color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.05em" }}>{c.name}</span>
+                          {c.email && <a href={`mailto:${c.email}`} style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, textDecoration: "none" }}>{c.email}</a>}
                           {pending && <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: "0.62rem", color: "#a05a00", background: "#ffe8cc", borderRadius: 3, padding: "0.1rem 0.4rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>Pending</span>}
                           <span style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED }}>on <a href={`/stories/${c.slug}`} target="_blank" rel="noreferrer" style={{ color: TEXT_MUTED }}>{c.slug}</a></span>
                           <span style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED }}>{new Date(c._createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
