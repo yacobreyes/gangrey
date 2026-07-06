@@ -38,3 +38,11 @@ read counters, newsletter open tracking.
 Stripe (paid memberships) and Resend (newsletter + magic-link email) are
 config, not requirements — leave their env vars empty and those features
 simply don't run.
+
+## Deploying updates
+
+Auto-deploy is wired via GitHub Actions (`.github/workflows/deploy.yml`): any
+push to the site branch SSHes into the server and runs `git pull` + a Docker
+rebuild. No manual steps. Manual fallback on the server:
+
+    cd ~/gangrey && git pull && docker compose up --build -d
