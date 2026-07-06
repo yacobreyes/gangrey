@@ -163,8 +163,9 @@ export default function Feed({
           margin: 0;
           font-family: var(--font-headline);
           font-size: 26px; font-weight: 800; letter-spacing: -.02em;
+          color: #111111;
         }
-        .hm-latest-head a {
+        .hm-latest-head a, .hm-latest-head a:visited {
           font-size: 17px; font-style: italic; color: #490000;
         }
         .hm-grid {
