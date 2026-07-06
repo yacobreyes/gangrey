@@ -18,6 +18,23 @@ const LABEL: React.CSSProperties = {
   display: "block", marginBottom: "0.3rem",
 };
 
+// Labeled field with an optional required marker and live character count,
+// mirroring Axios's image metadata form.
+function Field({ label, required, count, max, children }: { label: string; required?: boolean; count?: number; max?: number; children: React.ReactNode }) {
+  const over = max != null && (count ?? 0) > max;
+  return (
+    <div>
+      <label style={{ ...LABEL, display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.3rem" }}>
+        <span>{label}{required && <span style={{ color: CRIMSON }}> *</span>}</span>
+        {max != null && <span style={{ fontWeight: 400, color: over ? CRIMSON : TEXT_MUTED, textTransform: "none", letterSpacing: 0 }}>{count}/{max}</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+const ALT_HELP = "Describe the image for readers who can't see it — screen readers read this aloud, and it helps search ranking.";
+
 export type PickedImage = { assetId: string; url: string; caption: string; alt: string };
 type MediaAsset = { _id: string; url: string; originalFilename?: string; description?: string; altText?: string };
 
@@ -58,7 +75,8 @@ export default function ImagePickerModal({
       onSelect({ assetId: selected._id, url: selected.url, caption, alt });
       onClose();
     } else if (tab === "upload" && uploadFile) {
-      if (!caption.trim()) { alert("Please add a caption before using this image."); return; }
+      if (!alt.trim()) { alert("Please add alt text before using this image."); return; }
+      if (!caption.trim()) { alert("Please add a caption & credit before using this image."); return; }
       setUploading(true);
       try {
         const fd = new FormData(); fd.set("file", uploadFile);
@@ -113,11 +131,14 @@ export default function ImagePickerModal({
                 )}
               </div>
               {selected && (
-                <div style={{ width: 260, flexShrink: 0, borderLeft: `1px solid ${BORDER}`, padding: "1rem", overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                <div style={{ width: 280, flexShrink: 0, borderLeft: `1px solid ${BORDER}`, padding: "1.25rem", overflowY: "auto", display: "flex", flexDirection: "column", gap: "1.1rem" }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={selected.url} alt="" style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 6 }} />
-                  <div><label style={LABEL}>Caption</label><input style={INPUT} value={caption} onChange={e => setCaption(straightenQuotes(e.target.value))} placeholder="Add a caption…" /></div>
-                  <div><label style={LABEL}>Alt text</label><input style={INPUT} value={alt} onChange={e => setAlt(straightenQuotes(e.target.value))} placeholder="Describe this image…" /></div>
+                  <Field label="Alt text" count={alt.length} max={300}>
+                    <input style={INPUT} value={alt} onChange={e => setAlt(straightenQuotes(e.target.value))} placeholder="Describe this image…" />
+                    <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, margin: "0.35rem 0 0", lineHeight: 1.4 }}>{ALT_HELP}</p>
+                  </Field>
+                  <Field label="Caption & credit"><input style={INPUT} value={caption} onChange={e => setCaption(straightenQuotes(e.target.value))} placeholder="e.g. Photo by Jane Doe / Getty" /></Field>
                 </div>
               )}
             </>
@@ -145,13 +166,14 @@ export default function ImagePickerModal({
                   </div>
                 )}
               </div>
-              <div style={{ width: 260, flexShrink: 0, display: "flex", flexDirection: "column", gap: "1rem" }}>
-                <div>
-                  <label style={LABEL}>Caption <span style={{ color: CRIMSON }}>*</span></label>
-                  <input style={INPUT} value={caption} onChange={e => setCaption(straightenQuotes(e.target.value))} placeholder="Credit the original source…" />
-                  <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, margin: "0.3rem 0 0" }}>Required before using this image</p>
-                </div>
-                <div><label style={LABEL}>Alt text</label><input style={INPUT} value={alt} onChange={e => setAlt(straightenQuotes(e.target.value))} placeholder="Describe this image…" /></div>
+              <div style={{ width: 280, flexShrink: 0, display: "flex", flexDirection: "column", gap: "1.1rem" }}>
+                <Field label="Alt text" required count={alt.length} max={300}>
+                  <input style={INPUT} value={alt} onChange={e => setAlt(straightenQuotes(e.target.value))} placeholder="Describe this image…" />
+                  <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, margin: "0.35rem 0 0", lineHeight: 1.4 }}>{ALT_HELP}</p>
+                </Field>
+                <Field label="Caption & credit" required>
+                  <input style={INPUT} value={caption} onChange={e => setCaption(straightenQuotes(e.target.value))} placeholder="e.g. Photo by Jane Doe / Getty" />
+                </Field>
               </div>
             </div>
           )}
@@ -160,8 +182,8 @@ export default function ImagePickerModal({
         {/* Footer */}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem", padding: "0.85rem 1.5rem", borderTop: `1px solid ${BORDER}`, background: "#ffffff" }}>
           <button type="button" onClick={onClose} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 20, padding: "0.4rem 1.1rem", fontFamily: FONT, fontSize: "0.88rem", cursor: "pointer", color: TEXT_DARK }}>Cancel</button>
-          <button type="button" onClick={handleUse} disabled={uploading || (tab === "library" && !selected) || (tab === "upload" && (!uploadFile || !caption.trim()))}
-            style={{ background: CRIMSON, color: "white", border: "none", borderRadius: 20, padding: "0.4rem 1.1rem", fontFamily: FONT, fontSize: "0.88rem", fontWeight: 600, cursor: "pointer", opacity: (tab === "library" && !selected) || (tab === "upload" && (!uploadFile || !caption.trim())) ? 0.5 : 1 }}>
+          <button type="button" onClick={handleUse} disabled={uploading || (tab === "library" && !selected) || (tab === "upload" && (!uploadFile || !caption.trim() || !alt.trim()))}
+            style={{ background: CRIMSON, color: "white", border: "none", borderRadius: 20, padding: "0.4rem 1.1rem", fontFamily: FONT, fontSize: "0.88rem", fontWeight: 600, cursor: "pointer", opacity: (tab === "library" && !selected) || (tab === "upload" && (!uploadFile || !caption.trim() || !alt.trim())) ? 0.5 : 1 }}>
             {uploading ? "Uploading…" : "Use this image"}
           </button>
         </div>

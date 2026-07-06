@@ -221,6 +221,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
   const [bodyImageTab, setBodyImageTab] = useState<"library" | "upload">("library");
   const [bodySelectedAsset, setBodySelectedAsset] = useState<MediaAsset | null>(null);
   const [bodyUploadFile, setBodyUploadFile] = useState<File | null>(null);
+  const [bodyDragOver, setBodyDragOver] = useState(false);
   const [bodyUploadPreviewUrl, setBodyUploadPreviewUrl] = useState("");
   const [bodyUploadAlt, setBodyUploadAlt] = useState("");
   const [bodyUploadingNew, setBodyUploadingNew] = useState(false);
@@ -1004,10 +1005,14 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                     )}
                   </div>
                   {bodySelectedAsset && (
-                    <div style={{ width: 260, flexShrink: 0, borderLeft: `1px solid ${BORDER}`, padding: "1rem", overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    <div style={{ width: 280, flexShrink: 0, borderLeft: `1px solid ${BORDER}`, padding: "1.25rem", overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.9rem" }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={bodySelectedAsset.url} alt="" style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 6 }} />
-                      <div><label style={LABEL}>Alt text</label><input style={INPUT} value={bodyUploadAlt} onChange={e => setBodyUploadAlt(straightenQuotes(e.target.value))} placeholder="Describe this image…" /></div>
+                      <div>
+                        <label style={{ ...LABEL, display: "flex", justifyContent: "space-between", marginBottom: "0.3rem" }}><span>Alt text</span><span style={{ fontWeight: 400, color: bodyUploadAlt.length > 300 ? CRIMSON : TEXT_MUTED, textTransform: "none", letterSpacing: 0 }}>{bodyUploadAlt.length}/300</span></label>
+                        <input style={INPUT} value={bodyUploadAlt} onChange={e => setBodyUploadAlt(straightenQuotes(e.target.value))} placeholder="Describe this image…" />
+                        <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, margin: "0.35rem 0 0", lineHeight: 1.4 }}>Screen readers read this aloud; it also helps search ranking.</p>
+                      </div>
                     </div>
                   )}
                 </>
@@ -1016,8 +1021,12 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                 <div style={{ flex: 1, display: "flex", gap: "1.5rem", padding: "1.5rem", overflowY: "auto" }}>
                   <div style={{ flex: 1 }}>
                     {!bodyUploadPreviewUrl ? (
-                      <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: `2px dashed ${BORDER}`, borderRadius: 8, padding: "2.5rem 1rem", cursor: "pointer", textAlign: "center" }}>
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={TEXT_MUTED} strokeWidth="1.5" strokeLinecap="round" style={{ marginBottom: "0.75rem" }}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                      <label
+                        onDragOver={e => { e.preventDefault(); setBodyDragOver(true); }}
+                        onDragLeave={e => { e.preventDefault(); setBodyDragOver(false); }}
+                        onDrop={e => { e.preventDefault(); setBodyDragOver(false); const file = e.dataTransfer.files?.[0]; if (file && file.type.startsWith("image/")) { setBodyUploadFile(file); setBodyUploadPreviewUrl(URL.createObjectURL(file)); } }}
+                        style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: `2px dashed ${bodyDragOver ? CRIMSON : BORDER}`, background: bodyDragOver ? "rgba(139,0,0,0.04)" : "transparent", borderRadius: 8, padding: "2.5rem 1rem", cursor: "pointer", textAlign: "center", transition: "border-color .15s, background .15s" }}>
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={bodyDragOver ? CRIMSON : TEXT_MUTED} strokeWidth="1.5" strokeLinecap="round" style={{ marginBottom: "0.75rem" }}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                         <p style={{ fontFamily: FONT, fontSize: "0.9rem", color: TEXT_DARK, margin: "0 0 0.25rem", fontWeight: 600 }}>Drag image here or <span style={{ color: CRIMSON }}>click to upload</span></p>
                         <p style={{ fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, margin: 0 }}>JPEG, PNG, GIF, or WEBP</p>
                         <input type="file" accept="image/*" onChange={async e => {
@@ -1033,8 +1042,12 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                       </div>
                     )}
                   </div>
-                  <div style={{ width: 260, flexShrink: 0, display: "flex", flexDirection: "column", gap: "1rem" }}>
-                    <div><label style={LABEL}>Alt text</label><input style={INPUT} value={bodyUploadAlt} onChange={e => setBodyUploadAlt(straightenQuotes(e.target.value))} placeholder="Describe this image…" /></div>
+                  <div style={{ width: 280, flexShrink: 0, display: "flex", flexDirection: "column", gap: "1rem" }}>
+                    <div>
+                      <label style={{ ...LABEL, display: "flex", justifyContent: "space-between", marginBottom: "0.3rem" }}><span>Alt text</span><span style={{ fontWeight: 400, color: bodyUploadAlt.length > 300 ? CRIMSON : TEXT_MUTED, textTransform: "none", letterSpacing: 0 }}>{bodyUploadAlt.length}/300</span></label>
+                      <input style={INPUT} value={bodyUploadAlt} onChange={e => setBodyUploadAlt(straightenQuotes(e.target.value))} placeholder="Describe this image…" />
+                      <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, margin: "0.35rem 0 0", lineHeight: 1.4 }}>Screen readers read this aloud; it also helps search ranking.</p>
+                    </div>
                   </div>
                 </div>
               )}
