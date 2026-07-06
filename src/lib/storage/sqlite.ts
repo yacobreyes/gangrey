@@ -84,6 +84,19 @@ function migrate(d: any) {
     );
     CREATE INDEX IF NOT EXISTS idx_documents_type ON documents (type);
   `);
+
+  // Additive column migrations — CREATE TABLE IF NOT EXISTS never alters an
+  // existing table, so columns added after a database was first created must be
+  // backfilled here. (Adding `edited_by` in a later release is why publishing
+  // — which always snapshots a version — began failing on older databases.)
+  ensureColumn(d, "post_versions", "edited_by", "TEXT");
+}
+
+function ensureColumn(d: any, table: string, col: string, decl: string) {
+  const cols: { name: string }[] = d.prepare(`PRAGMA table_info(${table})`).all();
+  if (!cols.some(c => c.name === col)) {
+    d.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${decl}`);
+  }
 }
 
 type PostRow = Record<string, any>;
@@ -184,15 +197,20 @@ export function sqliteSetStatus(id: string, status: string): void {
 // --- Versions ---------------------------------------------------------------
 
 export function sqliteSnapshotVersion(v: { slug: string; type: "autosave" | "publish"; headline: string; subheadline: string; body: unknown[]; wordCount: number; editedBy?: string }): void {
-  const latest = db().prepare(`SELECT headline, subheadline, body FROM post_versions WHERE slug = ? ORDER BY saved_at DESC LIMIT 1`).get(v.slug);
-  if (latest && latest.headline === v.headline && latest.subheadline === v.subheadline && latest.body === JSON.stringify(v.body)) return;
-  db().prepare(`INSERT INTO post_versions (slug, type, saved_at, word_count, headline, subheadline, body, edited_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(v.slug, v.type, new Date().toISOString(), v.wordCount, v.headline, v.subheadline, JSON.stringify(v.body), v.editedBy ?? null);
-  // Keep every publish; prune autosaves past 60.
-  db().prepare(`
-    DELETE FROM post_versions WHERE slug = ? AND type != 'publish' AND id NOT IN (
-      SELECT id FROM post_versions WHERE slug = ? AND type != 'publish' ORDER BY saved_at DESC LIMIT 60
-    )`).run(v.slug, v.slug);
+  // Best-effort: version history must never block (or fail) an actual save.
+  try {
+    const latest = db().prepare(`SELECT headline, subheadline, body FROM post_versions WHERE slug = ? ORDER BY saved_at DESC LIMIT 1`).get(v.slug);
+    if (latest && latest.headline === v.headline && latest.subheadline === v.subheadline && latest.body === JSON.stringify(v.body)) return;
+    db().prepare(`INSERT INTO post_versions (slug, type, saved_at, word_count, headline, subheadline, body, edited_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(v.slug, v.type, new Date().toISOString(), v.wordCount, v.headline, v.subheadline, JSON.stringify(v.body), v.editedBy ?? null);
+    // Keep every publish; prune autosaves past 60.
+    db().prepare(`
+      DELETE FROM post_versions WHERE slug = ? AND type != 'publish' AND id NOT IN (
+        SELECT id FROM post_versions WHERE slug = ? AND type != 'publish' ORDER BY saved_at DESC LIMIT 60
+      )`).run(v.slug, v.slug);
+  } catch (err) {
+    console.error("sqliteSnapshotVersion failed", err);
+  }
 }
 
 export function sqliteGetVersions(slug: string): { _id: string; savedAt: string; type: "autosave" | "publish"; wordCount?: number; headline: string; subheadline: string; body: PortableTextBlock[]; editedBy?: string }[] {
