@@ -129,7 +129,7 @@ export default function AudiencePanel({
   return (
     <div style={{ maxWidth: 720 }}>
       <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: "0 0 1.25rem" }}>
-        Your top stories, subscribers, and members — everything about your readership in one place.
+        Everything about your readership in one place.
       </p>
 
       {/* Top Stories — most-viewed published pieces (one view per device per day) */}
