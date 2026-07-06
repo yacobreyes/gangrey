@@ -33,13 +33,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid" }, { status: 400 });
   }
 
+  const id = likeId(slug);
+
+  // Self-hosted (SQLite) path first: it needs no Sanity token, so it must run
+  // before the token check below — otherwise every like 500s and the client's
+  // optimistic count (including a -1 from unliking at 0) is never corrected.
+  if (isSqliteBackend()) return NextResponse.json({ count: sqliteIncrementCount(id, delta) });
+
   const token = process.env.SANITY_API_WRITE_TOKEN ?? process.env.SANITY_WRITE_TOKEN;
   const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
   const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
   if (!token || !projectId) return NextResponse.json({ error: "no token" }, { status: 500 });
-
-  const id = likeId(slug);
-  if (isSqliteBackend()) return NextResponse.json({ count: sqliteIncrementCount(id, delta) });
 
   const res = await fetch(
     `https://${projectId}.api.sanity.io/v2024-01-01/data/mutate/${dataset}`,
