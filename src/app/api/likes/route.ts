@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { client } from "@/lib/sanity";
 import { rateLimit } from "@/lib/rateLimit";
+import { isSqliteBackend, sqliteGetCount, sqliteIncrementCount } from "@/lib/storage/sqlite";
 
 function likeId(slug: string) {
   return `likes-${slug.replace(/[^a-zA-Z0-9-_]/g, "-")}`;
@@ -9,6 +10,7 @@ function likeId(slug: string) {
 export async function GET(req: NextRequest) {
   const slug = req.nextUrl.searchParams.get("slug");
   if (!slug) return NextResponse.json({ count: 0 });
+  if (isSqliteBackend()) return NextResponse.json({ count: sqliteGetCount(likeId(slug)) });
   try {
     const doc = await client.fetch(
       `*[_id == $id][0]{ count }`,
@@ -37,6 +39,7 @@ export async function POST(req: NextRequest) {
   if (!token || !projectId) return NextResponse.json({ error: "no token" }, { status: 500 });
 
   const id = likeId(slug);
+  if (isSqliteBackend()) return NextResponse.json({ count: sqliteIncrementCount(id, delta) });
 
   const res = await fetch(
     `https://${projectId}.api.sanity.io/v2024-01-01/data/mutate/${dataset}`,

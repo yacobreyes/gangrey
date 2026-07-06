@@ -390,3 +390,17 @@ export function sqliteAllComments(): CommentRow[] {
 export function sqliteDeleteComment(id: string): void {
   db().prepare(`DELETE FROM documents WHERE id = ? AND type = 'comment'`).run(id);
 }
+
+// --- Counters (likes, reads) -------------------------------------------------
+
+export function sqliteGetCount(id: string): number {
+  const row = db().prepare(`SELECT data FROM documents WHERE id = ? AND type = 'counter'`).get(id);
+  return row ? (JSON.parse(row.data).count ?? 0) : 0;
+}
+
+export function sqliteIncrementCount(id: string, delta: number): number {
+  const next = Math.max(0, sqliteGetCount(id) + delta);
+  db().prepare(`INSERT INTO documents (id, type, data) VALUES (?, 'counter', ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`)
+    .run(id, JSON.stringify({ count: next }));
+  return next;
+}
