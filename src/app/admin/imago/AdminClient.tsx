@@ -136,7 +136,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
   const [mediaSearch, setMediaSearch] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
-  type AdminComment = { _id: string; name: string; text: string; slug: string; _createdAt: string };
+  type AdminComment = { _id: string; name: string; text: string; slug: string; approved?: boolean; _createdAt: string };
   const [adminComments, setAdminComments] = useState<AdminComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   type ContextMenuState = { x: number; y: number; kind: "post"; post: SanityPost } | { x: number; y: number; kind: "newsletter"; newsletter: NlListItem };
@@ -933,22 +933,35 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                 <p style={{ fontFamily: FONT, color: TEXT_MUTED }}>No comments yet.</p>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                  {adminComments.map(c => (
-                    <div key={c._id} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "0.85rem 1rem", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
+                  {/* Pending (unapproved) comments first so they're easy to action. */}
+                  {[...adminComments].sort((a, b) => Number(a.approved !== false) - Number(b.approved !== false)).map(c => {
+                    const pending = c.approved === false;
+                    return (
+                    <div key={c._id} style={{ background: pending ? "#fff8f0" : "white", border: `1px solid ${pending ? "#e6c9a8" : BORDER}`, borderRadius: 4, padding: "0.85rem 1rem", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ display: "flex", gap: "0.75rem", alignItems: "baseline", marginBottom: "0.25rem", flexWrap: "wrap" }}>
                           <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: "0.78rem", color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.05em" }}>{c.name}</span>
+                          {pending && <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: "0.62rem", color: "#a05a00", background: "#ffe8cc", borderRadius: 3, padding: "0.1rem 0.4rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>Pending</span>}
                           <span style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED }}>on <a href={`/stories/${c.slug}`} target="_blank" rel="noreferrer" style={{ color: TEXT_MUTED }}>{c.slug}</a></span>
                           <span style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED }}>{new Date(c._createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
                         </div>
                         <p style={{ fontFamily: FONT, fontSize: "0.9rem", color: "#000000", margin: 0, lineHeight: 1.6 }}>{c.text}</p>
                       </div>
-                      <button
-                        onClick={() => { if (!confirm("Delete this comment? This cannot be undone.")) return; startTransition(async () => { await fetch("/api/comments", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c._id }) }); setAdminComments(prev => prev.filter(x => x._id !== c._id)); }); }}
-                        style={{ flexShrink: 0, background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "0.3rem 0.6rem", fontFamily: FONT, fontSize: "0.78rem", color: CRIMSON, cursor: "pointer" }}
-                      >Delete</button>
+                      <div style={{ flexShrink: 0, display: "flex", gap: "0.4rem" }}>
+                        {pending && (
+                          <button
+                            onClick={() => { startTransition(async () => { await fetch("/api/comments", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c._id, approved: true }) }); setAdminComments(prev => prev.map(x => x._id === c._id ? { ...x, approved: true } : x)); }); }}
+                            style={{ background: CRIMSON, border: "none", borderRadius: 4, padding: "0.3rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, color: "white", cursor: "pointer" }}
+                          >Approve</button>
+                        )}
+                        <button
+                          onClick={() => { if (!confirm("Delete this comment? This cannot be undone.")) return; startTransition(async () => { await fetch("/api/comments", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c._id }) }); setAdminComments(prev => prev.filter(x => x._id !== c._id)); }); }}
+                          style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "0.3rem 0.6rem", fontFamily: FONT, fontSize: "0.78rem", color: CRIMSON, cursor: "pointer" }}
+                        >Delete</button>
+                      </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

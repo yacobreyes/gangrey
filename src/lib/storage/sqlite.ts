@@ -372,8 +372,17 @@ export type CommentRow = { _id: string; name: string; text: string; slug: string
 
 export function sqliteAddComment(slug: string, name: string, text: string): void {
   const id = `comment-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  // Arrives pending (approved: false) — an admin must approve it before it shows
+  // publicly. sqliteCommentsForSlug filters on approved.
   db().prepare(`INSERT INTO documents (id, type, data) VALUES (?, 'comment', ?)`)
-    .run(id, JSON.stringify({ slug, name, text, approved: true, _createdAt: new Date().toISOString() }));
+    .run(id, JSON.stringify({ slug, name, text, approved: false, _createdAt: new Date().toISOString() }));
+}
+
+export function sqliteSetCommentApproved(id: string, approved: boolean): void {
+  const row = db().prepare(`SELECT data FROM documents WHERE id = ? AND type = 'comment'`).get(id);
+  if (!row) return;
+  const data = { ...JSON.parse(row.data), approved };
+  db().prepare(`UPDATE documents SET data = ? WHERE id = ? AND type = 'comment'`).run(JSON.stringify(data), id);
 }
 
 export function sqliteCommentsForSlug(slug: string): CommentRow[] {

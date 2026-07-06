@@ -74,7 +74,7 @@ export default function CommentSection({ slug }: { slug: string }) {
         )}
 
         {submitted ? (
-          <p style={{ fontFamily: "var(--font-subhead)", fontSize: "0.9rem", color: "#392a22" }}>Comment posted!</p>
+          <p style={{ fontFamily: "var(--font-subhead)", fontSize: "0.9rem", color: "#392a22" }}>Thanks! Your comment will appear once it&apos;s approved.</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
             <input

@@ -11,7 +11,7 @@ export async function GET() {
   if (isSqliteBackend()) return NextResponse.json(sqliteAllComments());
 
   const comments = await client.fetch(
-    `*[_type == "comment"] | order(_createdAt desc) { _id, name, text, slug, _createdAt }`,
+    `*[_type == "comment"] | order(_createdAt desc) { _id, name, text, slug, approved, _createdAt }`,
     {},
     { cache: "no-store" }
   );

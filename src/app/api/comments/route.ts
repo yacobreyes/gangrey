@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { client } from "@/lib/sanity";
 import { rateLimit } from "@/lib/rateLimit";
-import { isSqliteBackend, sqliteCommentsForSlug, sqliteAddComment, sqliteDeleteComment } from "@/lib/storage/sqlite";
+import { isAuthed } from "@/lib/adminAuth";
+import { isSqliteBackend, sqliteCommentsForSlug, sqliteAddComment, sqliteDeleteComment, sqliteSetCommentApproved } from "@/lib/storage/sqlite";
 
 const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!;
 const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
@@ -43,9 +44,10 @@ export async function POST(req: NextRequest) {
   if (!slug || !name?.trim() || !text?.trim()) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
+  // New comments arrive pending; an admin approves them before they appear.
   if (isSqliteBackend()) {
     sqliteAddComment(slug, name.trim().slice(0, 80), text.trim().slice(0, 1000));
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, pending: true });
   }
   await mutate([{
     create: {
@@ -53,13 +55,26 @@ export async function POST(req: NextRequest) {
       slug,
       name: name.trim().slice(0, 80),
       text: text.trim().slice(0, 1000),
-      approved: true,
+      approved: false,
     },
   }]);
+  return NextResponse.json({ ok: true, pending: true });
+}
+
+// Approve a pending comment (admin only).
+export async function PATCH(req: NextRequest) {
+  if (!(await isAuthed())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { id, approved } = await req.json() as { id: string; approved?: boolean };
+  if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  const value = approved !== false;
+  if (isSqliteBackend()) { sqliteSetCommentApproved(id, value); return NextResponse.json({ ok: true }); }
+  await mutate([{ patch: { id, set: { approved: value } } }]);
   return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(req: NextRequest) {
+  // Deleting a comment is an admin action — must be authenticated.
+  if (!(await isAuthed())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await req.json() as { id: string };
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
   if (isSqliteBackend()) { sqliteDeleteComment(id); return NextResponse.json({ ok: true }); }
