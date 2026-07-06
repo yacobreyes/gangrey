@@ -177,6 +177,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
   const [imageAssetId, setImageAssetId] = useState(post.image?.asset?._ref ?? post.image?.url ?? "");
   const [imageCrops, setImageCrops] = useState<ImageCrops>(post.image?.crops ?? {});
   const [showCropModal, setShowCropModal] = useState(false);
+  const [showImageDetails, setShowImageDetails] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -748,12 +749,17 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                   Add a featured image
                 </button>
               ) : (
-                <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, overflow: "hidden", background: "white" }}>
-                  {/* Image with an action bar overlaid on hover, Axios-style */}
-                  <div className="fi-wrap" style={{ position: "relative", lineHeight: 0, background: "#f4f4f5" }}>
+                <div>
+                  {/* Clean image in the canvas + a hover action bar. Alt/caption
+                      are edited in a modal, not shown as inline fields. Axios-style. */}
+                  <div className="fi-wrap" style={{ position: "relative", lineHeight: 0, borderRadius: 6, overflow: "hidden", background: "#f4f4f5" }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={imagePreview} alt="" style={{ width: "100%", maxHeight: 340, objectFit: "cover", display: "block" }} />
+                    <img src={imagePreview} alt="" style={{ width: "100%", maxHeight: 360, objectFit: "cover", display: "block" }} />
                     <div className="fi-actions" style={{ position: "absolute", top: 10, right: 10, display: "flex", gap: "0.4rem" }}>
+                      <button type="button" onClick={() => setShowImageDetails(true)}
+                        style={{ background: "rgba(255,255,255,0.95)", border: "none", borderRadius: 6, padding: "0.35rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", color: TEXT_DARK, boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }}>
+                        Details
+                      </button>
                       {imagePreview !== "existing" && (
                         <button type="button" onClick={() => setShowCropModal(true)}
                           style={{ background: "rgba(255,255,255,0.95)", border: "none", borderRadius: 6, padding: "0.35rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", color: TEXT_DARK, boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }}>
@@ -770,19 +776,9 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                       </button>
                     </div>
                   </div>
-                  {/* Labeled metadata fields */}
-                  <div style={{ padding: "1rem 1.1rem", display: "flex", flexDirection: "column", gap: "0.9rem" }}>
-                    <div>
-                      <label style={{ ...LABEL, marginBottom: "0.3rem", display: "flex", justifyContent: "space-between" }}>
-                        <span>Alt text</span>
-                        <span style={{ fontWeight: 400, color: imageAlt.length > 300 ? CRIMSON : TEXT_MUTED, textTransform: "none", letterSpacing: 0 }}>{imageAlt.length}/300</span>
-                      </label>
-                      <input placeholder="Describe the image for screen readers and search" style={{ ...INPUT, width: "100%" }} value={imageAlt} onChange={e => setImageAlt(straightenQuotes(e.target.value))} />
-                    </div>
-                    <div>
-                      <label style={{ ...LABEL, marginBottom: "0.3rem" }}>Caption &amp; credit</label>
-                      <input placeholder="e.g. Photo by Jane Doe / Getty" style={{ ...INPUT, width: "100%" }} value={imageCaption} onChange={e => setImageCaption(straightenQuotes(e.target.value))} />
-                    </div>
+                  {/* Read-only caption line beneath the photo, like the published story. Click to edit. */}
+                  <div onClick={() => setShowImageDetails(true)} style={{ cursor: "pointer", fontFamily: FONT, fontSize: "0.8rem", color: (imageCaption || imageAlt) ? TEXT_MUTED : CRIMSON, margin: "0.5rem 0 0" }}>
+                    {imageCaption || (imageAlt ? <span style={{ fontStyle: "italic" }}>Caption &amp; credit missing — click to add</span> : "Add alt text & caption")}
                   </div>
                 </div>
               )}
@@ -951,6 +947,38 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
         </div>
         </div>
       </div>
+
+      {/* Featured image details — alt text + caption/credit, edited in a modal */}
+      {showImageDetails && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: isMobile ? "1rem" : "2rem" }} onClick={() => setShowImageDetails(false)}>
+          <div style={{ background: "white", borderRadius: 10, width: isMobile ? "100%" : "min(520px, 96vw)", overflow: "hidden", boxShadow: "0 8px 40px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: "1rem 1.5rem 0" }}>
+              <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1rem", margin: 0, color: TEXT_DARK }}>Image details</p>
+            </div>
+            <div style={{ padding: "1rem 1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+              {imagePreview && imagePreview !== "existing" && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={imagePreview} alt="" style={{ width: "100%", maxHeight: 180, objectFit: "cover", borderRadius: 6 }} />
+              )}
+              <div>
+                <label style={{ ...LABEL, display: "flex", justifyContent: "space-between", marginBottom: "0.3rem" }}>
+                  <span>Alt text</span>
+                  <span style={{ fontWeight: 400, color: imageAlt.length > 300 ? CRIMSON : TEXT_MUTED, textTransform: "none", letterSpacing: 0 }}>{imageAlt.length}/300</span>
+                </label>
+                <input autoFocus style={{ ...INPUT, width: "100%" }} value={imageAlt} onChange={e => setImageAlt(straightenQuotes(e.target.value))} placeholder="Describe the image…" />
+                <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, margin: "0.35rem 0 0", lineHeight: 1.4 }}>Screen readers read this aloud; it also helps search ranking.</p>
+              </div>
+              <div>
+                <label style={{ ...LABEL, marginBottom: "0.3rem" }}>Caption &amp; credit</label>
+                <input style={{ ...INPUT, width: "100%" }} value={imageCaption} onChange={e => setImageCaption(straightenQuotes(e.target.value))} placeholder="e.g. Photo by Jane Doe / Getty" />
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem", padding: "0.85rem 1.5rem", borderTop: `1px solid ${BORDER}` }}>
+              <button type="button" onClick={() => setShowImageDetails(false)} style={{ background: CRIMSON, color: "white", border: "none", borderRadius: 20, padding: "0.45rem 1.3rem", fontFamily: FONT, fontSize: "0.88rem", fontWeight: 600, cursor: "pointer" }}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Manual crop wizard for the featured image */}
       {showCropModal && imagePreview && imagePreview !== "existing" && (
