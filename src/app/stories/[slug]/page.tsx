@@ -176,7 +176,7 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
         <CommentSection slug={slug} />
       </div>
 
-      <StoryVisitTracker />
+      <StoryVisitTracker slug={slug} />
       <MagFooter />
     </div>
   );

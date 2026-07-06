@@ -413,3 +413,12 @@ export function sqliteIncrementCount(id: string, delta: number): number {
     .run(id, JSON.stringify({ count: next }));
   return next;
 }
+
+// Map of slug -> view count, for the admin dashboard. View counters are stored
+// with id `views-<slug>`.
+export function sqliteAllViewCounts(): Record<string, number> {
+  const rows = db().prepare(`SELECT id, data FROM documents WHERE type = 'counter' AND id LIKE 'views-%'`).all();
+  const out: Record<string, number> = {};
+  for (const r of rows) out[r.id.slice("views-".length)] = JSON.parse(r.data).count ?? 0;
+  return out;
+}

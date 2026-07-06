@@ -139,6 +139,11 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
   type AdminComment = { _id: string; name: string; text: string; slug: string; approved?: boolean; _createdAt: string };
   const [adminComments, setAdminComments] = useState<AdminComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
+  // Per-story page-view counts ({ slug: count }) for the Posts list.
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
+  useEffect(() => {
+    fetch("/api/views").then(r => r.json()).then(d => { if (d && typeof d === "object") setViewCounts(d); }).catch(() => {});
+  }, []);
   type ContextMenuState = { x: number; y: number; kind: "post"; post: SanityPost } | { x: number; y: number; kind: "newsletter"; newsletter: NlListItem };
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -725,7 +730,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                           <div key={n._id}
                             onClick={() => openNewsletter(n)}
                             onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, kind: "newsletter", newsletter: n }); }}
-                            style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 100px 80px" : "1fr 140px 120px", gap: isMobile ? "0 0.5rem" : "0 1rem", padding: "0.85rem 1rem", borderBottom: `1px solid ${BORDER}`, cursor: "pointer", alignItems: "center" }}
+                            style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 46px 80px 64px" : "1fr 78px 132px 110px", gap: isMobile ? "0 0.5rem" : "0 1rem", padding: "0.85rem 1rem", borderBottom: `1px solid ${BORDER}`, cursor: "pointer", alignItems: "center" }}
                             onMouseEnter={e => (e.currentTarget.style.background = "#ffffff")}
                             onMouseLeave={e => (e.currentTarget.style.background = "white")}>
                             <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", minWidth: 0 }}>
@@ -742,6 +747,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                                 )}
                               </div>
                             </div>
+                            <span style={{ fontFamily: FONT, fontSize: isMobile ? "0.7rem" : "0.8rem", color: TEXT_MUTED, whiteSpace: "nowrap", textAlign: "right" }}>—</span>
                             <span style={{ fontFamily: FONT, fontSize: isMobile ? "0.7rem" : "0.8rem", color: TEXT_MUTED, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Newsletter</span>
                             <span style={{ fontFamily: FONT, fontSize: isMobile ? "0.7rem" : "0.8rem", color: TEXT_MUTED, whiteSpace: "nowrap" }}>{(n.createdAt ?? n.updatedAt ?? "").slice(0, 10) || "—"}</span>
                           </div>
@@ -750,7 +756,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                           <div key={post._id}
                             onClick={() => startEdit(post)}
                             onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, kind: "post", post }); }}
-                            style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 100px 80px" : "1fr 140px 120px", gap: isMobile ? "0 0.5rem" : "0 1rem", padding: "0.85rem 1rem", borderBottom: `1px solid ${BORDER}`, cursor: "pointer", alignItems: "center" }}
+                            style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 46px 80px 64px" : "1fr 78px 132px 110px", gap: isMobile ? "0 0.5rem" : "0 1rem", padding: "0.85rem 1rem", borderBottom: `1px solid ${BORDER}`, cursor: "pointer", alignItems: "center" }}
                             onMouseEnter={e => (e.currentTarget.style.background = "#ffffff")}
                             onMouseLeave={e => (e.currentTarget.style.background = "white")}>
                             <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", minWidth: 0 }}>
@@ -767,6 +773,10 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                                 )}
                               </div>
                             </div>
+                            <span title="Page views" style={{ fontFamily: FONT, fontSize: isMobile ? "0.7rem" : "0.8rem", color: TEXT_MUTED, whiteSpace: "nowrap", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "0.25rem" }}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                              {(viewCounts[post.slug] ?? 0).toLocaleString("en-US")}
+                            </span>
                             <span style={{ fontFamily: FONT, fontSize: isMobile ? "0.7rem" : "0.8rem", color: TEXT_MUTED, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{post.section}</span>
                             <span style={{ fontFamily: FONT, fontSize: isMobile ? "0.7rem" : "0.8rem", color: TEXT_MUTED, whiteSpace: "nowrap" }}>{post.date}</span>
                           </div>
