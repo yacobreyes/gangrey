@@ -1101,8 +1101,10 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
           onSelect={img => {
             setImageAssetId(img.assetId); setImagePreview(img.url);
             setImageCaption(img.caption); setImageAlt(img.alt); setImageCrops({});
-            // Go straight into cropping so framing is set as part of adding the image.
-            setShowCropModal(true);
+            // Only newly-uploaded photos go straight into the crop wizard. Images
+            // pulled from the library are already story-ready and shouldn't force
+            // a re-crop.
+            if (img.isNew) setShowCropModal(true);
           }}
         />
       )}

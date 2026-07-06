@@ -36,8 +36,15 @@ function Field({ label, required, count, max, children }: { label: string; requi
 
 const ALT_HELP = "Describe the image for readers who can't see it — screen readers read this aloud, and it helps search ranking.";
 
-export type PickedImage = { assetId: string; url: string; caption: string; alt: string };
+export type PickedImage = { assetId: string; url: string; caption: string; alt: string; isNew?: boolean };
 type MediaAsset = { _id: string; url: string; originalFilename?: string; description?: string; altText?: string };
+
+// Request a downsized derivative for grid/preview thumbnails so the library
+// doesn't pull full-resolution photos (megabytes each) to show at ~130px.
+// Local media (/media/...) supports a ?w= width param; leave other URLs alone.
+function thumb(url: string, w: number) {
+  return url.startsWith("/media/") ? `${url}${url.includes("?") ? "&" : "?"}w=${w}` : url;
+}
 
 export default function ImagePickerModal({
   isMobile = false,
@@ -73,7 +80,9 @@ export default function ImagePickerModal({
 
   async function handleUse() {
     if (tab === "library" && selected) {
-      onSelect({ assetId: selected._id, url: selected.url, caption, alt });
+      // Library images are already in the story-ready library — reuse as-is,
+      // no forced re-crop (isNew: false).
+      onSelect({ assetId: selected._id, url: selected.url, caption, alt, isNew: false });
       onClose();
     } else if (tab === "upload" && uploadFile) {
       if (!alt.trim()) { alert("Please add alt text before using this image."); return; }
@@ -83,7 +92,7 @@ export default function ImagePickerModal({
         const fd = new FormData(); fd.set("file", await downscaleImage(uploadFile));
         const { assetId, url } = await uploadImage(fd);
         await updateMediaAsset(assetId, { description: caption, ...(alt ? { altText: alt } : {}) });
-        onSelect({ assetId, url, caption, alt });
+        onSelect({ assetId, url, caption, alt, isNew: true });
         onClose();
       } catch (err) {
         alert(
@@ -124,7 +133,7 @@ export default function ImagePickerModal({
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: "0.5rem" }}>
                     {assets.map(a => (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img key={a._id} src={a.url} alt={a.originalFilename}
+                      <img key={a._id} src={thumb(a.url, 260)} alt={a.originalFilename} loading="lazy"
                         onClick={() => { setSelected(a); setCaption(a.description ?? ""); setAlt(a.altText ?? ""); }}
                         style={{ width: "100%", height: 100, objectFit: "cover", borderRadius: 4, cursor: "pointer", border: `2px solid ${selected?._id === a._id ? CRIMSON : "transparent"}`, boxSizing: "border-box" }} />
                     ))}
@@ -134,7 +143,7 @@ export default function ImagePickerModal({
               {selected && (
                 <div style={{ width: 280, flexShrink: 0, borderLeft: `1px solid ${BORDER}`, padding: "1.25rem", overflowY: "auto", display: "flex", flexDirection: "column", gap: "1.1rem" }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={selected.url} alt="" style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 6 }} />
+                  <img src={thumb(selected.url, 560)} alt="" style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 6 }} />
                   <Field label="Alt text" count={alt.length} max={300}>
                     <input style={INPUT} value={alt} onChange={e => setAlt(straightenQuotes(e.target.value))} placeholder="Describe this image…" />
                     <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, margin: "0.35rem 0 0", lineHeight: 1.4 }}>{ALT_HELP}</p>
