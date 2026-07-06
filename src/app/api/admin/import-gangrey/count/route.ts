@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/adminAuth";
+import { isSqliteBackend, sqliteAllPostsAdmin } from "@/lib/storage/sqlite";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET() {
   try { await requireAdmin(); } catch { return NextResponse.json({ error: "Unauthorized" }, { status: 401 }); }
+  // Self-hosted: count archive posts straight out of SQLite.
+  if (isSqliteBackend()) {
+    const count = sqliteAllPostsAdmin().filter(p => p.section === "Archive" && p.status === "published").length;
+    return NextResponse.json({ count });
+  }
   const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
   const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
   if (!projectId) return NextResponse.json({ count: null });
