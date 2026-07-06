@@ -118,11 +118,11 @@ export const storyStyles = `
   }
   .story-body > p:first-of-type::first-letter {
     float: left;
-    font-size: 82px;
-    line-height: .66;
+    font-size: 60px;
+    line-height: .62;
     font-weight: 800;
     color: #490000;
-    padding: 10px 12px 0 0;
+    padding: 8px 10px 0 0;
   }
   .story-body p { margin: 0 0 22px; }
   .story-body blockquote {
