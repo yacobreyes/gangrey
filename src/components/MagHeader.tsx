@@ -42,9 +42,9 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
         }
 
         /* ---- Masthead: wordmark / vol-no bar ---- */
-        .mag-masthead { padding: 8px 76px 0; }
+        .mag-masthead { padding: 8px 76px 0; max-width: 1200px; margin: 0 auto; box-sizing: border-box; }
         .mag-wordmark-link { display: block; width: fit-content; margin: 2px auto 8px; line-height: 0; background: none; border: none; padding: 0; cursor: pointer; }
-        .mag-wordmark-img { display: block; height: 54px; width: auto; margin: 0 auto; }
+        .mag-wordmark-img { display: block; height: 64px; width: auto; margin: 0 auto; }
         .mag-volno {
           border-top: 1px solid #000000;
           border-bottom: 2px solid #490000;
@@ -70,6 +70,9 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
           grid-template-columns: 1fr auto;
           align-items: center;
           padding: 0 76px;
+          max-width: 1200px;
+          margin: 0 auto;
+          box-sizing: border-box;
           position: relative;
           overflow: hidden;
         }
