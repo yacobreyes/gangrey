@@ -55,13 +55,13 @@ export default function StorePage() {
           font-weight: 800; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
           text-decoration: underline; text-underline-offset: 4px;
         }
-        /* Center the products as a group: a flex row with fixed-width cards and
-           a normal gap, centered in the page — not one card floating in each
-           third of a wide grid. */
+        /* Spread the fixed-width products across the full section width so they
+           reach the same left/right edges as the band and header, with the
+           middle card centered between them. */
         .store-grid {
           display: flex;
           flex-wrap: wrap;
-          justify-content: center;
+          justify-content: space-between;
           gap: 40px 36px;
         }
         /* Keep each product's text + price/Buy Now row aligned to the image
