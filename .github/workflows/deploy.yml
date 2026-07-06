@@ -1,47 +1,26 @@
-name: Deploy to GitHub Pages
+name: Deploy to server
+
+# Auto-deploy: on every push to the site branch, SSH into the VPS and
+# git pull + rebuild the Docker container. Recreates Vercel's push-to-deploy.
+# Requires three repo secrets: SSH_HOST, SSH_USER, SSH_PRIVATE_KEY.
 
 on:
   push:
-    branches: [main, claude/affectionate-lovelace-b3f6do]
+    branches: [claude/affectionate-lovelace-b3f6do]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    env:
-      NEXT_PUBLIC_SANITY_PROJECT_ID: tgydv1n4
-      NEXT_PUBLIC_SANITY_DATASET: production
-      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-      NEXTAUTH_URL: https://efemera.org
-      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: out
-
   deploy:
-    needs: build
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/deploy-pages@v4
-        id: deployment
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/gangrey
+            git pull --ff-only
+            docker compose up --build -d
+            docker image prune -f
