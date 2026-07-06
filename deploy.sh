@@ -31,10 +31,16 @@ fi
 echo "==> Pulling latest code…"
 git pull --ff-only
 
-# Export .env.selfhost so NEXT_PUBLIC_* build args (e.g. NEXT_PUBLIC_GA_ID) are
-# available to `docker compose build` — build args aren't read from env_file.
+# Export NEXT_PUBLIC_* build args from .env.selfhost so `docker compose build`
+# can bake them in (build args aren't read from env_file). We extract only those
+# lines rather than `source`-ing the file — sourcing executes it as a shell
+# script, which breaks on values containing spaces or '@' (e.g. an email).
 if [ -f .env.selfhost ]; then
-  set -a; . ./.env.selfhost; set +a
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+      NEXT_PUBLIC_*=*) export "${line%%$'\r'}" ;;
+    esac
+  done < .env.selfhost
 fi
 
 echo "==> Building new image (old container keeps serving)…"
