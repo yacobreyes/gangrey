@@ -144,14 +144,14 @@ export const storyStyles = `
     width: 100%;
     max-width: 680px;
     margin: 0 auto;
-    padding: 18px 40px 28px;
+    padding: 4px 40px 24px;
     box-sizing: border-box;
   }
   .story-foot-rule {
     border-top: 1px dotted #8a8a8c;
   }
   .story-actions {
-    margin-top: 26px;
+    margin-top: 0;
     display: flex;
     align-items: center;
     gap: 22px;
