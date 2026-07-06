@@ -167,7 +167,6 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
   }, []);
 
   // Popup for re-publishing: ask whether to update publish date
-  const [showPublishTimeModal, setShowPublishTimeModal] = useState(false);
 
   const [imageCaption, setImageCaption] = useState(post.image?.caption ?? "");
   const [imageAlt, setImageAlt] = useState(post.image?.alt ?? "");
@@ -401,11 +400,9 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
     // Viewing — flip into edit mode first rather than publishing from view.
     if (readOnly) { setViewMode(false); return; }
     if (!validateForPublish("publishing")) return;
-    if (form.status === "published") {
-      setShowPublishTimeModal(true);
-    } else {
-      doSave("published", true, true, true);
-    }
+    // Always publish with whatever's in the "Publish date" field — never stamp
+    // today over a date the author set. (updateDate=false keeps form.date.)
+    doSave("published", false, true, true);
   }
 
   const statusLabel = saveStatus === "saving" ? "Saving…" : saveStatus === "unsaved" ? "Unsaved" : "Saved";
@@ -607,24 +604,6 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
           </div>
         </div>
       </div>
-
-      {/* Publish time modal */}
-      {showPublishTimeModal && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setShowPublishTimeModal(false)}>
-          <div style={{ background: "white", borderRadius: 10, padding: "1.75rem", width: 340, boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }} onClick={e => e.stopPropagation()}>
-            <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1rem", margin: "0 0 0.5rem", color: TEXT_DARK }}>Update publish time?</p>
-            <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: "0 0 1.5rem", lineHeight: 1.5 }}>This story was originally published on <strong>{form.date}</strong>. Do you want to update the publish date to today?</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-              <button type="button" onClick={() => { setShowPublishTimeModal(false); doSave("published", true, true, true); }} style={{ background: CRIMSON, color: "white", border: "none", borderRadius: 8, padding: "0.6rem 1rem", fontFamily: FONT, fontSize: "0.88rem", fontWeight: 600, cursor: "pointer" }}>
-                Update to today ({new Date().toISOString().slice(0, 10)})
-              </button>
-              <button type="button" onClick={() => { setShowPublishTimeModal(false); doSave("published", false, true, true); }} style={{ background: "white", color: TEXT_DARK, border: `1px solid ${BORDER}`, borderRadius: 8, padding: "0.6rem 1rem", fontFamily: FONT, fontSize: "0.88rem", cursor: "pointer" }}>
-                Keep original ({form.date})
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Schedule modal */}
       {showScheduler && (
