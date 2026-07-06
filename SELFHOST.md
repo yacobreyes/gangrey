@@ -21,7 +21,9 @@ Site on http://localhost:3000 — admin at /admin/imago.
   instead of Vercel serverless functions.
 - **Backup = copy the `./data` folder** — or run `./backup.sh` for a dated,
   consistent snapshot (SQLite `.backup` + media, keeps the last 14). Install
-  the nightly cron once with `./backup.sh --install`.
+  the nightly cron once with `./backup.sh --install`. To also push snapshots
+  off-box to a Hetzner Storage Box, create `backup.env` (git-ignored) with the
+  `STORAGEBOX_*` vars documented at the bottom of `backup.sh`.
 
 ## What runs on the sqlite backend
 
