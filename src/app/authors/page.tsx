@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { client } from "@/lib/sanity";
+import { isSqliteBackend, sqliteAllPublishedPosts } from "@/lib/storage/sqlite";
 import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
 import AuthorsClient from "./AuthorsClient";
@@ -20,7 +21,13 @@ const QUERY = `*[_type == "post" && (status == "published" || !defined(status)) 
 
 export default async function AuthorsPage() {
   let bylines: { byline: string }[] = [];
-  try { bylines = await client.fetch(QUERY, {}, { next: { revalidate: 60 } }); } catch {}
+  if (isSqliteBackend()) {
+    bylines = sqliteAllPublishedPosts()
+      .filter(p => p.section !== "Archive" && p.byline?.trim())
+      .map(p => ({ byline: p.byline }));
+  } else {
+    try { bylines = await client.fetch(QUERY, {}, { next: { revalidate: 60 } }); } catch {}
+  }
 
   // Count posts per author and sort alphabetically by last name
   const counts = new Map<string, number>();
