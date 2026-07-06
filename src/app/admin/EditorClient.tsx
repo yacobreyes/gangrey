@@ -732,10 +732,13 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
               ) : (
                 <div>
                   {/* Click the image to open a menu (no floating buttons). Axios-style. */}
+                  {/* 16:9, same as the published story's featured image — so the
+                      editor preview is the actual size/crop readers will see,
+                      not an arbitrary taller box. */}
                   <div style={{ position: "relative", lineHeight: 0, borderRadius: 6, overflow: "visible", background: "#f4f4f5" }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={imagePreview} alt="" onClick={() => setImageMenuOpen(v => !v)}
-                      style={{ width: "100%", maxHeight: 360, objectFit: "cover", display: "block", borderRadius: 6, cursor: "pointer" }} />
+                      style={{ width: "100%", aspectRatio: "16 / 9", objectFit: "cover", display: "block", borderRadius: 6, cursor: "pointer" }} />
                     {imageMenuOpen && (
                       <>
                         <div onClick={() => setImageMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
