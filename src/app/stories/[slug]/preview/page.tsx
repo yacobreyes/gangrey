@@ -1,7 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { isAuthed } from "@/lib/adminAuth";
-import { client, urlFor } from "@/lib/sanity";
+import { client } from "@/lib/sanity";
 import type { SanityPost } from "@/lib/sanity";
+import { postImageUrl } from "@/lib/sanityImage";
+import { isSqliteBackend, sqliteGetPost } from "@/lib/storage/sqlite";
 import { PortableText } from "@portabletext/react";
 import Link from "next/link";
 import CommentSection from "@/components/CommentSection";
@@ -30,10 +32,13 @@ export default async function PreviewPage({ params }: { params: Promise<{ slug: 
   if (!authed) redirect("/admin/imago");
 
   const { slug } = await params;
-  const post = await client.fetch<SanityPost | null>(QUERY, { slug }, { cache: "no-store" });
+  const post = isSqliteBackend()
+    ? sqliteGetPost(slug)
+    : await client.fetch<SanityPost | null>(QUERY, { slug }, { cache: "no-store" });
   if (!post) notFound();
 
   const caption = post.image?.caption ? splitCaption(post.image.caption) : null;
+  const heroImg = postImageUrl(post.image, 1600, 900);
 
   return (
     <div className="story-page">
@@ -69,14 +74,14 @@ export default async function PreviewPage({ params }: { params: Promise<{ slug: 
         </div>
       </header>
 
-      {post.image?.asset && (
+      {heroImg && (
         <>
           <div className="story-hero-wrap">
             <div className="story-hero">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={urlFor(post.image.asset).width(1600).height(900).fit("crop").auto("format").url()}
-                alt={post.image.alt ?? post.image.caption ?? ""}
+                src={heroImg}
+                alt={post.image?.alt ?? post.image?.caption ?? ""}
               />
             </div>
           </div>
