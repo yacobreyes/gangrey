@@ -948,7 +948,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
               </div>
               <div>
                 <label style={{ ...LABEL, marginBottom: "0.3rem" }}>Caption &amp; credit</label>
-                <input style={{ ...INPUT, width: "100%" }} value={imageCaption} onChange={e => setImageCaption(straightenQuotes(e.target.value))} placeholder="e.g. Photo by Jane Doe / Getty" />
+                <input style={{ ...INPUT, width: "100%" }} value={imageCaption} onChange={e => setImageCaption(straightenQuotes(e.target.value))} placeholder="e.g. Photo: Jane Doe via Unsplash" />
               </div>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem", padding: "0.85rem 1.5rem", borderTop: `1px solid ${BORDER}` }}>

@@ -148,7 +148,7 @@ export default function ImagePickerModal({
                     <input style={INPUT} value={alt} onChange={e => setAlt(straightenQuotes(e.target.value))} placeholder="Describe this image…" />
                     <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, margin: "0.35rem 0 0", lineHeight: 1.4 }}>{ALT_HELP}</p>
                   </Field>
-                  <Field label="Caption & credit"><input style={INPUT} value={caption} onChange={e => setCaption(straightenQuotes(e.target.value))} placeholder="e.g. Photo by Jane Doe / Getty" /></Field>
+                  <Field label="Caption & credit"><input style={INPUT} value={caption} onChange={e => setCaption(straightenQuotes(e.target.value))} placeholder="e.g. Photo: Jane Doe via Unsplash" /></Field>
                 </div>
               )}
             </>
@@ -182,7 +182,7 @@ export default function ImagePickerModal({
                   <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, margin: "0.35rem 0 0", lineHeight: 1.4 }}>{ALT_HELP}</p>
                 </Field>
                 <Field label="Caption & credit" required>
-                  <input style={INPUT} value={caption} onChange={e => setCaption(straightenQuotes(e.target.value))} placeholder="e.g. Photo by Jane Doe / Getty" />
+                  <input style={INPUT} value={caption} onChange={e => setCaption(straightenQuotes(e.target.value))} placeholder="e.g. Photo: Jane Doe via Unsplash" />
                 </Field>
               </div>
             </div>
