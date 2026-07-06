@@ -169,7 +169,6 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
       </article>
 
       <div className="story-foot">
-        <div className="story-foot-rule" />
         <div className="story-actions">
           <span className="story-like"><LikeButton slug={slug} /></span>
           <ShareButton slug={slug} headline={post.headline} />
