@@ -51,8 +51,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org";
   const postUrl = `${siteUrl}/stories/${slug}`;
-  // The og:image / twitter:image come from the sibling opengraph-image.tsx
-  // (branded card), so they're intentionally not set here.
+  // Shared links use the story's own featured image (falls back to the default
+  // OG card if the post has no photo).
+  const photo = postImageUrl(post.image, 1200, 630);
+  const ogImage = photo
+    ? { url: photo.startsWith("http") ? photo : siteUrl + photo, width: 1200, height: 630, alt: post.headline }
+    : { url: "/open-graph.png", width: 1200, height: 630, alt: "Gangrey" };
 
   return {
     title: `Gangrey | ${seoTitle}`,
@@ -66,11 +70,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       siteName: "Gangrey",
       publishedTime: post.date,
       authors: [post.byline],
+      images: [ogImage],
     },
     twitter: {
       card: "summary_large_image",
       title: socialTitle,
       description,
+      images: [ogImage.url],
     },
   };
 }
