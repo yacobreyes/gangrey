@@ -19,8 +19,9 @@ Site on http://localhost:3000 — admin at /admin/imago.
 - Media uploads land in `DATA_DIR/media`, served at `/media/*`.
 - `STANDALONE=1` at build time produces a plain Node server (`server.js`)
   instead of Vercel serverless functions.
-- **Backup = copy the `./data` folder** — or cron `scripts/backup-data.sh`
-  for dated snapshots (keeps 14).
+- **Backup = copy the `./data` folder** — or run `./backup.sh` for a dated,
+  consistent snapshot (SQLite `.backup` + media, keeps the last 14). Install
+  the nightly cron once with `./backup.sh --install`.
 
 ## What runs on the sqlite backend
 
@@ -41,8 +42,23 @@ simply don't run.
 
 ## Deploying updates
 
-Auto-deploy is wired via GitHub Actions (`.github/workflows/deploy.yml`): any
-push to the site branch SSHes into the server and runs `git pull` + a Docker
-rebuild. No manual steps. Manual fallback on the server:
+On the server, run the zero-downtime deploy script — it pulls, builds the new
+image while the old container keeps serving, then swaps:
 
-    cd ~/gangrey && git pull && docker compose up --build -d
+    cd ~/gangrey && git pull && ./deploy.sh
+
+`deploy.sh` refuses to build unless swap is active (a Next.js + sharp build
+OOM-kills itself on a 4GB box without it) and waits for a local 200 before
+declaring success.
+
+## www subdomain
+
+Only the bare `gangrey.org` has HTTPS by default. To serve `www.gangrey.org`
+too, point a DNS `A`/`CNAME` record for `www` at the server, then add a redirect
+block to `/etc/caddy/Caddyfile` so www lands on the canonical bare domain:
+
+    www.gangrey.org {
+        redir https://gangrey.org{uri} permanent
+    }
+
+Then `sudo systemctl reload caddy`. Caddy fetches the cert automatically.
