@@ -26,19 +26,23 @@ export default async function RelatedStories({ slug, section }: { slug: string; 
   return (
     <section className="rel-wrap">
       <style>{`
-        .rel-wrap { width: 100%; max-width: 1040px; margin: 0 auto; padding: 8px 40px 40px; box-sizing: border-box; }
+        /* Match the story reading column (680px) so it lines up with the body,
+           actions and comments — not a wider band that sticks out. */
+        .rel-wrap { width: 100%; max-width: 680px; margin: 0 auto; padding: 8px 40px 40px; box-sizing: border-box; }
         .rel-rule { border-top: 1px dotted #8a8a8c; margin-bottom: 24px; }
         .rel-kicker {
           font-family: var(--font-subhead); font-size: 12px; font-weight: 800;
           letter-spacing: .2em; text-transform: uppercase; color: #490000; margin: 0 0 20px;
         }
-        .rel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+        /* auto-fit so 1, 2, or 3 cards always fill the row evenly — no dead
+           empty column when there are only two related stories. */
+        .rel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 26px; }
         .rel-card { display: block; color: inherit; text-decoration: none; }
-        .rel-thumb { position: relative; width: 100%; aspect-ratio: 1.5 / 1; background: #b8b8ba; overflow: hidden; margin-bottom: 12px; }
+        .rel-thumb { position: relative; width: 100%; aspect-ratio: 3 / 2; background: #b8b8ba; overflow: hidden; margin-bottom: 12px; }
         .rel-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
         .rel-card:hover .rel-thumb img { transform: scale(1.03); }
         .rel-label { font-family: var(--font-subhead); font-size: 10px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; color: #490000; margin-bottom: 6px; }
-        .rel-title { font-family: var(--font-headline); font-size: 19px; line-height: 1.12; letter-spacing: -.01em; font-weight: 800; margin: 0 0 6px; }
+        .rel-title { font-family: var(--font-headline); font-size: 18px; line-height: 1.12; letter-spacing: -.01em; font-weight: 800; margin: 0 0 6px; }
         .rel-meta { font-family: var(--font-subhead); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #6b6b6b; }
         @media (max-width: 760px) {
           .rel-wrap { padding: 8px 22px 32px; }
