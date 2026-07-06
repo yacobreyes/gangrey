@@ -455,8 +455,10 @@ export async function saveAbout(formData: FormData) {
   } catch {
     body = parseBody(raw);
   }
-  if (isSqliteBackend()) { sqliteSetSingleton("about", { body }); return; }
-  await mutate([{ createOrReplace: { _id: "about", _type: "about", body } }]);
+  if (isSqliteBackend()) sqliteSetSingleton("about", { body });
+  else await mutate([{ createOrReplace: { _id: "about", _type: "about", body } }]);
+  // Refresh the cached public page immediately instead of waiting for ISR.
+  revalidatePath("/about");
 }
 
 const CLOUD_DRAFT_ID = "admin-autosave";
@@ -489,8 +491,9 @@ export async function clearCloudDraft() {
 
 export async function saveWelcome(headline: string, body: string) {
   await requireAuth();
-  if (isSqliteBackend()) { sqliteSetSingleton("welcome", { headline, body }); return; }
-  await mutate([{ createOrReplace: { _id: "welcome", _type: "welcome", headline, body } }]);
+  if (isSqliteBackend()) sqliteSetSingleton("welcome", { headline, body });
+  else await mutate([{ createOrReplace: { _id: "welcome", _type: "welcome", headline, body } }]);
+  revalidatePath("/");
 }
 
 export async function saveLately(formData: FormData) {
@@ -508,6 +511,7 @@ export async function saveLately(formData: FormData) {
     reading, readingAuthor, readingUrl, listening, listeningArtist, listeningUrl, watching, watchingUrl,
   };
 
-  if (isSqliteBackend()) { sqliteSetSingleton("lately", doc); return; }
-  await mutate([{ createOrReplace: doc }]);
+  if (isSqliteBackend()) sqliteSetSingleton("lately", doc);
+  else await mutate([{ createOrReplace: doc }]);
+  revalidatePath("/");
 }
