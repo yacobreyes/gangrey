@@ -485,7 +485,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
               ["comments", "Comments", <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>],
               // Members (with subscribers) and Users management are admin-only.
               ...(isAdmin ? [
-                ["members", "Members", <svg key="m" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7a2.5 2.5 0 0 0-2.5-2.5C8 4.5 7 6 7 7h5z"/><path d="M12 7a2.5 2.5 0 0 1 2.5-2.5C16 4.5 17 6 17 7h-5z"/></svg>],
+                ["members", "Audience", <svg key="m" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7a2.5 2.5 0 0 0-2.5-2.5C8 4.5 7 6 7 7h5z"/><path d="M12 7a2.5 2.5 0 0 1 2.5-2.5C16 4.5 17 6 17 7h-5z"/></svg>],
                 ["users", "Users", <svg key="u" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>],
               ] as [Panel, string, React.ReactNode][] : []),
             ] as [Panel, string, React.ReactNode][]).map(([panel, label, icon]) => (
@@ -562,7 +562,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                   </div>
                 ) : (
                   <span style={{ fontFamily: FONT, fontSize: "1rem", fontWeight: 700, color: TEXT_DARK }}>
-                    {activePanel === "media" ? "Media Library" : activePanel === "comments" ? "Comments" : activePanel === "about" ? "About" : activePanel === "users" ? "Users" : activePanel === "members" ? "Members & Subscribers" : activePanel === "archive" ? "Archive" : ""}
+                    {activePanel === "media" ? "Media Library" : activePanel === "comments" ? "Comments" : activePanel === "about" ? "About" : activePanel === "users" ? "Users" : activePanel === "members" ? "Audience" : activePanel === "archive" ? "Archive" : ""}
                   </span>
                 )}
               </div>
@@ -601,7 +601,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                   </div>
                 ) : (
                   <span style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, color: TEXT_MUTED }}>
-                    {activePanel === "media" ? "Media Library" : activePanel === "about" ? "About" : activePanel === "comments" ? "Comments" : activePanel === "users" ? "Users" : activePanel === "members" ? "Members & Subscribers" : activePanel === "archive" ? "Archive" : ""}
+                    {activePanel === "media" ? "Media Library" : activePanel === "about" ? "About" : activePanel === "comments" ? "Comments" : activePanel === "users" ? "Users" : activePanel === "members" ? "Audience" : activePanel === "archive" ? "Archive" : ""}
                   </span>
                 )}
               </div>
@@ -639,7 +639,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                   </button>
                 </div>
                 <div style={{ padding: "0.75rem", flex: 1 }}>
-                  {([["dashboard", "Posts"], ["about", "About"], ["media", "Media Library"], ["archive", "Archive"], ["comments", "Comments"], ...(isAdmin ? [["members", "Members"], ["users", "Users"]] as [Panel, string][] : [])] as [Panel, string][]).map(([panel, label]) => (
+                  {([["dashboard", "Posts"], ["about", "About"], ["media", "Media Library"], ["archive", "Archive"], ["comments", "Comments"], ...(isAdmin ? [["members", "Audience"], ["users", "Users"]] as [Panel, string][] : [])] as [Panel, string][]).map(([panel, label]) => (
                     <button key={panel} onClick={() => { tryNav(panel); setShowMobileNav(false); }} style={{ display: "block", width: "100%", background: activePanel === panel ? "#ffffff" : "none", border: "none", textAlign: "left", padding: "0.75rem", fontFamily: FONT, fontSize: "1rem", fontWeight: activePanel === panel ? 700 : 500, color: activePanel === panel ? CRIMSON : TEXT_DARK, cursor: "pointer", borderRadius: 6, marginBottom: "0.1rem" }}>
                       {label}
                     </button>

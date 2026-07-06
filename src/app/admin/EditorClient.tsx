@@ -18,6 +18,8 @@ import type { Editor } from "@tiptap/react";
 import type { SanityPost } from "@/lib/sanity";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
 import { portableToLines, relativeTime, dayLabel, colorForName } from "@/lib/editorDiff";
+import type { ImageCrops } from "@/lib/sanityImage";
+import CropModal from "@/components/admin/CropModal";
 import VersionCompare from "@/components/admin/VersionCompare";
 
 const FONT = "var(--font-inter), sans-serif";
@@ -141,7 +143,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
 
   const [form, setForm] = useState<FormState>(initialForm);
   const [lastSaved, setLastSaved] = useState<FormState>(initialForm);
-  const [lastSavedImg, setLastSavedImg] = useState({ id: post.image?.asset?._ref ?? "", caption: post.image?.caption ?? "", alt: post.image?.alt ?? "" });
+  const [lastSavedImg, setLastSavedImg] = useState({ id: post.image?.asset?._ref ?? post.image?.url ?? "", caption: post.image?.caption ?? "", alt: post.image?.alt ?? "", crops: JSON.stringify(post.image?.crops ?? {}) });
   const [editorTab, setEditorTab] = useState<"content" | "metadata" | "seo" | "versions">("content");
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
   const [isPending, startTransition] = useTransition();
@@ -169,7 +171,12 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
   const [imageCaption, setImageCaption] = useState(post.image?.caption ?? "");
   const [imageAlt, setImageAlt] = useState(post.image?.alt ?? "");
   const [imagePreview, setImagePreview] = useState(post.image?.url ?? (post.image?.asset ? "existing" : ""));
-  const [imageAssetId, setImageAssetId] = useState(post.image?.asset?._ref ?? "");
+  // Local (self-hosted) images identify by their /media URL, not a Sanity asset
+  // ref — fall back to url so reopening a story keeps its image instead of
+  // treating it as absent and wiping it on the next save.
+  const [imageAssetId, setImageAssetId] = useState(post.image?.asset?._ref ?? post.image?.url ?? "");
+  const [imageCrops, setImageCrops] = useState<ImageCrops>(post.image?.crops ?? {});
+  const [showCropModal, setShowCropModal] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -231,7 +238,8 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
   function updateForm(patch: Partial<FormState>) { setForm(prev => ({ ...prev, ...patch })); }
 
   const isDirty = JSON.stringify(form) !== JSON.stringify(lastSaved) ||
-    imageAssetId !== lastSavedImg.id || imageCaption !== lastSavedImg.caption || imageAlt !== lastSavedImg.alt;
+    imageAssetId !== lastSavedImg.id || imageCaption !== lastSavedImg.caption || imageAlt !== lastSavedImg.alt ||
+    JSON.stringify(imageCrops) !== lastSavedImg.crops;
 
   const doSave = useCallback((status: "draft" | "published" | "scheduled", updateDate = false, snapshot = false) => {
     // Don't write while another session holds the lock — avoids clobbering.
@@ -248,6 +256,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
     if (imageAssetId) fd.set("imageAssetId", imageAssetId);
     if (imageCaption) fd.set("imageCaption", imageCaption);
     if (imageAlt) fd.set("imageAlt", imageAlt);
+    if (Object.keys(imageCrops).length) fd.set("imageCrops", JSON.stringify(imageCrops));
     if (status === "scheduled" && scheduledAt) fd.set("scheduledAt", new Date(scheduledAt).toISOString());
     if (snapshot) fd.set("snapshot", "1");
     startTransition(async () => {
@@ -257,14 +266,14 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
         // an extra Sanity read on every autosave.
         if (editorTabRef.current === "versions") refreshVersions();
         setLastSaved({ ...form, status, date: saveDate });
-        setLastSavedImg({ id: imageAssetId, caption: imageCaption, alt: imageAlt });
+        setLastSavedImg({ id: imageAssetId, caption: imageCaption, alt: imageAlt, crops: JSON.stringify(imageCrops) });
         setForm(f => ({ ...f, status, date: saveDate }));
         setSaveStatus("saved");
       } catch {
         setSaveStatus("unsaved");
       }
     });
-  }, [form, post._id, imageAssetId, imageCaption, imageAlt, scheduledAt, refreshVersions]);
+  }, [form, post._id, imageAssetId, imageCaption, imageAlt, imageCrops, scheduledAt, refreshVersions]);
 
   const revertToDraft = useCallback(async () => {
     if (!confirm("Revert to draft? This will unpublish the story.")) return;
@@ -302,6 +311,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
     if (imageAssetId) fd.set("imageAssetId", imageAssetId);
     if (imageCaption) fd.set("imageCaption", imageCaption);
     if (imageAlt) fd.set("imageAlt", imageAlt);
+    if (Object.keys(imageCrops).length) fd.set("imageCrops", JSON.stringify(imageCrops));
     if (scheduledAt) fd.set("scheduledAt", new Date(scheduledAt).toISOString());
     fd.set("snapshot", "1");
     exitingRef.current = true;
@@ -309,7 +319,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
     releaseLockNow();
     savePost(fd).catch(() => {});
     router.push("/admin/imago?tab=scheduled");
-  }, [form, post._id, imageAssetId, imageCaption, imageAlt, scheduledAt, releaseLockNow, router]);
+  }, [form, post._id, imageAssetId, imageCaption, imageAlt, imageCrops, scheduledAt, releaseLockNow, router]);
 
   const revertToVersion = useCallback((i: number) => {
     const snap = versions[i];
@@ -339,7 +349,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
     }, 10000);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form, imageAssetId, imageCaption, imageAlt, doSave]);
+  }, [form, imageAssetId, imageCaption, imageAlt, imageCrops, doSave]);
 
   // A brand-new draft only lives in the URL until something persists it. With
   // the byline auto-filled there's nothing "dirty" to trigger autosave, so an
@@ -359,7 +369,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
     setImagePreview(URL.createObjectURL(file)); setUploadingImage(true);
     try {
       const fd = new FormData(); fd.set("file", file);
-      const { assetId } = await uploadImage(fd); setImageAssetId(assetId);
+      const { assetId } = await uploadImage(fd); setImageAssetId(assetId); setImageCrops({});
     } catch { /* silent */ }
     finally { setUploadingImage(false); }
   }
@@ -530,6 +540,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
               if (imageAssetId) fd.set("imageAssetId", imageAssetId);
               if (imageCaption) fd.set("imageCaption", imageCaption);
               if (imageAlt) fd.set("imageAlt", imageAlt);
+              if (Object.keys(imageCrops).length) fd.set("imageCrops", JSON.stringify(imageCrops));
               savePost(fd).catch(() => {});
             }
           }
@@ -735,8 +746,13 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                   <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
                     <input placeholder="Caption" style={{ ...INPUT, flex: 1, minWidth: 140 }} value={imageCaption} onChange={e => setImageCaption(straightenQuotes(e.target.value))} />
                     <input placeholder="Alt text" style={{ ...INPUT, flex: 1, minWidth: 140 }} value={imageAlt} onChange={e => setImageAlt(straightenQuotes(e.target.value))} />
+                    {imagePreview && imagePreview !== "existing" && (
+                      <button type="button" onClick={() => setShowCropModal(true)} style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 20, padding: "0.3rem 0.75rem", fontFamily: FONT, fontSize: "0.8rem", cursor: "pointer", color: TEXT_MUTED }}>
+                        Crop{Object.keys(imageCrops).length ? ` · ${Object.keys(imageCrops).length}` : ""}
+                      </button>
+                    )}
                     <button type="button" onClick={openImageModal} style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 20, padding: "0.3rem 0.75rem", fontFamily: FONT, fontSize: "0.8rem", cursor: "pointer", color: TEXT_MUTED }}>Change</button>
-                    <button type="button" onClick={() => { setImagePreview(""); setImageAssetId(""); }} style={{ background: "none", border: "none", fontFamily: FONT, fontSize: "0.8rem", cursor: "pointer", color: TEXT_MUTED }}>Remove</button>
+                    <button type="button" onClick={() => { setImagePreview(""); setImageAssetId(""); setImageCrops({}); }} style={{ background: "none", border: "none", fontFamily: FONT, fontSize: "0.8rem", cursor: "pointer", color: TEXT_MUTED }}>Remove</button>
                   </div>
                 </div>
               )}
@@ -906,6 +922,17 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
         </div>
       </div>
 
+      {/* Manual crop wizard for the featured image */}
+      {showCropModal && imagePreview && imagePreview !== "existing" && (
+        <CropModal
+          src={imagePreview}
+          crops={imageCrops}
+          isMobile={isMobile}
+          onSave={c => { setImageCrops(c); setShowCropModal(false); }}
+          onClose={() => setShowCropModal(false)}
+        />
+      )}
+
       {/* Version compare — Google-Docs-style inline redline */}
       {compareVersion !== null && versions[compareVersion] && (
         <VersionCompare
@@ -1023,7 +1050,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
         <ImagePickerModal
           isMobile={isMobile}
           onClose={() => setShowImageModal(false)}
-          onSelect={img => { setImageAssetId(img.assetId); setImagePreview(img.url); setImageCaption(img.caption); setImageAlt(img.alt); }}
+          onSelect={img => { setImageAssetId(img.assetId); setImagePreview(img.url); setImageCaption(img.caption); setImageAlt(img.alt); setImageCrops({}); }}
         />
       )}
     </div>

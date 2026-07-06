@@ -62,7 +62,7 @@ export interface SanityPost {
   byline: string;
   date: string;
   body: import("@portabletext/types").PortableTextBlock[];
-  image?: { asset: SanityImageSource; url?: string; caption?: string; alt?: string };
+  image?: { asset: SanityImageSource; url?: string; caption?: string; alt?: string; crops?: import("./sanityImage").ImageCrops };
   status?: "draft" | "published" | "scheduled" | "trashed";
   scheduledAt?: string;
   scheduledBy?: string;

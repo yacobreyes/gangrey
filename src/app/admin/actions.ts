@@ -210,6 +210,9 @@ export async function savePost(formData: FormData) {
   const imageAssetId = formData.get("imageAssetId") as string | null;
   const imageCaption = formData.get("imageCaption") as string | null;
   const imageAlt = formData.get("imageAlt") as string | null;
+  // Per-aspect-ratio manual crop rectangles (JSON), applied by the /media route.
+  let imageCrops: Record<string, { x: number; y: number; w: number; h: number }> | undefined;
+  try { const c = formData.get("imageCrops") as string | null; if (c) imageCrops = JSON.parse(c); } catch {}
   const status = (formData.get("status") as string) || "draft";
   // Reader access. Archive posts are always members-only, so their access field
   // is irrelevant; other sections default to "free" unless marked "paid".
@@ -259,6 +262,7 @@ export async function savePost(formData: FormData) {
       asset: { _type: "reference", _ref: imageAssetId },
       ...(imageCaption ? { caption: sq(imageCaption) } : {}),
       ...(imageAlt ? { alt: sq(imageAlt) } : {}),
+      ...(imageCrops ? { crops: imageCrops } : {}),
     };
     // Keep the Media Library's own record of this asset in sync too — caption/alt
     // set here previously only lived on the post, so the library showed blank.
@@ -281,7 +285,7 @@ export async function savePost(formData: FormData) {
       body: straightBody,
       // Local backend stores images as plain src paths; the Sanity asset-ref
       // pipeline doesn't apply. (Media uploads on sqlite land in /public/media.)
-      image: imageAssetId ? { src: imageAssetId, caption: sq(imageCaption ?? "") ?? undefined, alt: sq(imageAlt ?? "") ?? undefined } : null,
+      image: imageAssetId ? { src: imageAssetId, caption: sq(imageCaption ?? "") ?? undefined, alt: sq(imageAlt ?? "") ?? undefined, crops: imageCrops } : null,
       seoHeadline: sq(seoHeadline), socialHeadline: sq(socialHeadline), socialDescription: sq(socialDescription),
       readingTime, sortOrder, lastEditedBy: fullName(me),
     });

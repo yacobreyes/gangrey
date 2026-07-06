@@ -104,7 +104,7 @@ function rowToPost(r: PostRow): SanityPost {
     body: JSON.parse(r.body || "[]"),
     // Local images are plain {src,...}; components using Sanity's urlFor need
     // the asset guard, so we surface src via image.url and leave asset unset.
-    image: image ? { asset: undefined as any, url: image.src, caption: image.caption, alt: image.alt } : undefined,
+    image: image ? { asset: undefined as any, url: image.src, caption: image.caption, alt: image.alt, crops: image.crops } : undefined,
     seoHeadline: r.seo_headline ?? undefined,
     socialHeadline: r.social_headline ?? undefined,
     socialDescription: r.social_description ?? undefined,
@@ -141,7 +141,7 @@ export function sqliteGetPost(slug: string): SanityPost | null {
 export function sqliteSavePost(doc: {
   _id: string; slug: string; section: string; headline: string; subheadline: string;
   byline: string; date: string; status: string; access: string;
-  scheduledAt?: string | null; body: unknown; image?: { src: string; caption?: string; alt?: string } | null;
+  scheduledAt?: string | null; body: unknown; image?: { src: string; caption?: string; alt?: string; crops?: unknown } | null;
   seoHeadline?: string | null; socialHeadline?: string | null; socialDescription?: string | null;
   readingTime?: number | null; sortOrder?: number | null; lastEditedBy?: string;
 }): void {
