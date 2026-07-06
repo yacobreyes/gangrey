@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { savePost, deletePost, trashPost, restorePost, saveAbout, uploadImage, clearCloudDraft, deleteMediaAsset, updateMediaAsset, createDraft } from "../actions";
+import { savePost, deletePost, trashPost, restorePost, saveAbout, uploadImage, clearCloudDraft, deleteMediaAsset, updateMediaAsset } from "../actions";
 import { deleteNewsletter as deleteNewsletterDoc, getSubscribers, type Subscriber } from "../newsletterActions";
 import type { NlCard } from "@/lib/newsletterEmail";
 import { tiptapToPortableText, portableTextToTiptap } from "@/lib/tiptapConvert";
@@ -144,7 +144,6 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [editorTab, setEditorTab] = useState<"content" | "metadata">("content");
   const [query, setQuery] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
   const [sortBy, setSortBy] = useState<"lastEdited" | "dateCreated">("lastEdited");
   const [showSortMenu, setShowSortMenu] = useState(false);
   const sortMenuRef = useRef<HTMLDivElement>(null);
@@ -1107,16 +1106,5 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
         </div>
       )}
     </>
-  );
-}
-
-function PostRow({ post, onClick }: { post: SanityPost; onClick: () => void }) {
-  return (
-    <div className="post-row" onClick={onClick}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontFamily: "var(--font-inter), sans-serif", fontSize: "0.9rem", fontWeight: 600, color: "#000000", margin: "0 0 0.15rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{post.headline}</p>
-        <p style={{ fontFamily: "var(--font-inter), sans-serif", fontSize: "0.72rem", color: "#392a22", margin: 0 }}>{post.section} · {post.date}</p>
-      </div>
-    </div>
   );
 }

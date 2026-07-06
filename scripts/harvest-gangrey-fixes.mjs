@@ -63,7 +63,7 @@ async function fetchCached(url, { asJson = false } = {}) {
       const text = await res.text();
       fs.writeFileSync(cp, text);
       return asJson ? JSON.parse(text) : text;
-    } catch (err) {
+    } catch {
       if (attempt === 4) {
         fs.writeFileSync(cp, "__FAIL__");
         return null;

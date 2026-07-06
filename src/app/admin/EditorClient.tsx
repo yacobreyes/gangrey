@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { savePost, deletePost, trashPost, restorePost, uploadImage, unpublishPost, getVersions, updateMediaAsset } from "./actions";
+import { savePost, deletePost, restorePost, uploadImage, unpublishPost, getVersions, updateMediaAsset } from "./actions";
 import ScheduleModal from "@/components/ScheduleModal";
 import type { PostVersion } from "./actions";
 import { tiptapToPortableText, portableTextToTiptap } from "@/lib/tiptapConvert";

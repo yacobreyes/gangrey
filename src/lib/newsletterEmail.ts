@@ -2,7 +2,7 @@
 // Kept dependency-free: a small serializer for the block types our editor emits.
 import type { PortableTextBlock } from "@portabletext/types";
 import { straightenQuotes, straightenBlocks } from "./straighten";
-import { CRIMSON, INK, TEXT_MUTED, CREAM, PAPER_DARK, LINE } from "./palette";
+import { CRIMSON, INK, TEXT_MUTED, CREAM, LINE } from "./palette";
 
 export type NlCard = {
   headline?: string;

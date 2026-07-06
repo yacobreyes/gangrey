@@ -9,14 +9,6 @@ import { Resend } from "resend";
 import { sanityMutate } from "@/lib/sanityWrite";
 import { isSqliteBackend, sqliteGetDoc, sqliteDocsByType, sqliteAllPostsAdmin } from "@/lib/storage/sqlite";
 
-function sanityConfig() {
-  const token = process.env.SANITY_API_WRITE_TOKEN ?? process.env.SANITY_WRITE_TOKEN;
-  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
-  const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
-  if (!token || !projectId) throw new Error("Missing Sanity config — add SANITY_API_WRITE_TOKEN in Vercel env vars");
-  return { token, projectId, dataset };
-}
-
 // Delegates to the shared write helper, which routes to Sanity or the local
 // sqlite store depending on STORAGE_BACKEND.
 async function mutate(mutations: unknown[]) {

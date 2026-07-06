@@ -43,6 +43,4 @@ next-env.d.ts
 .gangrey-harvest-cache
 .env.selfhost
 data/
-
-# Off-box backup config (Storage Box host)
-backup.env
+backups/

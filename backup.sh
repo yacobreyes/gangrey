@@ -61,29 +61,3 @@ echo "Snapshot written: $DEST/gangrey-$stamp.tar.gz ($(du -h "$DEST/gangrey-$sta
 # Prune to the most recent $KEEP snapshots.
 ls -1t "$DEST"/gangrey-*.tar.gz 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -f
 echo "Keeping the $KEEP most recent snapshots in $DEST."
-
-# --- Off-box copy to a Hetzner Storage Box (optional) -------------------------
-# Mirror the local snapshots up to a Storage Box so a dead server doesn't take
-# the backups with it. Configure by creating ./backup.env (git-ignored) with:
-#
-#   STORAGEBOX_HOST=u123456@u123456.your-storagebox.de
-#   STORAGEBOX_PATH=gangrey-backups        # folder on the box (created if absent)
-#   STORAGEBOX_SSH_KEY=/root/.ssh/id_storagebox   # optional; omit to use default key
-#
-# One-time setup on the server:
-#   ssh-keygen -t ed25519 -f ~/.ssh/id_storagebox -N ''
-#   ssh-copy-id -p 23 -s -i ~/.ssh/id_storagebox u123456@u123456.your-storagebox.de
-#   (Storage Boxes use SSH port 23 and the -s flag for key install.)
-[ -f "$ROOT/backup.env" ] && . "$ROOT/backup.env"
-if [ -n "${STORAGEBOX_HOST:-}" ]; then
-  keyopt=""
-  [ -n "${STORAGEBOX_SSH_KEY:-}" ] && keyopt="-i ${STORAGEBOX_SSH_KEY}"
-  dstpath="${STORAGEBOX_PATH:-gangrey-backups}"
-  # Storage Boxes listen on SSH port 23. --delete keeps the remote in step with
-  # local pruning, so the box holds the same $KEEP snapshots and no more.
-  if rsync -az --delete -e "ssh -p 23 $keyopt" "$DEST"/ "${STORAGEBOX_HOST}:${dstpath}/"; then
-    echo "Mirrored snapshots off-box to ${STORAGEBOX_HOST}:${dstpath}/"
-  else
-    echo "WARNING: off-box rsync to the Storage Box failed — local snapshot is still safe."
-  fi
-fi

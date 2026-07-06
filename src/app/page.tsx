@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import HomeClient from "@/components/HomeClient";
-import { getPostsLight, getAboutPage, getLately, getWelcome, type SanityLately, type SanityWelcome } from "@/lib/sanity";
+import { getPostsLight, getAboutPage, getLately, getWelcome } from "@/lib/sanity";
 import { ptToParagraphs } from "@/lib/parseBody";
 
 export const revalidate = 60;

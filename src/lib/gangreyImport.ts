@@ -427,12 +427,6 @@ function decodeEntities(s: string): string {
 
 const cleanText = (s: string) => decodeEntities(s).replace(/\s+/g, " ").trim();
 
-// Gangrey's custom theme uses:  <div class="posted">Posted by <b>ben</b> on 10/14/05 at ...</div>
-// NOT standard WordPress meta format.
-const DATE_RE = /([A-Za-z]+ \d{1,2},?\s+\d{4})/;
-const AUTHOR_RE = /\bby\s+([A-Za-z][A-Za-z.'\-]*(?:\s+[A-Za-z][A-Za-z.'\-]*){0,2})/i;
-const META_LINE_RE = /(?:posted\s+on\s+)?[A-Za-z]+ \d{1,2},?\s+\d{4}\s+by\s+[A-Za-z]/i;
-
 function titleCase(s: string) {
   return s.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 }

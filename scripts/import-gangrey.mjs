@@ -20,7 +20,6 @@
 
 import { parse } from "node-html-parser";
 import fs from "fs";
-import path from "path";
 
 // ── CLI ──────────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
@@ -78,79 +77,6 @@ function slugify(str) {
     .trim()
     .replace(/\s+/g, "-")
     .slice(0, 96);
-}
-
-function htmlToPortableText(html) {
-  // Convert simple HTML to Portable Text blocks (paragraphs + headings + blockquote).
-  // We intentionally ignore nav/sidebar/scripts; only the story body matters.
-  const root = parse(html);
-  const blocks = [];
-
-  function textContent(node) {
-    // Gather inline marks
-    if (node.nodeType === 3 /* TEXT_NODE */) return [{ _type: "span", text: node.rawText }];
-    const spans = [];
-    for (const child of node.childNodes) {
-      const inner = textContent(child);
-      const tag = (node.tagName ?? "").toLowerCase();
-      if (tag === "strong" || tag === "b") inner.forEach(s => { s.marks = [...(s.marks||[]), "strong"]; });
-      else if (tag === "em" || tag === "i") inner.forEach(s => { s.marks = [...(s.marks||[]), "em"]; });
-      else if (tag === "a") {
-        const href = node.getAttribute("href");
-        if (href) inner.forEach(s => { s.marks = [...(s.marks||[]), "link"]; s.href = href; });
-      }
-      spans.push(...inner);
-    }
-    return spans;
-  }
-
-  function processNode(node) {
-    const tag = (node.tagName ?? "").toLowerCase();
-    if (["script","style","nav","aside","header","footer"].includes(tag)) return;
-
-    if (["p","div"].includes(tag) || tag === "") {
-      // Recurse into divs; wrap text-bearing p tags as blocks
-      if (tag === "p" || (tag === "" && node.childNodes.some(c => c.nodeType === 3))) {
-        const text = node.innerText?.trim();
-        if (!text) return;
-        blocks.push({
-          _type: "block", style: "normal",
-          children: [{ _type: "span", text, marks: [] }],
-          markDefs: [],
-        });
-      } else {
-        for (const child of node.childNodes) processNode(child);
-      }
-      return;
-    }
-    if (["h1","h2","h3","h4"].includes(tag)) {
-      const text = node.innerText?.trim();
-      if (!text) return;
-      blocks.push({ _type: "block", style: "h2", children: [{ _type: "span", text, marks: [] }], markDefs: [] });
-      return;
-    }
-    if (tag === "blockquote") {
-      const text = node.innerText?.trim();
-      if (!text) return;
-      blocks.push({ _type: "block", style: "blockquote", children: [{ _type: "span", text, marks: [] }], markDefs: [] });
-      return;
-    }
-    if (["ul","ol"].includes(tag)) {
-      const listItem = tag === "ul" ? "bullet" : "number";
-      for (const li of node.querySelectorAll("li")) {
-        const text = li.innerText?.trim();
-        if (text) blocks.push({ _type: "block", style: "normal", listItem, level: 1, children: [{ _type: "span", text, marks: [] }], markDefs: [] });
-      }
-      return;
-    }
-    // Recurse everything else
-    for (const child of node.childNodes) processNode(child);
-  }
-
-  const root2 = typeof html === "string" ? parse(html) : html;
-  for (const child of root2.childNodes) processNode(child);
-
-  return blocks.filter(b => b.children?.some(c => c.text?.trim()));
 }
 
 // Split a Gangrey post's inner HTML into clean paragraph blocks. Gangrey used
