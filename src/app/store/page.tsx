@@ -123,7 +123,6 @@ export default function StorePage() {
         <div className="store-band">
           <div>
             <div className="store-band-title">Annual Member — $80/year</div>
-            <p className="store-band-desc">Get three issues a year, full access to the archive, a limited-edition bookmark, and discounted tickets to workshops with guest editors and contributors.</p>
           </div>
           <Link href="/subscribe" className="store-join">Join →</Link>
         </div>
