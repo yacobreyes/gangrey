@@ -260,6 +260,17 @@ export async function savePost(formData: FormData) {
       ...(imageCaption ? { caption: sq(imageCaption) } : {}),
       ...(imageAlt ? { alt: sq(imageAlt) } : {}),
     };
+    // Keep the Media Library's own record of this asset in sync too — caption/alt
+    // set here previously only lived on the post, so the library showed blank.
+    if (imageCaption || imageAlt) {
+      const fields = { description: (imageCaption ? sq(imageCaption) : undefined) ?? undefined, altText: (imageAlt ? sq(imageAlt) : undefined) ?? undefined };
+      if (isSqliteBackend()) {
+        const { sqliteSetMediaMeta } = await import("@/lib/storage/sqlite");
+        sqliteSetMediaMeta(imageAssetId, fields);
+      } else {
+        await mutate([{ patch: { id: imageAssetId, set: fields } }]).catch(() => {});
+      }
+    }
   }
 
   if (isSqliteBackend()) {
@@ -443,8 +454,11 @@ export async function deleteMediaAsset(assetId: string) {
 
 export async function updateMediaAsset(assetId: string, fields: { title?: string; description?: string; altText?: string }) {
   await requireAuth();
-  // Local files carry no editable metadata yet — no-op on the sqlite backend.
-  if (isSqliteBackend()) return;
+  if (isSqliteBackend()) {
+    const { sqliteSetMediaMeta } = await import("@/lib/storage/sqlite");
+    sqliteSetMediaMeta(assetId, fields);
+    return;
+  }
   await mutate([{ patch: { id: assetId, set: fields } }]);
 }
 

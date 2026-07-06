@@ -2,7 +2,7 @@ import { createClient } from "next-sanity";
 import { straightenQuotes, straightenBlocks } from "./straighten";
 import {
   isSqliteBackend, sqliteAllPublishedPosts, sqliteAllPostsAdmin, sqliteGetPost, sqliteGetSingleton,
-  sqliteDocsByType, sqliteListMedia,
+  sqliteDocsByType, sqliteListMedia, sqliteGetMediaMeta,
 } from "./storage/sqlite";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SanityImageSource = any;
@@ -316,10 +316,14 @@ export async function getMediaLibrary(): Promise<AdminMediaAsset[]> {
     for (const p of sqliteAllPostsAdmin(false)) {
       if (p.image?.url) (usage[p.image.url] ??= []).push({ slug: p.slug, headline: p.headline });
     }
-    return sqliteListMedia().map(m => ({
-      _id: m._id, _createdAt: m._createdAt, url: m.url, originalFilename: m.originalFilename,
-      metadata: { size: m.size }, usedIn: usage[m.url] ?? [],
-    }));
+    return sqliteListMedia().map(m => {
+      const meta = sqliteGetMediaMeta(m._id);
+      return {
+        _id: m._id, _createdAt: m._createdAt, url: m.url, originalFilename: m.originalFilename,
+        title: meta.title, description: meta.description, altText: meta.altText,
+        metadata: { size: m.size }, usedIn: usage[m.url] ?? [],
+      };
+    });
   }
   const [assets, posts] = await withRetry(() => Promise.all([
     client.fetch(

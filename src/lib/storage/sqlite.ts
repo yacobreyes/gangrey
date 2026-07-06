@@ -333,6 +333,21 @@ export function sqliteDeleteMedia(assetId: string): void {
   try { fs.unlinkSync(path.join(sqliteMediaDir(), name)); } catch {}
 }
 
+// Per-asset metadata (title/caption/alt text) — media files themselves are
+// just bytes on disk with no room for this, so it's kept alongside in the
+// generic documents table, keyed by the asset's /media/... path.
+export function sqliteGetMediaMeta(assetId: string): { title?: string; description?: string; altText?: string } {
+  const row = db().prepare(`SELECT data FROM documents WHERE id = ? AND type = 'mediaMeta'`).get(assetId);
+  return row ? JSON.parse(row.data) : {};
+}
+
+export function sqliteSetMediaMeta(assetId: string, fields: { title?: string; description?: string; altText?: string }): void {
+  const existing = sqliteGetMediaMeta(assetId);
+  const merged = { ...existing, ...fields };
+  db().prepare(`INSERT INTO documents (id, type, data) VALUES (?, 'mediaMeta', ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`)
+    .run(assetId, JSON.stringify(merged));
+}
+
 // --- Comments ----------------------------------------------------------------
 
 export type CommentRow = { _id: string; name: string; text: string; slug: string; approved: boolean; _createdAt: string };
