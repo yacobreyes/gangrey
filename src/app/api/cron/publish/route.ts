@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import { renderNewsletterHtml, type NlCard } from "@/lib/newsletterEmail";
 import { isSqliteBackend, sqliteAllPostsAdmin, sqliteDocsByType, sqliteMutate } from "@/lib/storage/sqlite";
 import { deliverNewsletter } from "@/app/admin/newsletterActions";
@@ -118,9 +119,19 @@ async function upsertIssueForNewsletter(nl: { _id: string; subject?: string; pre
   }]);
 }
 
+// Constant-time compare so the secret can't be inferred via response-timing
+// differences (early-exit on the first mismatched byte otherwise).
+function safeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
+
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const authHeader = request.headers.get("authorization") ?? "";
+  const expected = `Bearer ${process.env.CRON_SECRET ?? ""}`;
+  if (!process.env.CRON_SECRET || !safeEqual(authHeader, expected)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

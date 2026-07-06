@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { releaseLock } from "@/app/admin/lockActions";
+import { isAuthed } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 // means the release survives a hard navigation away from the editor, so the
 // lock clears immediately instead of waiting out its TTL.
 export async function POST(req: NextRequest) {
+  if (!(await isAuthed())) return NextResponse.json({ ok: false }, { status: 401 });
   try {
     let body: { targetId?: string; sessionId?: string } = {};
     try { body = await req.json(); }

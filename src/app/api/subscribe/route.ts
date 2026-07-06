@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-
 import { sanityMutate } from "@/lib/sanityWrite";
+import { rateLimit } from "@/lib/rateLimit";
 
 // Routed through the shared helper (Sanity or local sqlite per STORAGE_BACKEND).
 async function mutate(mutations: unknown[]) {
@@ -14,6 +14,11 @@ function subscriberId(email: string) {
 }
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  if (!rateLimit(ip, "subscribe", 10, 60 * 60 * 1000)) {
+    return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
+  }
+
   let email = "";
   try {
     const body = await req.json();
