@@ -1,6 +1,7 @@
 import { isAuthed } from "@/lib/adminAuth";
 import { redirect, notFound } from "next/navigation";
 import { client } from "@/lib/sanity";
+import { isSqliteBackend, sqliteGetDoc } from "@/lib/storage/sqlite";
 import { renderNewsletterHtml, type NlCard } from "@/lib/newsletterEmail";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,9 @@ export default async function NewsletterPreviewPage({ params }: { params: Promis
   if (!authed) redirect("/admin/imago");
 
   const { id } = await params;
-  const nl = await client.fetch(`*[_id == $id][0]{ subject, preview, intro, author, volume, issue, cards }`, { id }, { cache: "no-store" });
+  const nl = isSqliteBackend()
+    ? sqliteGetDoc<{ subject?: string; preview?: string; intro?: string; author?: string; volume?: string; issue?: string; cards?: NlCard[] }>(id)
+    : await client.fetch(`*[_id == $id][0]{ subject, preview, intro, author, volume, issue, cards }`, { id }, { cache: "no-store" });
   if (!nl) notFound();
 
   const html = renderNewsletterHtml({

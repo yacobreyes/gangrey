@@ -1,6 +1,7 @@
 import { getAllPostsAdmin, getArchivePostsAdmin } from "@/lib/sanity";
 import { isAuthed } from "@/lib/adminAuth";
 import { client } from "@/lib/sanity";
+import { isSqliteBackend, sqliteGetPost } from "@/lib/storage/sqlite";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,9 @@ export async function GET(req: NextRequest) {
   try {
     // Single-post fetch (with body) for the view-mode live-sync poll.
     if (slug) {
-      const post = await client.fetch(ONE_POST_QUERY, { slug }, { cache: "no-store" });
+      const post = isSqliteBackend()
+        ? sqliteGetPost(slug)
+        : await client.fetch(ONE_POST_QUERY, { slug }, { cache: "no-store" });
       return NextResponse.json(post ? [post] : []);
     }
     // Archive pieces only — lazy-loaded by the dashboard's Archive tab.

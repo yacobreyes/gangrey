@@ -3,7 +3,13 @@ import { fullName } from "@/lib/users";
 import { redirect } from "next/navigation";
 import { client } from "@/lib/sanity";
 import type { SanityPost } from "@/lib/sanity";
+import { isSqliteBackend, sqliteGetPost } from "@/lib/storage/sqlite";
 import EditorClient from "../../../EditorClient";
+
+async function loadPost(slug: string): Promise<SanityPost | null> {
+  if (isSqliteBackend()) return sqliteGetPost(slug);
+  return client.fetch<SanityPost | null>(QUERY, { slug }, { cache: "no-store" });
+}
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +35,7 @@ export default async function EditPostPage({ params, searchParams }: { params: P
 
   // For new drafts, render immediately with empty state — first auto-save creates the doc
   if (id.startsWith("untitled-")) {
-    const existing = await client.fetch<SanityPost | null>(QUERY, { slug: id }, { cache: "no-store" });
+    const existing = await loadPost(id);
     const post: SanityPost = existing ?? {
       _id: `post-${id}`,
       slug: id,
@@ -44,7 +50,7 @@ export default async function EditPostPage({ params, searchParams }: { params: P
     return <EditorClient post={post} defaultByline={defaultByline} isNew={isNew} />;
   }
 
-  const post = await client.fetch<SanityPost | null>(QUERY, { slug: id }, { cache: "no-store" });
+  const post = await loadPost(id);
   if (!post) redirect("/admin/imago");
 
   return <EditorClient post={post} defaultByline={defaultByline} isNew={isNew} />;

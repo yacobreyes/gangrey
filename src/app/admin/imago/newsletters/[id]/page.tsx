@@ -1,6 +1,7 @@
 import { isAuthed } from "@/lib/adminAuth";
 import { redirect } from "next/navigation";
 import { client } from "@/lib/sanity";
+import { isSqliteBackend, sqliteGetDoc, sqliteDocsByType } from "@/lib/storage/sqlite";
 import NewsletterEditorClient, { type InitialNewsletter } from "../../../NewsletterEditorClient";
 import type { NlVersion } from "../../../newsletterActions";
 
@@ -20,14 +21,23 @@ export default async function EditNewsletterPage({ params, searchParams }: { par
 
   // Both queries only need the id, so run them concurrently instead of
   // waiting on the draft fetch before starting the versions fetch.
-  const [draft, rawVersions] = await Promise.all([
-    client.fetch(`*[_id == $id][0]{ ${NL_FIELDS} }`, { id }, { cache: "no-store" }),
-    client.fetch(
-      `*[_type == "newsletterVersion" && newsletterId == $id] | order(createdAt desc)[0...20]{ "id": _id, createdAt, subject, preview, author, wordCount, cards }`,
-      { id },
-      { cache: "no-store" }
-    ),
-  ]);
+  const [draft, rawVersions] = isSqliteBackend()
+    ? [
+        sqliteGetDoc<Record<string, unknown>>(id),
+        sqliteDocsByType<{ _id: string; newsletterId: string; createdAt?: string }>("newsletterVersion")
+          .filter(v => v.newsletterId === id)
+          .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))
+          .slice(0, 20)
+          .map(({ _id, ...rest }) => ({ id: _id, ...rest })),
+      ]
+    : await Promise.all([
+        client.fetch(`*[_id == $id][0]{ ${NL_FIELDS} }`, { id }, { cache: "no-store" }),
+        client.fetch(
+          `*[_type == "newsletterVersion" && newsletterId == $id] | order(createdAt desc)[0...20]{ "id": _id, createdAt, subject, preview, author, wordCount, cards }`,
+          { id },
+          { cache: "no-store" }
+        ),
+      ]);
 
   const initial: InitialNewsletter = draft
     ? {

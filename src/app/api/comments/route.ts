@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { client } from "@/lib/sanity";
 import { rateLimit } from "@/lib/rateLimit";
+import { isSqliteBackend } from "@/lib/storage/sqlite";
 
 const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!;
 const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
@@ -20,6 +21,7 @@ async function mutate(mutations: unknown[]) {
 }
 
 export async function GET(req: NextRequest) {
+  if (isSqliteBackend()) return NextResponse.json([]); // comments not stored on self-hosted
   const slug = req.nextUrl.searchParams.get("slug");
   if (!slug) return NextResponse.json([]);
   const comments = await client.fetch(
@@ -31,6 +33,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (isSqliteBackend()) return NextResponse.json({ error: "Comments are disabled." }, { status: 403 });
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   if (!rateLimit(ip, "comments", 5, 60 * 60 * 1000)) {
     return NextResponse.json({ error: "Too many comments. Try again later." }, { status: 429 });
@@ -52,6 +55,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  if (isSqliteBackend()) return NextResponse.json({ ok: true });
   const { id } = await req.json() as { id: string };
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
   await mutate([{ delete: { id } }]);
