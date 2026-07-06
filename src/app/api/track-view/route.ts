@@ -18,6 +18,12 @@ export async function POST(req: NextRequest) {
   }
   const { slug } = await req.json().catch(() => ({ slug: "" })) as { slug?: string };
   if (!slug) return NextResponse.json({ ok: false }, { status: 400 });
+  // Server-side dedup backstop: the same IP can count a given story at most
+  // once per 24h, even if the client's localStorage dedup was cleared.
+  // (In-memory, so it resets on redeploy — fine for a backstop.)
+  if (!rateLimit(`${ip}|${slug}`, "view-dedup", 1, 24 * 60 * 60 * 1000)) {
+    return NextResponse.json({ ok: true, deduped: true });
+  }
   if (isSqliteBackend()) {
     const count = sqliteIncrementCount(viewId(slug), 1);
     return NextResponse.json({ ok: true, count });

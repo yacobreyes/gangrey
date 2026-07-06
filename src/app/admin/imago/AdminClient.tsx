@@ -709,10 +709,31 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                         )}
                       </div>
                     </div>
+                    {/* Top Stories — most-viewed published pieces (SNO-style) */}
+                    {!isArchive && postTab === "published" && !q && (() => {
+                      const ranked = published
+                        .map(p => ({ p, views: viewCounts[p.slug] ?? 0 }))
+                        .filter(r => r.views > 0)
+                        .sort((a, b) => b.views - a.views)
+                        .slice(0, 5);
+                      if (ranked.length === 0) return null;
+                      return (
+                        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "0.85rem 1rem 0.5rem", margin: "0.25rem 0 0.85rem" }}>
+                          <p style={{ fontFamily: FONT, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: CRIMSON, margin: "0 0 0.5rem" }}>Top Stories</p>
+                          {ranked.map((r, i) => (
+                            <div key={r.p._id} onClick={() => startEdit(r.p)} style={{ display: "flex", alignItems: "baseline", gap: "0.6rem", padding: "0.35rem 0", borderTop: i > 0 ? `1px solid ${BORDER}` : "none", cursor: "pointer" }}>
+                              <span style={{ fontFamily: FONT, fontSize: "0.8rem", fontWeight: 700, color: TEXT_MUTED, width: 14, flexShrink: 0 }}>{i + 1}</span>
+                              <span style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 600, color: TEXT_DARK, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{r.p.headline}</span>
+                              <span style={{ fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, flexShrink: 0 }}>{r.views.toLocaleString("en-US")} views</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                     {/* Table header */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 120px", padding: "0.4rem 1rem" }}>
-                      {["Name", "Type", "Date"].map(h => (
-                        <span key={h} style={{ fontFamily: FONT, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: TEXT_MUTED }}>{h}</span>
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 46px 80px 64px" : "1fr 78px 132px 110px", gap: isMobile ? "0 0.5rem" : "0 1rem", padding: "0.4rem 1rem" }}>
+                      {["Name", "Views", "Type", "Date"].map(h => (
+                        <span key={h} style={{ fontFamily: FONT, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: TEXT_MUTED, textAlign: h === "Views" ? "right" : "left" }}>{h}</span>
                       ))}
                     </div>
                     {/* Rows */}
