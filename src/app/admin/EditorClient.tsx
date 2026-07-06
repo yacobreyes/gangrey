@@ -514,6 +514,10 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
           z-index: 200;
         }
         .tb-btn:hover::after { opacity: 1; }
+        /* Featured-image action bar: fades in on hover (desktop); always shown on touch. */
+        .fi-actions { opacity: 0; transition: opacity .15s; }
+        .fi-wrap:hover .fi-actions { opacity: 1; }
+        @media (hover: none) { .fi-actions { opacity: 1; } }
       `}</style>
       <input ref={fileRef} type="file" accept="image/*" onChange={handleImageChange} style={{ display: "none" }} />
 
@@ -740,19 +744,41 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                   Add a featured image
                 </button>
               ) : (
-                <div>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imagePreview} alt="" style={{ width: "100%", maxHeight: 320, objectFit: "cover", borderRadius: 6 }} />
-                  <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
-                    <input placeholder="Caption" style={{ ...INPUT, flex: 1, minWidth: 140 }} value={imageCaption} onChange={e => setImageCaption(straightenQuotes(e.target.value))} />
-                    <input placeholder="Alt text" style={{ ...INPUT, flex: 1, minWidth: 140 }} value={imageAlt} onChange={e => setImageAlt(straightenQuotes(e.target.value))} />
-                    {imagePreview && imagePreview !== "existing" && (
-                      <button type="button" onClick={() => setShowCropModal(true)} style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 20, padding: "0.3rem 0.75rem", fontFamily: FONT, fontSize: "0.8rem", cursor: "pointer", color: TEXT_MUTED }}>
-                        Crop{Object.keys(imageCrops).length ? ` · ${Object.keys(imageCrops).length}` : ""}
+                <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, overflow: "hidden", background: "white" }}>
+                  {/* Image with an action bar overlaid on hover, Axios-style */}
+                  <div className="fi-wrap" style={{ position: "relative", lineHeight: 0, background: "#f4f4f5" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imagePreview} alt="" style={{ width: "100%", maxHeight: 340, objectFit: "cover", display: "block" }} />
+                    <div className="fi-actions" style={{ position: "absolute", top: 10, right: 10, display: "flex", gap: "0.4rem" }}>
+                      {imagePreview !== "existing" && (
+                        <button type="button" onClick={() => setShowCropModal(true)}
+                          style={{ background: "rgba(255,255,255,0.95)", border: "none", borderRadius: 6, padding: "0.35rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", color: TEXT_DARK, boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }}>
+                          Crop{Object.keys(imageCrops).length ? ` (${Object.keys(imageCrops).length})` : ""}
+                        </button>
+                      )}
+                      <button type="button" onClick={openImageModal}
+                        style={{ background: "rgba(255,255,255,0.95)", border: "none", borderRadius: 6, padding: "0.35rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", color: TEXT_DARK, boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }}>
+                        Replace
                       </button>
-                    )}
-                    <button type="button" onClick={openImageModal} style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 20, padding: "0.3rem 0.75rem", fontFamily: FONT, fontSize: "0.8rem", cursor: "pointer", color: TEXT_MUTED }}>Change</button>
-                    <button type="button" onClick={() => { setImagePreview(""); setImageAssetId(""); setImageCrops({}); }} style={{ background: "none", border: "none", fontFamily: FONT, fontSize: "0.8rem", cursor: "pointer", color: TEXT_MUTED }}>Remove</button>
+                      <button type="button" onClick={() => { setImagePreview(""); setImageAssetId(""); setImageCrops({}); }}
+                        style={{ background: "rgba(255,255,255,0.95)", border: "none", borderRadius: 6, padding: "0.35rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", color: CRIMSON, boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }}>
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                  {/* Labeled metadata fields */}
+                  <div style={{ padding: "1rem 1.1rem", display: "flex", flexDirection: "column", gap: "0.9rem" }}>
+                    <div>
+                      <label style={{ ...LABEL, marginBottom: "0.3rem", display: "flex", justifyContent: "space-between" }}>
+                        <span>Alt text</span>
+                        <span style={{ fontWeight: 400, color: imageAlt.length > 300 ? CRIMSON : TEXT_MUTED, textTransform: "none", letterSpacing: 0 }}>{imageAlt.length}/300</span>
+                      </label>
+                      <input placeholder="Describe the image for screen readers and search" style={{ ...INPUT, width: "100%" }} value={imageAlt} onChange={e => setImageAlt(straightenQuotes(e.target.value))} />
+                    </div>
+                    <div>
+                      <label style={{ ...LABEL, marginBottom: "0.3rem" }}>Caption &amp; credit</label>
+                      <input placeholder="e.g. Photo by Jane Doe / Getty" style={{ ...INPUT, width: "100%" }} value={imageCaption} onChange={e => setImageCaption(straightenQuotes(e.target.value))} />
+                    </div>
                   </div>
                 </div>
               )}
