@@ -46,7 +46,7 @@ export default async function BriefReadPage({ params }: { params: Promise<{ read
     <div className="listing-page">
       <style>{`
         .listing-page { min-height: 100vh; display: flex; flex-direction: column; background: #ffffff; color: #000000; }
-        .listing-main { width: 100%; max-width: 1200px; margin: 0 auto; padding: 20px 76px 60px; box-sizing: border-box; flex: 1; }
+        .listing-main { width: 100%; max-width: 1290px; margin: 0 auto; padding: 20px 32px 60px; box-sizing: border-box; flex: 1; }
         .brief-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 36px; }
         .brief-tab {
           font-family: var(--font-subhead);

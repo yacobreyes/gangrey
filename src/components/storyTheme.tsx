@@ -63,9 +63,9 @@ export const storyStyles = `
   .story-meta .rt { color: #490000; }
   .story-hero-wrap {
     width: 100%;
-    max-width: 1200px;
+    max-width: 1290px;
     margin: 0 auto;
-    padding: 0 76px;
+    padding: 0 32px;
     box-sizing: border-box;
   }
   .story-hero {
@@ -86,9 +86,9 @@ export const storyStyles = `
   }
   .story-cutline-wrap {
     width: 100%;
-    max-width: 1100px;
+    max-width: 1290px;
     margin: 0 auto;
-    padding: 0 76px;
+    padding: 0 32px;
     box-sizing: border-box;
   }
   .story-cutline {

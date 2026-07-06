@@ -94,7 +94,7 @@ export default function Feed({
         a { color: inherit; text-decoration: none; }
 
         /* HERO */
-        .hm-hero-wrap { padding: 20px 76px 0; max-width: 1200px; margin: 0 auto; box-sizing: border-box; }
+        .hm-hero-wrap { padding: 20px 32px 0; max-width: 1290px; margin: 0 auto; box-sizing: border-box; }
         .hm-hero-link { display: block; color: inherit; }
         .hm-hero {
           position: relative;
@@ -154,7 +154,7 @@ export default function Feed({
         .hm-hero-meta .hm-dot { opacity: .6; }
 
         /* LATEST */
-        .hm-latest { padding: 36px 76px 40px; background: #ffffff; max-width: 1200px; margin: 0 auto; box-sizing: border-box; }
+        .hm-latest { padding: 36px 32px 40px; background: #ffffff; max-width: 1290px; margin: 0 auto; box-sizing: border-box; }
         .hm-latest-head {
           display: flex; align-items: baseline; justify-content: space-between;
           margin-bottom: 30px;
@@ -209,7 +209,7 @@ export default function Feed({
         }
 
         /* LIFE IN BRIEF */
-        .hm-brief-wrap { padding: 0 76px; max-width: 1200px; margin: 0 auto; box-sizing: border-box; }
+        .hm-brief-wrap { padding: 0 32px; max-width: 1290px; margin: 0 auto; box-sizing: border-box; }
         .hm-brief {
           display: grid; grid-template-columns: 1fr auto auto; align-items: center;
           gap: 48px; padding: 38px 44px;
@@ -333,7 +333,7 @@ export default function Feed({
 
       {/* SEARCH RESULTS */}
       {q && (
-        <section style={{ width: "100%", maxWidth: 1180, margin: "0 auto", padding: "56px 44px 72px", boxSizing: "border-box" }}>
+        <section style={{ width: "100%", maxWidth: 1290, margin: "0 auto", padding: "56px 32px 72px", boxSizing: "border-box" }}>
           <div style={{ borderBottom: "1px solid #000000", paddingBottom: 20, marginBottom: 36 }}>
             <p style={{ fontFamily: "var(--font-subhead)", fontSize: 11, fontWeight: 800, letterSpacing: ".2em", textTransform: "uppercase", color: "#490000", margin: "0 0 10px" }}>Search</p>
             <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: "clamp(36px, 5vw, 58px)", fontWeight: 800, lineHeight: .98, letterSpacing: "-.03em", margin: 0 }}>"{searchQuery}"</h1>
