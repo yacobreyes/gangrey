@@ -466,14 +466,14 @@ export default function NewsletterEditorClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-save every 3s when dirty (matches the story editor). Uses the cheap
-  // signature to detect changes on every render, and only pays for the
-  // expensive portable-text conversion once the debounce actually fires.
+  // Auto-save after 10s of inactivity following a change (matches the story
+  // editor). Uses the cheap signature to detect changes on every render, and
+  // only pays for the expensive portable-text conversion once the debounce fires.
   useEffect(() => {
     const signature = nlSignature();
     if (signature === nlLastSaved.current) return;
     setNlSaveStatus("unsaved");
-    const timer = setTimeout(() => { nlSave(nlPayload(), signature); }, 3000);
+    const timer = setTimeout(() => { nlSave(nlPayload(), signature); }, 10000);
     return () => clearTimeout(timer);
   }, [nlSignature, nlPayload, nlSave]);
 

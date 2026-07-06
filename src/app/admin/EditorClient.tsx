@@ -323,9 +323,9 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
   const autosaveCount = useRef(0);
   const lastSnapshotAt = useRef(0);
 
-  // Auto-save after 3s of inactivity. Snapshot a version at most once every 20s
-  // of continuous editing (plus the server still dedups no-op snapshots) — this
-  // keeps a real history without a Sanity write on every keystroke pause.
+  // Auto-save after 10s of inactivity following a change. Snapshot a version at
+  // most once every 20s of continuous editing (plus the server still dedups
+  // no-op snapshots) — this keeps a real history without a write on every pause.
   useEffect(() => {
     if (!isDirty || exitingRef.current) return;
     setSaveStatus("unsaved");
@@ -336,7 +336,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
       const snapshot = now - lastSnapshotAt.current > 20000;
       if (snapshot) lastSnapshotAt.current = now;
       doSave(form.status === "published" ? "published" : "draft", false, snapshot);
-    }, 3000);
+    }, 10000);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, imageAssetId, imageCaption, imageAlt, doSave]);
