@@ -33,7 +33,7 @@ export default async function EditNewsletterPage({ params, searchParams }: { par
     : await Promise.all([
         client.fetch(`*[_id == $id][0]{ ${NL_FIELDS} }`, { id }, { cache: "no-store" }),
         client.fetch(
-          `*[_type == "newsletterVersion" && newsletterId == $id] | order(createdAt desc)[0...20]{ "id": _id, createdAt, subject, preview, author, wordCount, cards }`,
+          `*[_type == "newsletterVersion" && newsletterId == $id] | order(createdAt desc)[0...20]{ "id": _id, createdAt, subject, preview, author, wordCount, cards, editedBy }`,
           { id },
           { cache: "no-store" }
         ),

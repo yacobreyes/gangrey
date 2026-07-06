@@ -89,6 +89,27 @@ export function redlineParagraphs(oldLines: string[], newLines: string[]): Redli
   return out;
 }
 
+// Google-Docs-style relative day heading for grouping a version list:
+// "Today" / "Yesterday" / weekday name (within the last week) / "Mon D".
+export function dayLabel(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((startOf(now) - startOf(d)) / 86400000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days > 1 && days < 7) return d.toLocaleDateString("en-US", { weekday: "long" });
+  return d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+}
+
+// Deterministic color per editor name, Google-Docs-style colored presence dot.
+const NAME_COLORS = ["#e53935", "#8e24aa", "#3949ab", "#039be5", "#00897b", "#7cb342", "#f4511e", "#6d4c41"];
+export function colorForName(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return NAME_COLORS[h % NAME_COLORS.length];
+}
+
 // "2 hours ago" style relative time for the audit stamp.
 export function relativeTime(iso: string): string {
   const then = new Date(iso).getTime();

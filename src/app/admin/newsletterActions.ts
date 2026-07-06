@@ -71,6 +71,7 @@ export type NlVersion = {
   preview?: string;
   wordCount?: number;
   cards?: NlCard[];
+  editedBy?: string;
 };
 
 async function versionsFor(newsletterId: string): Promise<NlVersion[]> {
@@ -82,7 +83,7 @@ async function versionsFor(newsletterId: string): Promise<NlVersion[]> {
       .map(({ _id, ...rest }) => ({ id: _id, ...rest })) as NlVersion[];
   }
   const raw: ({ _id: string } & Record<string, unknown>)[] = await client.fetch(
-    `*[_type == "newsletterVersion" && newsletterId == $id] | order(createdAt desc)[0...20]{ _id, createdAt, type, subject, preview, author, wordCount, cards }`,
+    `*[_type == "newsletterVersion" && newsletterId == $id] | order(createdAt desc)[0...20]{ _id, createdAt, type, subject, preview, author, wordCount, cards, editedBy }`,
     { id: newsletterId },
     { cache: "no-store" }
   );
@@ -221,6 +222,7 @@ export async function saveNewsletter(payload: NlPayload): Promise<{ id: string; 
       author: payload.author ?? "Yacob Reyes",
       wordCount: payload.wordCount ?? 0,
       cards: payload.cards ?? [],
+      editedBy: fullName(me),
     };
     // Keep every published snapshot; only prune the oldest autosaves past 60.
     const staleAutosaves: string[] = isSqliteBackend()

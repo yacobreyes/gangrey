@@ -65,7 +65,8 @@ function migrate(d: any) {
       word_count INTEGER,
       headline TEXT DEFAULT '',
       subheadline TEXT DEFAULT '',
-      body TEXT DEFAULT '[]'
+      body TEXT DEFAULT '[]',
+      edited_by TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_versions_slug ON post_versions (slug, saved_at DESC);
 
@@ -182,11 +183,11 @@ export function sqliteSetStatus(id: string, status: string): void {
 
 // --- Versions ---------------------------------------------------------------
 
-export function sqliteSnapshotVersion(v: { slug: string; type: "autosave" | "publish"; headline: string; subheadline: string; body: unknown[]; wordCount: number }): void {
+export function sqliteSnapshotVersion(v: { slug: string; type: "autosave" | "publish"; headline: string; subheadline: string; body: unknown[]; wordCount: number; editedBy?: string }): void {
   const latest = db().prepare(`SELECT headline, subheadline, body FROM post_versions WHERE slug = ? ORDER BY saved_at DESC LIMIT 1`).get(v.slug);
   if (latest && latest.headline === v.headline && latest.subheadline === v.subheadline && latest.body === JSON.stringify(v.body)) return;
-  db().prepare(`INSERT INTO post_versions (slug, type, saved_at, word_count, headline, subheadline, body) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-    .run(v.slug, v.type, new Date().toISOString(), v.wordCount, v.headline, v.subheadline, JSON.stringify(v.body));
+  db().prepare(`INSERT INTO post_versions (slug, type, saved_at, word_count, headline, subheadline, body, edited_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(v.slug, v.type, new Date().toISOString(), v.wordCount, v.headline, v.subheadline, JSON.stringify(v.body), v.editedBy ?? null);
   // Keep every publish; prune autosaves past 60.
   db().prepare(`
     DELETE FROM post_versions WHERE slug = ? AND type != 'publish' AND id NOT IN (
@@ -194,11 +195,12 @@ export function sqliteSnapshotVersion(v: { slug: string; type: "autosave" | "pub
     )`).run(v.slug, v.slug);
 }
 
-export function sqliteGetVersions(slug: string): { _id: string; savedAt: string; type: "autosave" | "publish"; wordCount?: number; headline: string; subheadline: string; body: PortableTextBlock[] }[] {
+export function sqliteGetVersions(slug: string): { _id: string; savedAt: string; type: "autosave" | "publish"; wordCount?: number; headline: string; subheadline: string; body: PortableTextBlock[]; editedBy?: string }[] {
   const rows = db().prepare(`SELECT * FROM post_versions WHERE slug = ? ORDER BY saved_at DESC`).all(slug);
   return rows.map((r: PostRow) => ({
     _id: String(r.id), savedAt: r.saved_at, type: r.type, wordCount: r.word_count ?? undefined,
     headline: r.headline, subheadline: r.subheadline, body: JSON.parse(r.body || "[]"),
+    editedBy: r.edited_by ?? undefined,
   }));
 }
 

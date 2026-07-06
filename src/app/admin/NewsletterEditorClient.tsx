@@ -16,7 +16,7 @@ import ScheduleModal from "@/components/ScheduleModal";
 import type { JSONContent, Editor } from "@tiptap/react";
 import type { PortableTextBlock } from "@portabletext/types";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
-import { portableToLines, relativeTime } from "@/lib/editorDiff";
+import { portableToLines, relativeTime, dayLabel, colorForName } from "@/lib/editorDiff";
 import VersionCompare from "@/components/admin/VersionCompare";
 
 const FONT = "var(--font-inter), sans-serif";
@@ -1103,13 +1103,29 @@ export default function NewsletterEditorClient({
               <p style={{ fontFamily: FONT, fontSize: "0.88rem", color: TEXT_MUTED }}>No saves recorded yet.</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column" }}>
-                {nlVersions.map(v => (
-                  <div key={v.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.75rem 0", borderBottom: `1px solid ${BORDER}`, gap: "0.75rem" }}>
+                {(() => {
+                  let lastDay = "";
+                  return nlVersions.map((v, i) => {
+                    const day = dayLabel(v.createdAt);
+                    const showHeading = day !== lastDay;
+                    lastDay = day;
+                    const editor = v.editedBy || v.author || "Unknown";
+                    return (
+                      <div key={v.id}>
+                        {showHeading && (
+                          <p style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: TEXT_MUTED, margin: i === 0 ? "0 0 0.5rem" : "1.25rem 0 0.5rem" }}>
+                            {day}
+                          </p>
+                        )}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.6rem 0", borderBottom: `1px solid ${BORDER}`, gap: "0.75rem" }}>
                     <div style={{ minWidth: 0 }}>
                       <p style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 600, color: TEXT_DARK, margin: 0 }}>{formatVersionTime(v.createdAt)}</p>
-                      <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, margin: "0.15rem 0 0" }}>
-                        {v.type === "publish" ? "Published" : "Auto-saved"}
-                        {v.wordCount ? ` · ${v.wordCount} words` : ""}
+                      <p style={{ fontFamily: FONT, fontSize: "0.75rem", color: TEXT_MUTED, margin: "0.25rem 0 0", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: colorForName(editor), flexShrink: 0, display: "inline-block" }} />
+                        {editor}
+                        <span style={{ opacity: 0.6 }}>
+                          · {v.type === "publish" ? "Published" : "Auto-saved"}{v.wordCount ? ` · ${v.wordCount} words` : ""}
+                        </span>
                       </p>
                     </div>
                     <div style={{ position: "relative", flexShrink: 0 }}>
@@ -1131,7 +1147,10 @@ export default function NewsletterEditorClient({
                       )}
                     </div>
                   </div>
-                ))}
+                  </div>
+                    );
+                  });
+                })()}
               </div>
             )}
           </div>

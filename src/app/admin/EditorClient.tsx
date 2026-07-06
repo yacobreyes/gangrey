@@ -17,7 +17,7 @@ import type { JSONContent } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
 import type { SanityPost } from "@/lib/sanity";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
-import { portableToLines, relativeTime } from "@/lib/editorDiff";
+import { portableToLines, relativeTime, dayLabel, colorForName } from "@/lib/editorDiff";
 import VersionCompare from "@/components/admin/VersionCompare";
 
 const FONT = "var(--font-inter), sans-serif";
@@ -841,44 +841,63 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                 <p style={{ fontFamily: FONT, fontSize: "0.88rem", color: TEXT_MUTED }}>No saves recorded yet.</p>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column" }}>
-                  {versions.map((v, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.75rem 0", borderBottom: `1px solid ${BORDER}`, gap: "0.75rem", cursor: "default", userSelect: "none" }}>
-                      <div style={{ minWidth: 0 }}>
-                        <p style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 600, color: TEXT_DARK, margin: 0 }}>{formatTime(v.savedAt)}</p>
-                        <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, margin: "0.15rem 0 0" }}>
-                          {v.type === "publish" ? "Published" : "Auto-saved"}
-                          {v.wordCount ? ` · ${v.wordCount} words` : ""}
-                        </p>
-                      </div>
-                      <div style={{ position: "relative", flexShrink: 0 }}>
-                        <button
-                          type="button"
-                          onClick={() => setVersionMenu(versionMenu === i ? null : i)}
-                          style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 20, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: TEXT_MUTED }}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
-                        </button>
-                        {versionMenu === i && (
-                          <div style={{ position: "absolute", right: 0, top: "calc(100% + 4px)", zIndex: 50, background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", minWidth: 160, overflow: "hidden" }}>
-                            <button
-                              type="button"
-                              onClick={() => { setVersionMenu(null); setCompareVersion(i); }}
-                              style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: `1px solid ${BORDER}`, textAlign: "left", padding: "0.6rem 1rem", fontFamily: FONT, fontSize: "0.85rem", color: TEXT_DARK, cursor: "pointer" }}
-                            >
-                              Compare changes
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => { setVersionMenu(null); revertToVersion(i); }}
-                              style={{ display: "block", width: "100%", background: "none", border: "none", textAlign: "left", padding: "0.6rem 1rem", fontFamily: FONT, fontSize: "0.85rem", color: TEXT_DARK, cursor: "pointer" }}
-                            >
-                              Restore this version
-                            </button>
+                  {(() => {
+                    let lastDay = "";
+                    return versions.map((v, i) => {
+                      const day = dayLabel(v.savedAt);
+                      const showHeading = day !== lastDay;
+                      lastDay = day;
+                      const editor = v.editedBy || "Unknown";
+                      return (
+                        <div key={i}>
+                          {showHeading && (
+                            <p style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: TEXT_MUTED, margin: i === 0 ? "0 0 0.5rem" : "1.25rem 0 0.5rem" }}>
+                              {day}
+                            </p>
+                          )}
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.6rem 0", borderBottom: `1px solid ${BORDER}`, gap: "0.75rem", cursor: "default", userSelect: "none" }}>
+                            <div style={{ minWidth: 0 }}>
+                              <p style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 600, color: TEXT_DARK, margin: 0 }}>{formatTime(v.savedAt)}</p>
+                              <p style={{ fontFamily: FONT, fontSize: "0.75rem", color: TEXT_MUTED, margin: "0.25rem 0 0", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                                <span style={{ width: 8, height: 8, borderRadius: "50%", background: colorForName(editor), flexShrink: 0, display: "inline-block" }} />
+                                {editor}
+                                <span style={{ opacity: 0.6 }}>
+                                  · {v.type === "publish" ? "Published" : "Auto-saved"}{v.wordCount ? ` · ${v.wordCount} words` : ""}
+                                </span>
+                              </p>
+                            </div>
+                            <div style={{ position: "relative", flexShrink: 0 }}>
+                              <button
+                                type="button"
+                                onClick={() => setVersionMenu(versionMenu === i ? null : i)}
+                                style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 20, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: TEXT_MUTED }}
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+                              </button>
+                              {versionMenu === i && (
+                                <div style={{ position: "absolute", right: 0, top: "calc(100% + 4px)", zIndex: 50, background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", minWidth: 160, overflow: "hidden" }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setVersionMenu(null); setCompareVersion(i); }}
+                                    style={{ display: "block", width: "100%", background: "none", border: "none", borderBottom: `1px solid ${BORDER}`, textAlign: "left", padding: "0.6rem 1rem", fontFamily: FONT, fontSize: "0.85rem", color: TEXT_DARK, cursor: "pointer" }}
+                                  >
+                                    Compare changes
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setVersionMenu(null); revertToVersion(i); }}
+                                    style={{ display: "block", width: "100%", background: "none", border: "none", textAlign: "left", padding: "0.6rem 1rem", fontFamily: FONT, fontSize: "0.85rem", color: TEXT_DARK, cursor: "pointer" }}
+                                  >
+                                    Restore this version
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               )}
             </div>

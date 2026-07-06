@@ -280,6 +280,7 @@ export async function savePost(formData: FormData) {
         headline, subheadline,
         body: Array.isArray(body) ? body : [],
         wordCount: portableWordCount(Array.isArray(body) ? body : []),
+        editedBy: fullName(me),
       });
     }
     if (status === "published") {
@@ -300,6 +301,7 @@ export async function savePost(formData: FormData) {
       type: status === "published" ? "publish" : "autosave",
       headline, subheadline,
       body: Array.isArray(body) ? body : [],
+      editedBy: fullName(me),
     });
   }
   // On publish, invalidate the cached public pages so the change appears
@@ -322,11 +324,11 @@ function portableWordCount(body: unknown[]): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
-interface VersionInput { postId: string; slug: string; type: "autosave" | "publish"; headline: string; subheadline: string; body: unknown[]; }
+interface VersionInput { postId: string; slug: string; type: "autosave" | "publish"; headline: string; subheadline: string; body: unknown[]; editedBy?: string; }
 
 // Saves a snapshot of the post as a separate postVersion document, then prunes
 // to the most recent 20 per post. Stored in Sanity so history survives across devices.
-async function snapshotVersion({ postId, slug, type, headline, subheadline, body }: VersionInput) {
+async function snapshotVersion({ postId, slug, type, headline, subheadline, body, editedBy }: VersionInput) {
   try {
     // Skip if nothing changed since the most recent version (avoids empty saves).
     const latest = await client.fetch(
@@ -347,7 +349,7 @@ async function snapshotVersion({ postId, slug, type, headline, subheadline, body
       postId, slug, type,
       savedAt: new Date().toISOString(),
       wordCount: portableWordCount(body),
-      headline, subheadline, body,
+      headline, subheadline, body, editedBy,
     };
     // Never delete a published snapshot — those are real milestones. Only prune
     // the oldest *autosave* versions once there are more than KEEP_AUTOSAVES of
@@ -376,13 +378,14 @@ export interface PostVersion {
   headline: string;
   subheadline: string;
   body: import("@portabletext/types").PortableTextBlock[];
+  editedBy?: string;
 }
 
 export async function getVersions(slug: string): Promise<PostVersion[]> {
   await requireAuth();
   if (isSqliteBackend()) return sqliteGetVersions(slug);
   return client.fetch(
-    `*[_type == "postVersion" && slug == $slug] | order(savedAt desc){ _id, savedAt, type, wordCount, headline, subheadline, body }`,
+    `*[_type == "postVersion" && slug == $slug] | order(savedAt desc){ _id, savedAt, type, wordCount, headline, subheadline, body, editedBy }`,
     { slug },
     { cache: "no-store" }
   );
