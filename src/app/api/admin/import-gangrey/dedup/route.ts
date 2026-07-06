@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/adminAuth";
+import { requireAdminOrCronSecret } from "@/lib/adminAuth";
 import { normalizeHeadline } from "@/lib/gangreyDedup";
 import { isSqliteBackend, sqliteAllPostsAdmin, sqliteMutate } from "@/lib/storage/sqlite";
 
@@ -7,8 +7,8 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-export async function POST() {
-  try { await requireAdmin(); } catch { return NextResponse.json({ error: "Unauthorized" }, { status: 401 }); }
+export async function POST(req: Request) {
+  try { await requireAdminOrCronSecret(req); } catch { return NextResponse.json({ error: "Unauthorized" }, { status: 401 }); }
 
   // Self-hosted: run the same duplicate-collapse against the local SQLite posts.
   if (isSqliteBackend()) {

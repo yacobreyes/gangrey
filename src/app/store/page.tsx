@@ -33,7 +33,7 @@ export default function StorePage() {
         .store-band {
           background: #490000; color: #ffffff;
           padding: 32px 40px;
-          display: flex; align-items: center; justify-content: center;
+          display: flex; align-items: center; justify-content: space-between;
           gap: 30px; flex-wrap: wrap;
           margin-bottom: 44px;
         }
@@ -104,8 +104,8 @@ export default function StorePage() {
         }
         @media (max-width: 900px) {
           .store-main { padding: 20px 20px 48px; }
-          .store-band { padding: 16px 18px; gap: 14px; margin-bottom: 32px; flex-wrap: nowrap; align-items: center; justify-content: center; }
-          .store-band > div { flex: 0 1 auto; min-width: 0; }
+          .store-band { padding: 16px 18px; gap: 14px; margin-bottom: 32px; flex-wrap: nowrap; align-items: center; justify-content: space-between; }
+          .store-band > div { flex: 1; min-width: 0; }
           .store-band-title { font-size: 17px; margin-bottom: 0; }
           .store-band-desc { font-size: 12px; }
           .store-join { font-size: 10.5px; gap: 0; flex-shrink: 0; }

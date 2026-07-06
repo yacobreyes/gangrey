@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/adminAuth";
+import { requireAdminOrCronSecret } from "@/lib/adminAuth";
 import { isSqliteBackend, sqliteAllPostsAdmin } from "@/lib/storage/sqlite";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET() {
-  try { await requireAdmin(); } catch { return NextResponse.json({ error: "Unauthorized" }, { status: 401 }); }
+export async function GET(req: Request) {
+  try { await requireAdminOrCronSecret(req); } catch { return NextResponse.json({ error: "Unauthorized" }, { status: 401 }); }
   // Self-hosted: count archive posts straight out of SQLite.
   if (isSqliteBackend()) {
     const count = sqliteAllPostsAdmin().filter(p => p.section === "Archive" && p.status === "published").length;

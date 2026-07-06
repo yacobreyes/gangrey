@@ -1,5 +1,6 @@
 import { getServerSession, type NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import { timingSafeEqual } from "crypto";
 import { getUserByEmail, type FlatplanUser, type UserRole } from "./users";
 import { sanityMutate } from "./sanityWrite";
 
@@ -101,4 +102,21 @@ export async function requireAdmin(): Promise<FlatplanUser> {
   const u = await getCurrentUser();
   if (!u || u.role !== "admin") throw new Error("Admins only");
   return u;
+}
+
+// Machine access for admin routes driven from the server itself (e.g. the
+// archive-import script, which can't carry a Google session): accepts
+// `Authorization: Bearer <CRON_SECRET>` as an alternative. Constant-time.
+export function cronSecretOk(req: Request): boolean {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return false;
+  const a = Buffer.from(req.headers.get("authorization") ?? "");
+  const b = Buffer.from(`Bearer ${secret}`);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+// Admin session OR a valid CRON_SECRET bearer. Throws if neither.
+export async function requireAdminOrCronSecret(req: Request): Promise<void> {
+  if (cronSecretOk(req)) return;
+  await requireAdmin();
 }
