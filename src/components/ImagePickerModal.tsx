@@ -112,7 +112,13 @@ export default function ImagePickerModal({
           <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1rem", margin: "0 0 0.75rem", color: TEXT_DARK }}>Add featured image</p>
           <div style={{ display: "flex", gap: 0, borderBottom: `2px solid ${BORDER}`, marginBottom: -1 }}>
             {(["library", "upload"] as const).map(t => (
-              <button key={t} type="button" onClick={() => setTab(t)}
+              <button key={t} type="button" onClick={() => {
+                  // Switching tabs starts fresh — otherwise a library image's alt
+                  // and caption bleed into the Upload tab (and vice versa).
+                  setTab(t);
+                  setSelected(null); setCaption(""); setAlt("");
+                  setUploadFile(null); setUploadPreviewUrl("");
+                }}
                 style={{ background: "none", border: "none", borderBottom: `2px solid ${tab === t ? CRIMSON : "transparent"}`, marginBottom: -2, padding: "0.4rem 1rem", fontFamily: FONT, fontSize: "0.8rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: tab === t ? CRIMSON : TEXT_MUTED, cursor: "pointer" }}>
                 {t === "library" ? "Library" : "Upload new"}
               </button>
