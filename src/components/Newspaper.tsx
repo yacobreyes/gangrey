@@ -209,7 +209,7 @@ export default function Feed({
         }
 
         /* LIFE IN BRIEF */
-        .hm-brief-wrap { padding: 0 76px; }
+        .hm-brief-wrap { padding: 0 76px; max-width: 1200px; margin: 0 auto; box-sizing: border-box; }
         .hm-brief {
           display: grid; grid-template-columns: 1fr auto auto; align-items: center;
           gap: 48px; padding: 38px 44px;

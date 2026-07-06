@@ -22,7 +22,7 @@ export default function StorePage() {
     <div className="store-page">
       <style>{`
         .store-page { min-height: 100vh; display: flex; flex-direction: column; background: #ffffff; color: #000000; }
-        .store-main { flex: 1; width: 100%; padding: 20px 76px 42px; box-sizing: border-box; }
+        .store-main { flex: 1; width: 100%; max-width: 1200px; margin: 0 auto; padding: 20px 76px 42px; box-sizing: border-box; }
         .store-header { border-bottom: 1px solid #000000; padding-bottom: 18px; margin-bottom: 34px; }
         .store-h1 {
           margin: 0;

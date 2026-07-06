@@ -63,7 +63,7 @@ export const storyStyles = `
   .story-meta .rt { color: #490000; }
   .story-hero-wrap {
     width: 100%;
-    max-width: 1100px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 0 76px;
     box-sizing: border-box;
