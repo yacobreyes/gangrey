@@ -1,4 +1,5 @@
 import { getAllPosts } from "@/lib/sanity";
+import { postImageUrl } from "@/lib/sanityImage";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +9,9 @@ export async function GET() {
 
   const items = posts
     .filter(p => p.status === "published" || !p.status)
+    // Newest first; keep the feed to a sensible recent window.
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 30)
     .map(p => {
       const body = (p.body ?? [])
         .filter((b: { _type: string }) => b._type === "block")
@@ -15,6 +19,9 @@ export async function GET() {
       .map((b: any) => (b.children ?? []).map((c: any) => c.text ?? "").join(""))
         .join("\n\n")
         .slice(0, 500);
+
+      const img = postImageUrl(p.image, 1200, 630);
+      const imgAbs = img ? (img.startsWith("http") ? img : siteUrl + img) : null;
 
       return `
     <item>
@@ -24,7 +31,8 @@ export async function GET() {
       <pubDate>${new Date(p.date).toUTCString()}</pubDate>
       <description><![CDATA[${p.subheadline || body}]]></description>
       <author>${p.byline}</author>
-      <category>${p.section}</category>
+      <category>${p.section}</category>${imgAbs ? `
+      <enclosure url="${imgAbs}" type="image/jpeg"/>` : ""}
     </item>`;
     })
     .join("");

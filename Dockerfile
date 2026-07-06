@@ -16,6 +16,11 @@ ENV STANDALONE=1
 ENV STORAGE_BACKEND=sqlite
 # Public env the client bundle expects; harmless placeholders for self-hosted.
 ENV NEXT_PUBLIC_SANITY_PROJECT_ID=selfhosted
+# Google Analytics 4 id — NEXT_PUBLIC_ vars must be baked at build. Passed as a
+# build arg (empty by default → no analytics); deploy.sh sources it from
+# .env.selfhost.
+ARG NEXT_PUBLIC_GA_ID=""
+ENV NEXT_PUBLIC_GA_ID=$NEXT_PUBLIC_GA_ID
 RUN npm run build
 
 FROM node:22-slim AS run

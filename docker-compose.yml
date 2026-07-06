@@ -1,6 +1,11 @@
 services:
   imago:
-    build: .
+    build:
+      context: .
+      args:
+        # Baked into the client bundle at build time. deploy.sh exports it from
+        # .env.selfhost before building; empty → no analytics.
+        NEXT_PUBLIC_GA_ID: ${NEXT_PUBLIC_GA_ID:-}
     ports:
       - "3000:3000"
     volumes:

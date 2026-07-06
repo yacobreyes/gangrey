@@ -1,8 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import SessionProviderWrapper from "@/components/SessionProviderWrapper";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org";
+// Google Analytics 4. Set NEXT_PUBLIC_GA_ID (e.g. G-XXXXXXXXXX) to enable;
+// left empty, no analytics scripts load at all.
+const gaId = process.env.NEXT_PUBLIC_GA_ID;
 
 export const metadata: Metadata = {
   title: "Gangrey | A Literary Magazine",
@@ -39,7 +43,20 @@ export default function RootLayout({
         <link rel="preconnect" href="https://use.typekit.net" crossOrigin="" />
         <link rel="stylesheet" href="https://use.typekit.net/umi3ufr.css" />
       </head>
-      <body><SessionProviderWrapper>{children}</SessionProviderWrapper></body>
+      <body>
+        {gaId && (
+          <>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${gaId}');`}
+            </Script>
+          </>
+        )}
+        <SessionProviderWrapper>{children}</SessionProviderWrapper>
+      </body>
     </html>
   );
 }

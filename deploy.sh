@@ -31,6 +31,12 @@ fi
 echo "==> Pulling latest code…"
 git pull --ff-only
 
+# Export .env.selfhost so NEXT_PUBLIC_* build args (e.g. NEXT_PUBLIC_GA_ID) are
+# available to `docker compose build` — build args aren't read from env_file.
+if [ -f .env.selfhost ]; then
+  set -a; . ./.env.selfhost; set +a
+fi
+
 echo "==> Building new image (old container keeps serving)…"
 docker compose build
 

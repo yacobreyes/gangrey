@@ -4,6 +4,7 @@ import { PortableText } from "@portabletext/react";
 import { getAllSlugs, getPost } from "@/lib/sanity";
 import { postImageUrl } from "@/lib/sanityImage";
 import CommentSection from "@/components/CommentSection";
+import RelatedStories from "@/components/RelatedStories";
 import LikeButton from "@/components/LikeButton";
 import ShareButton from "@/components/ShareButton";
 import MagHeader from "@/components/MagHeader";
@@ -48,13 +49,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const description = post.socialDescription || post.subheadline || bodyText;
   const seoDescription = post.socialDescription || post.subheadline || bodyText;
 
-  const imageUrl = postImageUrl(post.image, 1200, 630);
-
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org";
   const postUrl = `${siteUrl}/stories/${slug}`;
-  const ogImage = imageUrl
-    ? { url: imageUrl, width: 1200, height: 630, alt: post.headline }
-    : { url: "/open-graph.png", width: 1200, height: 630, alt: "Gangrey" };
+  // The og:image / twitter:image come from the sibling opengraph-image.tsx
+  // (branded card), so they're intentionally not set here.
 
   return {
     title: `Gangrey | ${seoTitle}`,
@@ -68,13 +66,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       siteName: "Gangrey",
       publishedTime: post.date,
       authors: [post.byline],
-      images: [ogImage],
     },
     twitter: {
       card: "summary_large_image",
       title: socialTitle,
       description,
-      images: [ogImage.url],
     },
   };
 }
@@ -173,6 +169,8 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
           <ShareButton slug={slug} headline={post.headline} />
         </div>
       </div>
+
+      <RelatedStories slug={slug} section={post.section} />
 
       <div className="story-comments">
         <CommentSection slug={slug} />
