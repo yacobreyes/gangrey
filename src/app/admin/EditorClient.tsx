@@ -179,6 +179,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
   const [imageCrops, setImageCrops] = useState<ImageCrops>(post.image?.crops ?? {});
   const [showCropModal, setShowCropModal] = useState(false);
   const [showImageDetails, setShowImageDetails] = useState(false);
+  const [imageMenuOpen, setImageMenuOpen] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -751,33 +752,32 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                 </button>
               ) : (
                 <div>
-                  {/* Clean image in the canvas + a hover action bar. Alt/caption
-                      are edited in a modal, not shown as inline fields. Axios-style. */}
-                  <div className="fi-wrap" style={{ position: "relative", lineHeight: 0, borderRadius: 6, overflow: "hidden", background: "#f4f4f5" }}>
+                  {/* Click the image to open a menu (no floating buttons). Axios-style. */}
+                  <div style={{ position: "relative", lineHeight: 0, borderRadius: 6, overflow: "visible", background: "#f4f4f5" }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={imagePreview} alt="" style={{ width: "100%", maxHeight: 360, objectFit: "cover", display: "block" }} />
-                    <div className="fi-actions" style={{ position: "absolute", top: 10, right: 10, display: "flex", gap: "0.4rem" }}>
-                      <button type="button" onClick={() => setShowImageDetails(true)}
-                        style={{ background: "rgba(255,255,255,0.95)", border: "none", borderRadius: 6, padding: "0.35rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", color: TEXT_DARK, boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }}>
-                        Details
-                      </button>
-                      {imagePreview !== "existing" && (
-                        <button type="button" onClick={() => setShowCropModal(true)}
-                          style={{ background: "rgba(255,255,255,0.95)", border: "none", borderRadius: 6, padding: "0.35rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", color: TEXT_DARK, boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }}>
-                          Crop{Object.keys(imageCrops).length ? ` (${Object.keys(imageCrops).length})` : ""}
-                        </button>
-                      )}
-                      <button type="button" onClick={openImageModal}
-                        style={{ background: "rgba(255,255,255,0.95)", border: "none", borderRadius: 6, padding: "0.35rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", color: TEXT_DARK, boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }}>
-                        Replace
-                      </button>
-                      <button type="button" onClick={() => { setImagePreview(""); setImageAssetId(""); setImageCrops({}); }}
-                        style={{ background: "rgba(255,255,255,0.95)", border: "none", borderRadius: 6, padding: "0.35rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", color: CRIMSON, boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }}>
-                        Remove
-                      </button>
-                    </div>
+                    <img src={imagePreview} alt="" onClick={() => setImageMenuOpen(v => !v)}
+                      style={{ width: "100%", maxHeight: 360, objectFit: "cover", display: "block", borderRadius: 6, cursor: "pointer" }} />
+                    {imageMenuOpen && (
+                      <>
+                        <div onClick={() => setImageMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+                        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 41, background: "white", borderRadius: 10, boxShadow: "0 6px 24px rgba(0,0,0,0.22)", overflow: "hidden", minWidth: 190 }}>
+                          {[
+                            { label: "Edit alt text & caption", onClick: () => setShowImageDetails(true) },
+                            ...(imagePreview !== "existing" ? [{ label: `Crop image${Object.keys(imageCrops).length ? ` (${Object.keys(imageCrops).length})` : ""}`, onClick: () => setShowCropModal(true) }] : []),
+                            { label: "Replace image", onClick: openImageModal },
+                            { label: "Remove image", onClick: () => { setImagePreview(""); setImageAssetId(""); setImageCrops({}); }, danger: true },
+                          ].map((item, i, arr) => (
+                            <button key={item.label} type="button"
+                              onClick={() => { setImageMenuOpen(false); item.onClick(); }}
+                              style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", borderBottom: i < arr.length - 1 ? `1px solid ${BORDER}` : "none", padding: "0.7rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: item.danger ? CRIMSON : TEXT_DARK, cursor: "pointer" }}>
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
-                  {/* Read-only caption line beneath the photo, like the published story. Click to edit. */}
+                  {/* Read-only caption line beneath the photo, like the published story. */}
                   <div onClick={() => setShowImageDetails(true)} style={{ cursor: "pointer", fontFamily: FONT, fontSize: "0.8rem", color: (imageCaption || imageAlt) ? TEXT_MUTED : CRIMSON, margin: "0.5rem 0 0" }}>
                     {imageCaption || (imageAlt ? <span style={{ fontStyle: "italic" }}>Caption &amp; credit missing — click to add</span> : "Add alt text & caption")}
                   </div>
