@@ -129,8 +129,7 @@ export default function AudiencePanel({
   return (
     <div style={{ maxWidth: 720 }}>
       <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: "0 0 1.25rem" }}>
-        Everyone who can hear from you — free subscribers and paid members in one list. Paid checkouts add
-        someone here automatically; comp a free membership below and they sign in with the same email (magic link).
+        Your subscribers and members, in one list.
       </p>
 
       {/* Top Stories — most-viewed published pieces (one view per device per day) */}
@@ -169,7 +168,7 @@ export default function AudiencePanel({
       {error && <p style={{ fontFamily: FONT, fontSize: "0.82rem", color: CRIMSON, margin: "-0.75rem 0 1rem" }}>{error}</p>}
 
       <p style={{ fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, margin: "0 0 0.75rem" }}>
-        {rows.length} {rows.length === 1 ? "person" : "people"} · {paidCount} paid member{paidCount === 1 ? "" : "s"} · {subscribers.length} subscriber{subscribers.length === 1 ? "" : "s"}
+        {rows.length} {rows.length === 1 ? "person" : "people"}{paidCount > 0 ? ` · ${paidCount} paid` : ""}
       </p>
 
       {loading ? (
@@ -188,14 +187,18 @@ export default function AudiencePanel({
               <div key={row.email} style={{ display: "flex", alignItems: "center", gap: "0.85rem", padding: "0.7rem 1.1rem", borderBottom: `1px solid ${BORDER}`, opacity: former && !row.subscriber ? 0.6 : 1 }}>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <p style={{ fontFamily: FONT, fontSize: "0.9rem", fontWeight: 600, color: TEXT_DARK, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.email}</p>
-                  <p style={{ fontFamily: FONT, fontSize: "0.75rem", color: TEXT_MUTED, margin: "0.15rem 0 0", display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
-                    {m && (
+                  {/* One quiet status line. Active is the norm, so only exceptions
+                      (canceled, past due, comped) get called out. */}
+                  <p style={{ fontFamily: FONT, fontSize: "0.75rem", color: TEXT_MUTED, margin: "0.15rem 0 0" }}>
+                    {m ? (
                       <span style={{ color: active ? CRIMSON : TEXT_MUTED, fontWeight: 600 }}>
-                        {TIER_LABEL[m.tier] ?? m.tier} member · {active ? "Active" : m.status}{m.comped ? " · Comped" : ""}
+                        {TIER_LABEL[m.tier] ?? m.tier} member
+                        {m.comped ? " (comped)" : ""}
+                        {!active ? ` · ${m.status === "canceled" ? "Canceled" : m.status === "past_due" ? "Past due" : m.status}` : ""}
                       </span>
+                    ) : (
+                      <span>{row.subscriber?.status === "inactive" ? "Unsubscribed" : "Subscriber"}</span>
                     )}
-                    {m && row.subscriber && <span>·</span>}
-                    {row.subscriber && <span>Subscriber · {row.subscriber.status ?? "neutral"}</span>}
                   </p>
                 </div>
                 <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
