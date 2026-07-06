@@ -55,17 +55,18 @@ export default function StorePage() {
           font-weight: 800; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
           text-decoration: underline; text-underline-offset: 4px;
         }
+        /* Center the products as a group: a flex row with fixed-width cards and
+           a normal gap, centered in the page — not one card floating in each
+           third of a wide grid. */
         .store-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
           gap: 40px 36px;
-          /* Center each capped product within its column so the row reads as
-             evenly-spaced rather than clustered against the left edge. */
-          justify-items: center;
         }
         /* Keep each product's text + price/Buy Now row aligned to the image
            width, so "Buy Now" never sticks out past the image's right edge. */
-        .store-grid > div { max-width: 240px; }
+        .store-grid > div { flex: 0 0 240px; max-width: 240px; }
         .product-img {
           display: flex; align-items: center; justify-content: center;
           width: 100%; max-width: 240px; aspect-ratio: 1 / 1;
@@ -108,8 +109,8 @@ export default function StorePage() {
           .store-band-title { font-size: 17px; margin-bottom: 4px; }
           .store-band-desc { font-size: 12px; }
           .store-join { font-size: 10.5px; gap: 0; flex-shrink: 0; }
-          .store-grid { grid-template-columns: repeat(2, 1fr); gap: 28px 20px; }
-          .store-grid > div { max-width: 160px; }
+          .store-grid { gap: 28px 20px; }
+          .store-grid > div { flex: 0 0 160px; max-width: 160px; }
           .product-name { font-size: 18px; }
         }
       `}</style>
