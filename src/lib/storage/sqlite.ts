@@ -330,3 +330,28 @@ export function sqliteDeleteMedia(assetId: string): void {
   if (!name || name.includes("/") || name.includes("..")) return;
   try { fs.unlinkSync(path.join(sqliteMediaDir(), name)); } catch {}
 }
+
+// --- Comments ----------------------------------------------------------------
+
+export type CommentRow = { _id: string; name: string; text: string; slug: string; approved: boolean; _createdAt: string };
+
+export function sqliteAddComment(slug: string, name: string, text: string): void {
+  const id = `comment-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  db().prepare(`INSERT INTO documents (id, type, data) VALUES (?, 'comment', ?)`)
+    .run(id, JSON.stringify({ slug, name, text, approved: true, _createdAt: new Date().toISOString() }));
+}
+
+export function sqliteCommentsForSlug(slug: string): CommentRow[] {
+  return sqliteDocsByType<CommentRow>("comment")
+    .filter(c => c.slug === slug && c.approved !== false)
+    .sort((a, b) => (a._createdAt ?? "").localeCompare(b._createdAt ?? ""));
+}
+
+export function sqliteAllComments(): CommentRow[] {
+  return sqliteDocsByType<CommentRow>("comment")
+    .sort((a, b) => (b._createdAt ?? "").localeCompare(a._createdAt ?? ""));
+}
+
+export function sqliteDeleteComment(id: string): void {
+  db().prepare(`DELETE FROM documents WHERE id = ? AND type = 'comment'`).run(id);
+}

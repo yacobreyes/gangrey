@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { client } from "@/lib/sanity";
 import { rateLimit } from "@/lib/rateLimit";
-import { isSqliteBackend } from "@/lib/storage/sqlite";
+import { isSqliteBackend, sqliteCommentsForSlug, sqliteAddComment, sqliteDeleteComment } from "@/lib/storage/sqlite";
 
 const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!;
 const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
@@ -21,9 +21,11 @@ async function mutate(mutations: unknown[]) {
 }
 
 export async function GET(req: NextRequest) {
-  if (isSqliteBackend()) return NextResponse.json([]); // comments not stored on self-hosted
   const slug = req.nextUrl.searchParams.get("slug");
   if (!slug) return NextResponse.json([]);
+  if (isSqliteBackend()) {
+    return NextResponse.json(sqliteCommentsForSlug(slug).map(c => ({ _id: c._id, name: c.name, text: c.text, _createdAt: c._createdAt })));
+  }
   const comments = await client.fetch(
     `*[_type == "comment" && slug == $slug && approved == true] | order(_createdAt asc) { _id, name, text, _createdAt }`,
     { slug },
@@ -33,7 +35,6 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (isSqliteBackend()) return NextResponse.json({ error: "Comments are disabled." }, { status: 403 });
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   if (!rateLimit(ip, "comments", 5, 60 * 60 * 1000)) {
     return NextResponse.json({ error: "Too many comments. Try again later." }, { status: 429 });
@@ -41,6 +42,10 @@ export async function POST(req: NextRequest) {
   const { slug, name, text } = await req.json() as { slug: string; name: string; text: string };
   if (!slug || !name?.trim() || !text?.trim()) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  }
+  if (isSqliteBackend()) {
+    sqliteAddComment(slug, name.trim().slice(0, 80), text.trim().slice(0, 1000));
+    return NextResponse.json({ ok: true });
   }
   await mutate([{
     create: {
@@ -55,9 +60,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  if (isSqliteBackend()) return NextResponse.json({ ok: true });
   const { id } = await req.json() as { id: string };
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+  if (isSqliteBackend()) { sqliteDeleteComment(id); return NextResponse.json({ ok: true }); }
   await mutate([{ delete: { id } }]);
   return NextResponse.json({ ok: true });
 }
