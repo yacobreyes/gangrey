@@ -741,10 +741,8 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                         <div onClick={() => setImageMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
                         <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 41, background: "white", borderRadius: 10, boxShadow: "0 6px 24px rgba(0,0,0,0.22)", overflow: "hidden", minWidth: 190 }}>
                           {[
-                            { label: "Edit alt text & caption", onClick: () => setShowImageDetails(true) },
-                            ...(imagePreview !== "existing" ? [{ label: `Crop image${Object.keys(imageCrops).length ? ` (${Object.keys(imageCrops).length})` : ""}`, onClick: () => setShowCropModal(true) }] : []),
-                            { label: "Replace image", onClick: openImageModal },
-                            { label: "Remove image", onClick: () => { setImagePreview(""); setImageAssetId(""); setImageCrops({}); }, danger: true },
+                            { label: "View image alt text", onClick: () => setShowImageDetails(true) },
+                            { label: "Delete image", onClick: () => { setImagePreview(""); setImageAssetId(""); setImageCrops({}); }, danger: true },
                           ].map((item, i, arr) => (
                             <button key={item.label} type="button"
                               onClick={() => { setImageMenuOpen(false); item.onClick(); }}
