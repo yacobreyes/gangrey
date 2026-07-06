@@ -73,7 +73,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
     if (w || h) img = img.resize(w || null, h || null, { fit: "cover" });
     const out = ext === ".png"
       ? await img.png().toBuffer()
-      : await img.jpeg({ quality: 82, mozjpeg: true }).toBuffer();
+      // progressive: the image renders coarse-to-sharp as bytes arrive, instead
+      // of painting top-to-bottom in scanlines (which looks broken mid-load).
+      : await img.jpeg({ quality: 82, mozjpeg: true, progressive: true }).toBuffer();
     fs.writeFileSync(cached, out);
     return new NextResponse(new Uint8Array(out), { headers });
   } catch {

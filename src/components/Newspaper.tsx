@@ -362,7 +362,7 @@ export default function Feed({
           <div className="hm-hero">
             {heroImg && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img className="hm-hero-img" src={heroImg} alt={hero.image?.alt ?? hero.headline} />
+              <img className="hm-hero-img" src={heroImg} alt={hero.image?.alt ?? hero.headline} fetchPriority="high" decoding="async" />
             )}
             <div className="hm-hero-scrim" />
             {/* On-image kicker: the only hero text that stays over the photo on
@@ -413,7 +413,7 @@ export default function Feed({
                       <span className="hm-thumb">
                         {imgSrc
                           // eslint-disable-next-line @next/next/no-img-element
-                          ? <img src={imgSrc} alt={post.image?.alt ?? post.headline} />
+                          ? <img src={imgSrc} alt={post.image?.alt ?? post.headline} decoding="async" fetchPriority={i === 0 ? "high" : "auto"} />
                           : <span style={{ display: "block", width: "100%", height: "100%", background: "#b8b8ba" }} />
                         }
                       </span>
