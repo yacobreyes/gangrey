@@ -1120,7 +1120,12 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
         <ImagePickerModal
           isMobile={isMobile}
           onClose={() => setShowImageModal(false)}
-          onSelect={img => { setImageAssetId(img.assetId); setImagePreview(img.url); setImageCaption(img.caption); setImageAlt(img.alt); setImageCrops({}); }}
+          onSelect={img => {
+            setImageAssetId(img.assetId); setImagePreview(img.url);
+            setImageCaption(img.caption); setImageAlt(img.alt); setImageCrops({});
+            // Go straight into cropping so framing is set as part of adding the image.
+            setShowCropModal(true);
+          }}
         />
       )}
     </div>
