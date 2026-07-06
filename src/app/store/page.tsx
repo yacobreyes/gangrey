@@ -60,12 +60,13 @@ export default function StorePage() {
           grid-template-columns: repeat(3, 1fr);
           gap: 40px 36px;
         }
-        /* Keep each product's text + price/Buy Now row aligned to the image
-           width, so "Buy Now" never sticks out past the image's right edge. */
-        .store-grid > div { max-width: 240px; }
+        /* Each product fills its grid column so the row spans the full width
+           instead of clustering left. Text + price/Buy Now still align to the
+           image width since both fill the same column. */
+        .store-grid > div { max-width: 100%; }
         .product-img {
           display: flex; align-items: center; justify-content: center;
-          width: 100%; max-width: 240px; aspect-ratio: 1 / 1;
+          width: 100%; aspect-ratio: 1 / 1;
           background: #f4f4f5;
           box-sizing: border-box;
         }
@@ -106,8 +107,7 @@ export default function StorePage() {
           .store-band-desc { font-size: 12px; }
           .store-join { font-size: 10.5px; gap: 0; flex-shrink: 0; }
           .store-grid { grid-template-columns: repeat(2, 1fr); gap: 28px 20px; }
-          .store-grid > div { max-width: 160px; }
-          .product-img { max-width: 160px; }
+          .store-grid > div { max-width: 100%; }
           .product-name { font-size: 18px; }
         }
       `}</style>
