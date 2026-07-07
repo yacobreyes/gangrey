@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { PortableText } from "@portabletext/react";
-import { getAllSlugs, getPost } from "@/lib/sanity";
+import { getFreeSlugs, getPost } from "@/lib/sanity";
 import { postImageUrl } from "@/lib/sanityImage";
 import CommentSection from "@/components/CommentSection";
 import RelatedStories from "@/components/RelatedStories";
@@ -28,7 +28,10 @@ export const dynamicParams = true;
 
 export async function generateStaticParams() {
   try {
-    const slugs = await getAllSlugs();
+    // Only free stories are safe to pre-render statically — gated stories
+    // (Archive, paid) read the session cookie and must render on-demand
+    // instead (dynamicParams: true below still serves them, just per-request).
+    const slugs = await getFreeSlugs();
     return slugs.map(slug => ({ slug }));
   } catch {
     return [];
