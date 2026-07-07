@@ -83,6 +83,26 @@ function migrate(d: any) {
       data TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_documents_type ON documents (type);
+
+    -- Analytics event log (the Parse.ly-style engine). Append-only; one row per
+    -- pageview and per engagement heartbeat. Cookieless: 'session' is an
+    -- ephemeral per-tab id, no PII stored.
+    CREATE TABLE IF NOT EXISTS analytics_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ts INTEGER NOT NULL,               -- epoch ms
+      kind TEXT NOT NULL,                -- 'view' | 'engage'
+      slug TEXT,
+      section TEXT DEFAULT '',
+      byline TEXT DEFAULT '',
+      ref_host TEXT DEFAULT '',          -- referrer hostname ('' = direct/internal)
+      source TEXT DEFAULT 'Direct',      -- categorized channel
+      device TEXT DEFAULT 'desktop',     -- mobile | tablet | desktop
+      session TEXT DEFAULT '',           -- ephemeral per-tab id
+      engaged_ms INTEGER DEFAULT 0       -- active reading time this heartbeat
+    );
+    CREATE INDEX IF NOT EXISTS idx_events_ts ON analytics_events (ts);
+    CREATE INDEX IF NOT EXISTS idx_events_slug_ts ON analytics_events (slug, ts);
+    CREATE INDEX IF NOT EXISTS idx_events_kind_ts ON analytics_events (kind, ts);
   `);
 
   // Additive column migrations — CREATE TABLE IF NOT EXISTS never alters an
@@ -422,4 +442,116 @@ export function sqliteAllViewCounts(): Record<string, number> {
   const out: Record<string, number> = {};
   for (const r of rows) out[r.id.slice("views-".length)] = JSON.parse(r.data).count ?? 0;
   return out;
+}
+
+// --- Analytics engine (Parse.ly-style) --------------------------------------
+
+export type AnalyticsEvent = {
+  ts: number; kind: "view" | "engage"; slug: string;
+  section?: string; byline?: string; ref_host?: string; source?: string;
+  device?: string; session?: string; engaged_ms?: number;
+};
+
+export function sqliteRecordEvent(e: AnalyticsEvent): void {
+  db().prepare(`INSERT INTO analytics_events
+    (ts, kind, slug, section, byline, ref_host, source, device, session, engaged_ms)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(e.ts, e.kind, e.slug, e.section ?? "", e.byline ?? "", e.ref_host ?? "",
+         e.source ?? "Direct", e.device ?? "desktop", e.session ?? "", e.engaged_ms ?? 0);
+}
+
+// Prune events older than `days` so the table doesn't grow unbounded (all-time
+// totals live in the counters). Called opportunistically from the track route.
+export function sqlitePruneEvents(days = 120): void {
+  const cutoff = Date.now() - days * 86400_000;
+  db().prepare(`DELETE FROM analytics_events WHERE ts < ?`).run(cutoff);
+}
+
+type Row = Record<string, unknown>;
+const num = (v: unknown) => Number(v ?? 0);
+
+// Headline KPIs over [since, until): views, unique visitors, total + average
+// engaged time (ms). Engaged time is summed from 'engage' heartbeats.
+export function sqliteAnalyticsOverview(since: number, until: number): {
+  views: number; visitors: number; engagedMs: number; avgEngagedMs: number;
+} {
+  const v = db().prepare(`SELECT COUNT(*) c, COUNT(DISTINCT session) u FROM analytics_events WHERE kind='view' AND ts>=? AND ts<?`).get(since, until) as Row;
+  const e = db().prepare(`SELECT COALESCE(SUM(engaged_ms),0) s FROM analytics_events WHERE kind='engage' AND ts>=? AND ts<?`).get(since, until) as Row;
+  const views = num(v.c), engagedMs = num(e.s);
+  return { views, visitors: num(v.u), engagedMs, avgEngagedMs: views ? Math.round(engagedMs / views) : 0 };
+}
+
+// View counts bucketed into `buckets` equal time slices across [since, until) —
+// for the time-series chart.
+export function sqliteAnalyticsSeries(since: number, until: number, buckets: number): number[] {
+  const span = Math.max(1, until - since);
+  const width = span / buckets;
+  const rows = db().prepare(`SELECT ts FROM analytics_events WHERE kind='view' AND ts>=? AND ts<?`).all(since, until) as Row[];
+  const out = new Array(buckets).fill(0);
+  for (const r of rows) {
+    const i = Math.min(buckets - 1, Math.floor((num(r.ts) - since) / width));
+    out[i]++;
+  }
+  return out;
+}
+
+// Top stories by views (with visitors + avg engaged time) in the window.
+export function sqliteAnalyticsTopContent(since: number, until: number, limit = 20): {
+  slug: string; section: string; byline: string; views: number; visitors: number; avgEngagedMs: number;
+}[] {
+  const views = db().prepare(`
+    SELECT slug, section, byline, COUNT(*) v, COUNT(DISTINCT session) u
+    FROM analytics_events WHERE kind='view' AND ts>=? AND ts<? AND slug != ''
+    GROUP BY slug ORDER BY v DESC LIMIT ?`).all(since, until, limit) as Row[];
+  const eng = db().prepare(`
+    SELECT slug, COALESCE(SUM(engaged_ms),0) e FROM analytics_events
+    WHERE kind='engage' AND ts>=? AND ts<? GROUP BY slug`).all(since, until) as Row[];
+  const engBySlug = new Map(eng.map(r => [String(r.slug), num(r.e)]));
+  return views.map(r => {
+    const v = num(r.v);
+    return {
+      slug: String(r.slug), section: String(r.section ?? ""), byline: String(r.byline ?? ""),
+      views: v, visitors: num(r.u),
+      avgEngagedMs: v ? Math.round((engBySlug.get(String(r.slug)) ?? 0) / v) : 0,
+    };
+  });
+}
+
+// Generic "views grouped by <column>" for referrers/sources/sections/authors/device.
+export function sqliteAnalyticsBreakdown(column: "source" | "section" | "byline" | "device" | "ref_host", since: number, until: number, limit = 12): { key: string; views: number }[] {
+  const rows = db().prepare(
+    `SELECT ${column} k, COUNT(*) v FROM analytics_events
+     WHERE kind='view' AND ts>=? AND ts<? GROUP BY ${column} ORDER BY v DESC LIMIT ?`
+  ).all(since, until, limit) as Row[];
+  return rows.map(r => ({ key: String(r.k ?? "") || "—", views: num(r.v) }));
+}
+
+// Real-time: distinct sessions active in the last `windowMs`, plus what each is
+// reading (most recent view per active session).
+export function sqliteAnalyticsRealtime(windowMs = 5 * 60_000): { active: number; reading: { slug: string; views: number }[] } {
+  const since = Date.now() - windowMs;
+  const a = db().prepare(`SELECT COUNT(DISTINCT session) u FROM analytics_events WHERE ts>=?`).get(since) as Row;
+  const reading = db().prepare(`
+    SELECT slug, COUNT(DISTINCT session) views FROM analytics_events
+    WHERE kind='view' AND ts>=? AND slug != '' GROUP BY slug ORDER BY views DESC LIMIT 10`).all(since) as Row[];
+  return { active: num(a.u), reading: reading.map(r => ({ slug: String(r.slug), views: num(r.views) })) };
+}
+
+// Trending: stories whose recent view velocity most exceeds their prior baseline
+// — surfaces what's heating up, not just what's all-time popular.
+export function sqliteAnalyticsTrending(limit = 10): { slug: string; recent: number; score: number }[] {
+  const now = Date.now();
+  const recentSince = now - 3 * 3600_000;      // last 3h
+  const baseSince = now - 27 * 3600_000;       // prior 24h before that
+  const recent = db().prepare(`SELECT slug, COUNT(*) v FROM analytics_events WHERE kind='view' AND ts>=? AND slug!='' GROUP BY slug`).all(recentSince) as Row[];
+  const base = db().prepare(`SELECT slug, COUNT(*) v FROM analytics_events WHERE kind='view' AND ts>=? AND ts<? AND slug!='' GROUP BY slug`).all(baseSince, recentSince) as Row[];
+  const baseRate = new Map(base.map(r => [String(r.slug), num(r.v) / 24])); // per-hour baseline
+  const scored = recent.map(r => {
+    const slug = String(r.slug), rec = num(r.v);
+    const recRate = rec / 3;
+    const bl = baseRate.get(slug) ?? 0;
+    // Velocity lift over baseline; +1 smoothing so brand-new stories can trend.
+    return { slug, recent: rec, score: recRate / (bl + 0.5) };
+  });
+  return scored.filter(s => s.recent >= 2).sort((a, b) => b.score - a.score).slice(0, limit);
 }

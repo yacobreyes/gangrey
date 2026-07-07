@@ -10,6 +10,7 @@ import RichBodyEditor, { type ToolbarHandles } from "@/components/RichBodyEditor
 import ImagePickerModal from "@/components/ImagePickerModal";
 import UsersPanel from "./UsersPanel";
 import AudiencePanel from "./AudiencePanel";
+import AnalyticsPanel from "./AnalyticsPanel";
 import { getActiveLocks, type LockHolder } from "../lockActions";
 import { listUsers } from "../userActions";
 import type { JSONContent, Editor } from "@tiptap/react";
@@ -59,7 +60,7 @@ const DEFAULT_FORM: FormState = {
   body: EMPTY_DOC, status: "draft",
 };
 
-type Panel = "dashboard" | "editor" | "about" | "media" | "comments" | "subscribers" | "users" | "members" | "archive";
+type Panel = "dashboard" | "editor" | "about" | "media" | "comments" | "subscribers" | "users" | "members" | "archive" | "analytics";
 
 export type CurrentUser = { name: string; email: string; role: "admin" | "editor" };
 
@@ -487,6 +488,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
               ["media", "Media Library", <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>],
               ["archive", "Archive", <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>],
               ["comments", "Comments", <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>],
+              ["analytics", "Analytics", <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="4" width="3" height="14"/></svg>],
               // Members (with subscribers) and Users management are admin-only.
               ...(isAdmin ? [
                 ["members", "Audience", <svg key="m" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 1v5"/><path d="M12 18v5"/><path d="M1 12h5"/><path d="M18 12h5"/></svg>],
@@ -566,7 +568,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                   </div>
                 ) : (
                   <span style={{ fontFamily: FONT, fontSize: "1rem", fontWeight: 700, color: TEXT_DARK }}>
-                    {activePanel === "media" ? "Media Library" : activePanel === "comments" ? "Comments" : activePanel === "about" ? "About" : activePanel === "users" ? "Users" : activePanel === "members" ? "Audience" : activePanel === "archive" ? "Archive" : ""}
+                    {activePanel === "media" ? "Media Library" : activePanel === "comments" ? "Comments" : activePanel === "about" ? "About" : activePanel === "users" ? "Users" : activePanel === "members" ? "Audience" : activePanel === "archive" ? "Archive" : activePanel === "analytics" ? "Analytics" : ""}
                   </span>
                 )}
               </div>
@@ -605,7 +607,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                   </div>
                 ) : (
                   <span style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, color: TEXT_MUTED }}>
-                    {activePanel === "media" ? "Media Library" : activePanel === "about" ? "About" : activePanel === "comments" ? "Comments" : activePanel === "users" ? "Users" : activePanel === "members" ? "Audience" : activePanel === "archive" ? "Archive" : ""}
+                    {activePanel === "media" ? "Media Library" : activePanel === "about" ? "About" : activePanel === "comments" ? "Comments" : activePanel === "users" ? "Users" : activePanel === "members" ? "Audience" : activePanel === "archive" ? "Archive" : activePanel === "analytics" ? "Analytics" : ""}
                   </span>
                 )}
               </div>
@@ -643,7 +645,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                   </button>
                 </div>
                 <div style={{ padding: "0.75rem", flex: 1 }}>
-                  {([["dashboard", "Posts"], ["about", "About"], ["media", "Media Library"], ["archive", "Archive"], ["comments", "Comments"], ...(isAdmin ? [["members", "Audience"], ["users", "Users"]] as [Panel, string][] : [])] as [Panel, string][]).map(([panel, label]) => (
+                  {([["dashboard", "Posts"], ["about", "About"], ["media", "Media Library"], ["archive", "Archive"], ["comments", "Comments"], ["analytics", "Analytics"], ...(isAdmin ? [["members", "Audience"], ["users", "Users"]] as [Panel, string][] : [])] as [Panel, string][]).map(([panel, label]) => (
                     <button key={panel} onClick={() => { tryNav(panel); setShowMobileNav(false); }} style={{ display: "block", width: "100%", background: activePanel === panel ? "#ffffff" : "none", border: "none", textAlign: "left", padding: "0.75rem", fontFamily: FONT, fontSize: "1rem", fontWeight: activePanel === panel ? 700 : 500, color: activePanel === panel ? CRIMSON : TEXT_DARK, cursor: "pointer", borderRadius: 6, marginBottom: "0.1rem" }}>
                       {label}
                     </button>
@@ -794,6 +796,8 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
           {activePanel === "users" && isAdmin && currentUser && (
             <UsersPanel currentEmail={currentUser.email} initialUsers={usersData} />
           )}
+
+          {activePanel === "analytics" && <AnalyticsPanel />}
 
           {/* MEMBERS & SUBSCRIBERS (admin only) — one unified audience list */}
           {activePanel === "members" && isAdmin && (
