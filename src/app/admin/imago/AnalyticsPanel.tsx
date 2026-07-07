@@ -21,11 +21,16 @@ type Data = {
 
 const RANGES: [string, string][] = [["7d", "7 days"], ["30d", "30 days"], ["90d", "90 days"]];
 
-function todayStr(): string { return new Date().toISOString().slice(0, 10); }
+// Format a Date as YYYY-MM-DD in LOCAL time (toISOString uses UTC and can land
+// on the wrong calendar day near midnight).
+function localYmd(dt: Date): string {
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+}
+function todayStr(): string { return localYmd(new Date()); }
 function shiftDate(d: string, days: number): string {
   const dt = new Date(d + "T00:00:00");
   dt.setDate(dt.getDate() + days);
-  return dt.toISOString().slice(0, 10);
+  return localYmd(dt);
 }
 function fmtDateLabel(d: string): string {
   return new Date(d + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -52,7 +57,9 @@ export default function AnalyticsPanel() {
 
   const load = useCallback((r: string, d: string | null, quiet = false) => {
     if (!quiet) setLoading(true);
-    const qs = d ? `date=${d}` : `range=${r}`;
+    // Send the viewer's tz offset so the server computes day windows in local time.
+    const tz = new Date().getTimezoneOffset();
+    const qs = (d ? `date=${d}` : `range=${r}`) + `&tz=${tz}`;
     fetch(`/api/analytics?${qs}`).then(res => res.json()).then(res => { if (!res.error) setData(res); }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 

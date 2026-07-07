@@ -25,11 +25,17 @@ export async function GET(req: NextRequest) {
   // takes priority over the rolling-window ranges below. Hourly buckets, and
   // the comparison window is the single day before it, so "vs previous period"
   // means "vs the day before," not an arbitrary equal-length window.
+  // tz = the viewer's getTimezoneOffset() in minutes (positive when behind UTC,
+  // e.g. 240 for EDT). Day windows are computed in the viewer's local time, not
+  // the server's UTC, so "today"/"yesterday" and the hour buckets line up with
+  // the reader's actual calendar day.
+  const tz = Number(req.nextUrl.searchParams.get("tz") ?? "0") || 0;
   const dateParam = req.nextUrl.searchParams.get("date");
   let rangeKey: string, since: number, until: number, buckets: number;
   if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
-    since = new Date(dateParam + "T00:00:00").getTime();
-    until = Math.min(since + 86400_000, Date.now());
+    const [y, m, d] = dateParam.split("-").map(Number);
+    since = Date.UTC(y, m - 1, d) + tz * 60_000; // local midnight of that date
+    until = since + 86400_000;                   // full 24h; future hours read as 0
     buckets = 24;
     rangeKey = dateParam;
   } else {
