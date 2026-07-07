@@ -8,7 +8,7 @@ export type NlCard = {
   headline?: string;
   body?: PortableTextBlock[];
   image?: { url?: string; caption?: string; alt?: string } | null;
-  cardType?: "narratives" | "essays" | "micro-memoir" | "feature" | "standard" | "digest";
+  cardType?: "narratives" | "essays" | "micro-memoir" | "archive" | "feature" | "standard" | "digest";
   byline?: string;
 };
 
@@ -91,11 +91,12 @@ function renderBody(blocks: PortableTextBlock[]): string {
 
 const HEADLINE_FONT = SERIF;
 
-function effectiveType(card: NlCard, idx: number): "narratives" | "essays" | "micro-memoir" {
+function effectiveType(card: NlCard, idx: number): "narratives" | "essays" | "micro-memoir" | "archive" {
   const t = card.cardType;
   if (t === "narratives" || t === "feature") return "narratives";
   if (t === "essays" || t === "standard") return "essays";
   if (t === "micro-memoir" || t === "digest") return "micro-memoir";
+  if (t === "archive") return "archive";
   if (idx === 0) return "narratives";
   return "essays";
 }
@@ -171,6 +172,25 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): stri
           ${card.byline ? `<p style="${PADX}font-family:${FONT};font-size:13px;font-weight:700;letter-spacing:0.02em;color:${INK};margin:0 0 14px;">By ${esc(card.byline)}</p>` : ""}
           ${img}
           <div style="${PADX}text-align:left;">${renderBody(card.body ?? [])}</div>
+        </div>
+      </div>`;
+    }
+
+    if (type === "archive") {
+      const img = card.image?.url
+        ? `<div style="margin:0 0 20px;">
+             <img src="${esc(card.image.url)}" alt="${esc(card.image.alt ?? "")}" style="width:100%;max-height:220px;object-fit:cover;display:block;" />
+             ${caption(card.image.caption)}
+           </div>`
+        : "";
+      return `<div>
+        ${sectionLabel("FROM THE ARCHIVE")}
+        <div style="background:#f3ede4;border-top:2px solid ${CRIMSON};border-bottom:2px solid ${CRIMSON};padding:24px 32px 32px;text-align:center;margin:12px 0;">
+          ${img}
+          <h2 style="font-family:${SERIF};font-size:26px;font-style:italic;font-weight:400;line-height:1.25;color:${INK};margin:0 0 8px;">${esc(card.headline ?? "")}</h2>
+          ${card.byline ? `<p style="font-family:${FONT};font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:${CRIMSON};margin:0 0 20px;">By ${esc(card.byline)}</p>` : ""}
+          <div style="width:32px;height:1px;background:#c9bda9;margin:0 auto 20px;"></div>
+          <div style="text-align:left;">${renderBody(card.body ?? [])}</div>
         </div>
       </div>`;
     }

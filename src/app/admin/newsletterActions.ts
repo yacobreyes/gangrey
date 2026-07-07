@@ -7,7 +7,7 @@ import { client, withRetry } from "@/lib/sanity";
 import { renderNewsletterHtml, type NlCard } from "@/lib/newsletterEmail";
 import { Resend } from "resend";
 import { sanityMutate } from "@/lib/sanityWrite";
-import { isSqliteBackend, sqliteGetDoc, sqliteDocsByType, sqliteAllPostsAdmin, sqliteMutate } from "@/lib/storage/sqlite";
+import { isSqliteBackend, sqliteGetDoc, sqliteDocsByType, sqliteAllPostsAdminLight, sqliteMutate } from "@/lib/storage/sqlite";
 
 // Delegates to the shared write helper, which routes to Sanity or the local
 // sqlite store depending on STORAGE_BACKEND.
@@ -31,21 +31,26 @@ export type NlPickablePost = {
 // Posts available to pull into a newsletter card. Excludes story-only fields
 // (subheadline, etc.) — only headline/body/image carry over to the card itself;
 // byline/section/date are fetched just to render the picker list richly.
+// The picker list — LIGHT (no portable-text bodies). With the archive imported,
+// shipping every story's body here parsed ~2,500 bodies per open and bloated the
+// payload, making the editor slow and sometimes failing the whole fetch (→ "No
+// stories"). The body is fetched on demand when a story is actually inserted
+// (getNewsletterPostBody).
 export async function getPostsForNewsletter(): Promise<NlPickablePost[]> {
   await requireAuth();
   if (isSqliteBackend()) {
-    return sqliteAllPostsAdmin(false)
+    return sqliteAllPostsAdminLight(false)
       .filter(p => p.status !== "trashed")
       .map(p => ({
         id: p._id, slug: p.slug, headline: p.headline, byline: p.byline,
         section: p.section, date: p.date, status: p.status as NlPickablePost["status"],
-        body: p.body as NlCard["body"],
+        body: [] as NlCard["body"],
         image: p.image?.url ? { assetId: p.image.url, url: p.image.url, caption: p.image.caption, alt: p.image.alt } : null,
       }));
   }
   return client.fetch(
     `*[_type == "post" && !(_id in path("drafts.**")) && status != "trashed"] | order(_updatedAt desc){
-      "id": _id, "slug": slug.current, headline, byline, section, date, status, body,
+      "id": _id, "slug": slug.current, headline, byline, section, date, status, "body": [],
       image{ "assetId": asset._ref, "url": asset->url,
         "caption": coalesce(caption, asset->description),
         "alt": coalesce(alt, asset->altText) }
@@ -53,6 +58,18 @@ export async function getPostsForNewsletter(): Promise<NlPickablePost[]> {
     {},
     { cache: "no-store" }
   );
+}
+
+// Fetch just one story's portable-text body, when it's actually inserted as a
+// card — keeps the picker list light.
+export async function getNewsletterPostBody(slug: string): Promise<NlCard["body"]> {
+  await requireAuth();
+  if (isSqliteBackend()) {
+    const { sqliteGetPost } = await import("@/lib/storage/sqlite");
+    return (sqliteGetPost(slug)?.body ?? []) as NlCard["body"];
+  }
+  const r = await client.fetch(`*[_type == "post" && slug.current == $slug][0]{ body }`, { slug }, { cache: "no-store" });
+  return (r?.body ?? []) as NlCard["body"];
 }
 
 export type NlVersion = {

@@ -10,7 +10,7 @@ import { straightenQuotes } from "@/lib/straighten";
 import { useEditLock } from "./useEditLock";
 import EditLockBanner from "./EditLockBanner";
 import { watchLock, type LockHolder } from "./lockActions";
-import { saveNewsletter, deleteNewsletter, sendNewsletter, sendTestNewsletter, getPostsForNewsletter, type NlVersion, type NlPickablePost } from "./newsletterActions";
+import { saveNewsletter, deleteNewsletter, sendNewsletter, sendTestNewsletter, getPostsForNewsletter, getNewsletterPostBody, type NlVersion, type NlPickablePost } from "./newsletterActions";
 import { createPostFromNewsletterCard, checkSlugsExist } from "./actions";
 import ScheduleModal from "@/components/ScheduleModal";
 import type { JSONContent, Editor } from "@tiptap/react";
@@ -65,8 +65,8 @@ function formatFindContentDate(date?: string) {
 }
 
 type NlImage = { assetId: string; url: string; caption?: string; alt?: string };
-type NlEditorCard = { id: string; headline: string; doc: JSONContent; image?: NlImage; cardType?: "narratives" | "essays" | "micro-memoir"; byline?: string; sourceSlug?: string };
-type StoredCard = { headline?: string; body?: PortableTextBlock[]; image?: NlImage | null; cardType?: "narratives" | "essays" | "micro-memoir" | "feature" | "standard" | "digest"; byline?: string; sourceSlug?: string };
+type NlEditorCard = { id: string; headline: string; doc: JSONContent; image?: NlImage; cardType?: "narratives" | "essays" | "micro-memoir" | "archive"; byline?: string; sourceSlug?: string };
+type StoredCard = { headline?: string; body?: PortableTextBlock[]; image?: NlImage | null; cardType?: "narratives" | "essays" | "micro-memoir" | "archive" | "feature" | "standard" | "digest"; byline?: string; sourceSlug?: string };
 
 export type InitialNewsletter = {
   subject: string;
@@ -84,10 +84,11 @@ export type InitialNewsletter = {
 
 const newNlCard = (): NlEditorCard => ({ id: `c-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, headline: "", doc: EMPTY_DOC, cardType: "essays" });
 
-function mapStoredCardType(t: StoredCard["cardType"]): "narratives" | "essays" | "micro-memoir" {
+function mapStoredCardType(t: StoredCard["cardType"]): "narratives" | "essays" | "micro-memoir" | "archive" {
   if (t === "feature" || t === "narratives") return "narratives";
   if (t === "standard" || t === "essays") return "essays";
   if (t === "digest" || t === "micro-memoir") return "micro-memoir";
+  if (t === "archive") return "archive";
   return "essays";
 }
 
@@ -332,12 +333,27 @@ export default function NewsletterEditorClient({
   }, [nlInsertingPost]);
 
   // Only headline/body/image carry over — story-only fields like subheadline
-  // have no equivalent on a newsletter card, so they're dropped here.
-  function insertPostAsCard(post: NlPickablePost, at: number) {
+  // have no equivalent on a newsletter card, so they're dropped here. The picker
+  // list is light (no bodies), so the body is fetched on demand here and filled
+  // into the card once it arrives.
+  async function insertPostAsCard(post: NlPickablePost, at: number) {
+    // Match the card style to the story's section so an Archive story pulls in
+    // as an Archive card, an essay as an Essays card, etc.
+    const sec = post.section;
+    const cardType: NlEditorCard["cardType"] =
+      sec === "Archive" ? "archive" : sec === "Micro-Memoir" ? "micro-memoir" : sec === "Essays" ? "essays" : "narratives";
+    // The picker list is light (no body). Fetch this one story's body first so
+    // the card mounts with the right content — the rich-text editor reads its
+    // content on mount and won't pick up a later fill.
+    let body = post.body;
+    if (!body?.length && post.slug) {
+      body = await getNewsletterPostBody(post.slug).catch(() => [] as NlPickablePost["body"]);
+    }
     const card: NlEditorCard = {
       ...newNlCard(),
+      cardType,
       headline: post.headline ?? "",
-      doc: post.body?.length ? portableTextToTiptap(post.body) : EMPTY_DOC,
+      doc: body?.length ? portableTextToTiptap(body) : EMPTY_DOC,
       image: post.image ?? undefined,
       byline: post.byline || undefined,
       sourceSlug: post.slug || undefined,
@@ -362,7 +378,7 @@ export default function NewsletterEditorClient({
   async function nlCreateDraftFromCard(card: NlEditorCard) {
     setNlCreatingDraft(card.id);
     try {
-      const section = card.cardType === "essays" ? "Essays" : card.cardType === "micro-memoir" ? "Micro-Memoir" : "Narratives";
+      const section = card.cardType === "essays" ? "Essays" : card.cardType === "micro-memoir" ? "Micro-Memoir" : card.cardType === "archive" ? "Archive" : "Narratives";
       const { slug } = await createPostFromNewsletterCard({
         headline: card.headline,
         body: tiptapToPortableText(card.doc),
@@ -841,7 +857,7 @@ export default function NewsletterEditorClient({
         const mc = nlCards.find(c => c.id === nlMovingId);
         if (!mc) return null;
         const mcType = mc.cardType ?? "essays";
-        const mcLabel = mcType === "narratives" ? "NARRATIVES" : mcType === "essays" ? "ESSAYS" : "MICRO-MEMOIR";
+        const mcLabel = mcType === "narratives" ? "NARRATIVES" : mcType === "essays" ? "ESSAYS" : mcType === "archive" ? "FROM THE ARCHIVE" : "MICRO-MEMOIR";
         return (
           <div ref={nlMoveChipRef} style={{ position: "fixed", left: nlMoveRectRef.current.left, top: 0, width: nlMoveRectRef.current.width, zIndex: 1000, pointerEvents: "none", background: "white", border: `2px solid ${CRIMSON}`, padding: "0.65rem 0.9rem", boxShadow: "0 10px 30px rgba(0,0,0,0.22)", display: "flex", alignItems: "center", gap: "0.6rem", boxSizing: "border-box" }}>
             <span style={{ fontFamily: FONT, fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.15em", color: CRIMSON, textTransform: "uppercase", flexShrink: 0 }}>{mcLabel}</span>
@@ -889,7 +905,7 @@ export default function NewsletterEditorClient({
           <div style={{ padding: "0 2.5rem 2.5rem" }}>
             {nlCards.map((card, i) => {
               const type = card.cardType ?? (i === 0 ? "narratives" : "essays");
-              const sectionLabel = type === "narratives" ? "NARRATIVES" : type === "essays" ? "ESSAYS" : "MICRO-MEMOIR";
+              const sectionLabel = type === "narratives" ? "NARRATIVES" : type === "essays" ? "ESSAYS" : type === "archive" ? "FROM THE ARCHIVE" : "MICRO-MEMOIR";
               const isDragging = nlMovingId === card.id;
               // While any card is being dragged, collapse all others to a slim handle row
               // so the cursor only needs to travel a short distance to swap order.
@@ -939,7 +955,7 @@ export default function NewsletterEditorClient({
                             style={{ width: 28, height: 28, borderRadius: 4, background: "white", border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "grab", color: TEXT_MUTED, boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                           </button>
-                          {([["narratives", "Narratives"], ["essays", "Essays"], ["micro-memoir", "Micro-Memoir"]] as const).map(([t, label]) => {
+                          {([["narratives", "Narratives"], ["essays", "Essays"], ["micro-memoir", "Micro-Memoir"], ["archive", "Archive"]] as const).map(([t, label]) => {
                             const active = type === t;
                             return (
                               <button key={t} type="button" onClick={() => nlUpdateCard(card.id, { cardType: t })}
@@ -1047,6 +1063,32 @@ export default function NewsletterEditorClient({
                             onEditor={ed => { nlEditors.current[card.id] = ed; }}
                             onToolbar={tb => { nlToolbars.current[card.id] = tb; }} />
                         </div>
+                        {nlCardDraftRow(card, "center")}
+                      </div>
+                    )}
+
+                    {/* ARCHIVE card — a framed "from the archive" reprint on warm
+                        parchment, italic serif headline, to feel like a classic. */}
+                    {type === "archive" && (
+                      <div style={{ background: "#f3ede4", borderTop: `2px solid ${CRIMSON}`, borderBottom: `2px solid ${CRIMSON}`, padding: "1.5rem 2rem 2rem", margin: "0 -2.5rem" }}>
+                        {card.image && (
+                          <div style={{ margin: "0 0 1.25rem", position: "relative" }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", maxHeight: 220, objectFit: "cover", display: "block" }} />
+                            <div className="nl-card-controls" style={{ position: "absolute", top: "0.4rem", right: "0.4rem", display: "flex", gap: "0.35rem" }}>
+                              <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Change</button>
+                              <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Remove</button>
+                            </div>
+                          </div>
+                        )}
+                        <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Archive title"
+                          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.7rem", fontStyle: "italic", fontWeight: 400, lineHeight: 1.2, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "0.5rem", display: "block", boxSizing: "border-box", textAlign: "center" }} />
+                        <div style={{ textAlign: "center", marginBottom: "1.25rem" }}>{nlBylineField(card, "center")}</div>
+                        <div style={{ width: 32, height: 1, background: "#c9bda9", margin: "0 auto 1.25rem" }} />
+                        <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} placeholder="From the archive…"
+                          onChange={doc => nlUpdateCard(card.id, { doc })}
+                          onEditor={ed => { nlEditors.current[card.id] = ed; }}
+                          onToolbar={tb => { nlToolbars.current[card.id] = tb; }} />
                         {nlCardDraftRow(card, "center")}
                       </div>
                     )}
