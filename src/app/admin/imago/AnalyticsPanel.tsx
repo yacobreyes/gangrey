@@ -132,7 +132,7 @@ export default function AnalyticsPanel() {
               <span>Views {date ? "by hour" : "over time"}</span>
               {date && <span style={{ color: TEXT_DARK, fontWeight: 700, letterSpacing: 0, textTransform: "none", fontSize: "0.78rem" }}>{fmtDateLabel(date)}</span>}
             </div>
-            <Series data={data} prevLabel={date ? "Day before" : range === "7d" ? "Previous week" : range === "30d" ? "Previous month" : "Previous 90 days"} onPickDate={setDate} />
+            <Series data={data} onPickDate={setDate} />
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1rem" }}>
@@ -212,20 +212,16 @@ function Kpi({ title, value, d, card, h2, compareLabel }: { title: string; value
 // day / week-over-week / month-over-month" is something you can actually see
 // rather than infer from a KPI percentage. Each bucket shows this-period
 // (solid crimson) beside the same bucket from the prior period (light grey).
-function Series({ data, prevLabel, onPickDate }: { data: Data; prevLabel: string; onPickDate: (d: string) => void }) {
-  const { series: values, prevSeries, since, until, buckets } = data;
+function Series({ data, onPickDate }: { data: Data; onPickDate: (d: string) => void }) {
+  const { series: values, since, until, buckets } = data;
   const [hover, setHover] = useState<number | null>(null);
   // Clicking a bar pins its tooltip open (essential on touch, where there's no
   // hover). On daily charts, clicking also drills the whole panel into that day.
   const [pinned, setPinned] = useState<number | null>(null);
   const active = hover ?? pinned;
-  const max = Math.max(1, ...values, ...prevSeries);
+  const max = Math.max(1, ...values);
   const bucketMs = (until - since) / buckets;
   const hourly = buckets === 24 && bucketMs <= 3600_000 + 1000;
-  // No comparison data yet (tracking is new / prior window empty): render
-  // single full-width bars instead of a half-empty grouped pair, which reads
-  // as a mysterious half-bar. Grouping comes back once prev data exists.
-  const hasPrev = prevSeries.some(v => v > 0);
 
   function bucketDateStr(i: number): string {
     const t = new Date(since + i * bucketMs);
@@ -247,16 +243,6 @@ function Series({ data, prevLabel, onPickDate }: { data: Data; prevLabel: string
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.6rem" }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED }}>
-          <span style={{ width: 9, height: 9, borderRadius: 2, background: CRIMSON, display: "inline-block" }} /> This period
-        </span>
-        {hasPrev && (
-          <span style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED }}>
-            <span style={{ width: 9, height: 9, borderRadius: 2, background: "#e3ded9", display: "inline-block" }} /> {prevLabel}
-          </span>
-        )}
-      </div>
       <div style={{ position: "relative" }}>
         {active !== null && (
           <div style={{
@@ -266,7 +252,6 @@ function Series({ data, prevLabel, onPickDate }: { data: Data; prevLabel: string
           }}>
             <div style={{ fontWeight: 700, marginBottom: 2 }}>{bucketLabel(active)}{hourly ? "" : `, ${new Date(since + active * bucketMs).getFullYear()}`}</div>
             <div><span style={{ color: "#f0a8a8" }}>●</span> {fmtN(values[active] ?? 0)} page views</div>
-            {hasPrev && <div style={{ color: "#a8a29b" }}><span style={{ color: "#a8a29b" }}>●</span> {fmtN(prevSeries[active] ?? 0)} {prevLabel.toLowerCase()}</div>}
             {!hourly && <div style={{ color: "#a8a29b", marginTop: 2 }}>Click to open this day</div>}
           </div>
         )}
@@ -281,7 +266,6 @@ function Series({ data, prevLabel, onPickDate }: { data: Data; prevLabel: string
               }}
               style={{ flex: 1, height: "100%", display: "flex", alignItems: "flex-end", gap: 1, cursor: "pointer", position: "relative" }}>
               {active === i && <div style={{ position: "absolute", inset: "0 -1px", background: "rgba(73,0,0,0.05)" }} />}
-              {hasPrev && <div style={{ flex: 1, height: `${((prevSeries[i] ?? 0) / max) * 100}%`, minHeight: (prevSeries[i] ?? 0) > 0 ? 2 : 0, background: "#e3ded9", borderRadius: "2px 2px 0 0" }} />}
               <div style={{ flex: 1, height: `${(v / max) * 100}%`, minHeight: v > 0 ? 2 : 0, background: CRIMSON, borderRadius: "2px 2px 0 0", opacity: active === null || active === i ? 0.9 : 0.45, transition: "opacity .1s" }} />
             </div>
           ))}
