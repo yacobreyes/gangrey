@@ -28,7 +28,7 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
 
   const logoInner = (
     // eslint-disable-next-line @next/next/no-img-element
-    <img className="mag-wordmark-img" src="/Wordmark.png?v=7" alt="Gangrey" />
+    <img className="mag-wordmark-img" src="/Wordmark.png?v=7" alt="Gangrey" fetchPriority="high" decoding="sync" />
   );
 
   return (
@@ -142,6 +142,9 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
           font-size: 12px;
           color: #000000;
         }
+        /* Hide WebKit's built-in clear (×) on type=search — we render our own,
+           so without this there are two clear buttons. */
+        .mag-search-inline input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
         .mag-search-inline input::placeholder { color: #b8b8ba; }
         .mag-search-cancel {
           background: none;
