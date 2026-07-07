@@ -56,8 +56,10 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
           gap: 6px 16px;
           font-family: var(--font-subhead);
           font-weight: 700;
-          font-size: 9px;
-          letter-spacing: .16em;
+          /* Nudge up from 9px so the masthead dateline reads at the site's
+             small-label scale (~11px) instead of feeling shrunken. */
+          font-size: 11px;
+          letter-spacing: .14em;
           text-transform: uppercase;
           color: #000000;
         }
@@ -162,7 +164,7 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
           .mag-masthead { padding: 10px 20px 0; }
           .mag-wordmark-link { margin: 4px auto 6px; }
           .mag-wordmark-img { height: 38px; }
-          .mag-volno { flex-wrap: nowrap; font-size: 6.5px; letter-spacing: .04em; gap: 5px; padding: 5px 0; }
+          .mag-volno { flex-wrap: nowrap; font-size: 7.5px; letter-spacing: .02em; gap: 5px; padding: 5px 0; }
           .mag-volno .tag { white-space: nowrap; }
 
           .mag-nav {
