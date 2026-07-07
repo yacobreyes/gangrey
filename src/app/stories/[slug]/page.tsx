@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { PortableText } from "@portabletext/react";
-import { getFreeSlugs, getPost } from "@/lib/sanity";
+import { getPost } from "@/lib/sanity";
 import { postImageUrl } from "@/lib/sanityImage";
 import CommentSection from "@/components/CommentSection";
 import RelatedStories from "@/components/RelatedStories";
@@ -23,20 +23,13 @@ function sectionLabel(section: string) {
   return section;
 }
 
-export const revalidate = 60;
-export const dynamicParams = true;
-
-export async function generateStaticParams() {
-  try {
-    // Only free stories are safe to pre-render statically — gated stories
-    // (Archive, paid) read the session cookie and must render on-demand
-    // instead (dynamicParams: true below still serves them, just per-request).
-    const slugs = await getFreeSlugs();
-    return slugs.map(slug => ({ slug }));
-  } catch {
-    return [];
-  }
-}
+// Story pages render per-request. They can't be static/ISR: gated stories
+// (Archive, access:"paid") read the session cookie for the membership check,
+// and any static-generation attempt of such a path (build-time via
+// generateStaticParams, or on-demand ISR fill-in) throws DYNAMIC_SERVER_USAGE
+// and 500s. A per-request render on local SQLite is milliseconds — correctness
+// over a cache we don't need at this scale.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;

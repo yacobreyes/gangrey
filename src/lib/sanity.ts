@@ -382,24 +382,6 @@ export async function getAllSlugs(): Promise<string[]> {
   return client.fetch(`*[_type == "post"].slug.current`, {}, { next: { revalidate: 300 } });
 }
 
-// Slugs of stories the story page can safely pre-render statically: gated
-// stories (Archive, or access:"paid") read the session cookie to check
-// membership, which Next disallows for a path listed in generateStaticParams
-// (throws DYNAMIC_SERVER_USAGE) — so those must render on-demand instead
-// (dynamicParams: true already covers them, just without pre-generation).
-export async function getFreeSlugs(): Promise<string[]> {
-  if (isSqliteBackend()) {
-    return sqliteAllPostsAdmin(false)
-      .filter(p => p.section !== "Archive" && p.access !== "paid")
-      .map(p => p.slug);
-  }
-  return client.fetch(
-    `*[_type == "post" && section != "Archive" && access != "paid"].slug.current`,
-    {},
-    { next: { revalidate: 300 } }
-  );
-}
-
 export interface SanityIssue {
   _id: string;
   slug: string;
