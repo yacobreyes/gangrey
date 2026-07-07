@@ -370,7 +370,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
       <div style={{ position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#f5f8fa" }}>
         <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "2.5rem 2rem", width: 300, display: "flex", flexDirection: "column", gap: "1.5rem", alignItems: "center", textAlign: "center" }}>
           <span style={{ fontFamily: FONT, fontSize: "1.6rem", fontWeight: 900, letterSpacing: "-0.02em" }}>
-            <span style={{ color: CRIMSON }}>i</span><span style={{ color: "#000000" }}>Mago</span>
+            <span style={{ color: CRIMSON }}>i</span><span style={{ color: "#000000" }}>mago</span>
           </span>
           <button
             onClick={() => { import("next-auth/react").then(({ signIn }) => signIn("google", { callbackUrl: "/admin/imago" })); }}
@@ -477,7 +477,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
           {/* Logo */}
           <div style={{ padding: "0 0.75rem", display: "flex", alignItems: "center", justifyContent: sidebarOpen ? "flex-start" : "center", borderBottom: `1px solid ${BORDER}`, height: 52, boxSizing: "border-box", flexShrink: 0 }}>
             <span style={{ fontFamily: FONT, fontSize: "1.05rem", fontWeight: 900, color: TEXT_DARK, letterSpacing: "-0.02em" }}>
-              {sidebarOpen ? <><span style={{ color: CRIMSON }}>i</span><span style={{ color: "#000000" }}>Mago</span></> : <span style={{ color: CRIMSON }}>i</span>}
+              {sidebarOpen ? <><span style={{ color: CRIMSON }}>i</span><span style={{ color: "#000000" }}>mago</span></> : <span style={{ color: CRIMSON }}>i</span>}
             </span>
           </div>
           {/* Nav items */}
@@ -584,7 +584,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                 </button>
                 <span style={{ fontFamily: FONT, fontSize: "1.1rem", fontWeight: 900, color: TEXT_DARK, letterSpacing: "-0.02em" }}>
-                  <span style={{ color: CRIMSON }}>i</span><span style={{ color: "#000000" }}>Mago</span>
+                  <span style={{ color: CRIMSON }}>i</span><span style={{ color: "#000000" }}>mago</span>
                 </span>
                 {activePanel === "dashboard" ? (
                   <div ref={!createMenuRef.current ? createMenuRef : undefined} style={{ position: "relative" }}>
@@ -639,7 +639,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
               <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)" }} />
               <div style={{ position: "absolute", top: 0, left: 0, width: 260, height: "100%", background: "white", display: "flex", flexDirection: "column", overflowY: "auto", boxSizing: "border-box", boxShadow: "2px 0 12px rgba(0,0,0,0.15)" }} onClick={e => e.stopPropagation()}>
                 <div style={{ padding: "1rem 1.25rem", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontFamily: FONT, fontSize: "1rem", fontWeight: 900, color: TEXT_DARK }}><span style={{ color: CRIMSON }}>i</span><span style={{ color: "#000000" }}>Mago</span></span>
+                  <span style={{ fontFamily: FONT, fontSize: "1rem", fontWeight: 900, color: TEXT_DARK }}><span style={{ color: CRIMSON }}>i</span><span style={{ color: "#000000" }}>mago</span></span>
                   <button onClick={() => setShowMobileNav(false)} style={{ background: "none", border: "none", cursor: "pointer", color: TEXT_MUTED, padding: 0, display: "flex" }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </button>

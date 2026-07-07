@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Gangrey | iMago",
+  title: "Gangrey | imago",
   icons: {
     icon: [{ url: "/favicon.png", type: "image/png" }],
     shortcut: [{ url: "/favicon.png", type: "image/png" }],
