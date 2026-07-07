@@ -77,6 +77,8 @@ type FormState = {
   access: "free" | "paid";
   seoHeadline: string; socialHeadline: string; socialDescription: string;
   readingTime: string; sortOrder: string;
+  // Homepage pins, "1"/"0" so they flow through the save FormData and dirty check.
+  pinHero: string; pinTop: string;
 };
 
 type MediaAsset = { _id: string; url: string; originalFilename?: string; title?: string; description?: string; altText?: string };
@@ -140,6 +142,8 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
     socialDescription: post.socialDescription ?? "",
     readingTime: post.readingTime ? String(post.readingTime) : "",
     sortOrder: post.sortOrder != null ? String(post.sortOrder) : "",
+    pinHero: post.pinnedHero ? "1" : "0",
+    pinTop: post.pinnedTop ? "1" : "0",
   };
 
   const [form, setForm] = useState<FormState>(initialForm);
@@ -814,6 +818,28 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                   </>
                 )}
               </div>
+              {form.section !== "Archive" && (
+                <div>
+                  <label style={LABEL}>Homepage</label>
+                  <label style={{ display: "flex", alignItems: "flex-start", gap: "0.6rem", cursor: "pointer", marginBottom: "0.6rem" }}>
+                    <input type="checkbox" checked={form.pinHero === "1"} onChange={e => updateForm({ pinHero: e.target.checked ? "1" : "0" })} style={{ marginTop: 3 }} />
+                    <span>
+                      <span style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_DARK, fontWeight: 600 }}>Pin as hero</span>
+                      <span style={{ display: "block", fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, lineHeight: 1.4 }}>Feature this as the big story at the top of the homepage. Only one story can be the hero.</span>
+                    </span>
+                  </label>
+                  <label style={{ display: "flex", alignItems: "flex-start", gap: "0.6rem", cursor: "pointer" }}>
+                    <input type="checkbox" checked={form.pinTop === "1"} onChange={e => updateForm({ pinTop: e.target.checked ? "1" : "0" })} style={{ marginTop: 3 }} />
+                    <span>
+                      <span style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_DARK, fontWeight: 600 }}>Pin to Top Stories</span>
+                      <span style={{ display: "block", fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, lineHeight: 1.4 }}>Keep this in the Top Stories row instead of letting it roll off as newer stories publish.</span>
+                    </span>
+                  </label>
+                  {form.status !== "published" && (
+                    <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: CRIMSON, margin: "0.5rem 0 0", lineHeight: 1.4 }}>Pins only take effect once the story is published.</p>
+                  )}
+                </div>
+              )}
               <div><label style={LABEL}>Author</label><input style={INPUT} value={form.byline} onChange={e => updateForm({ byline: straightenQuotes(e.target.value) })} /></div>
               <div>
                 <label style={LABEL}>Publish date</label>

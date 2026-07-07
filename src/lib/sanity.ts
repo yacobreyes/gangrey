@@ -79,6 +79,10 @@ export interface SanityPost {
   readingTime?: number;
   sortOrder?: number;
   searchText?: string;
+  // Homepage pins (self-hosted): pinnedHero → the big hero; pinnedTop → forced
+  // into the Top Stories row.
+  pinnedHero?: boolean;
+  pinnedTop?: boolean;
 }
 
 // Lightweight field set for the admin dashboard list — excludes the heavy

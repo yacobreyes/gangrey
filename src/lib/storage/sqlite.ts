@@ -110,6 +110,10 @@ function migrate(d: any) {
   // backfilled here. (Adding `edited_by` in a later release is why publishing
   // — which always snapshots a version — began failing on older databases.)
   ensureColumn(d, "post_versions", "edited_by", "TEXT");
+  // Homepage pins. pinned_hero: at most one, becomes the big hero. pinned_top:
+  // any number, forced into the Top Stories row (before auto-filled recents).
+  ensureColumn(d, "posts", "pinned_hero", "INTEGER DEFAULT 0");
+  ensureColumn(d, "posts", "pinned_top", "INTEGER DEFAULT 0");
 }
 
 function ensureColumn(d: any, table: string, col: string, decl: string) {
@@ -147,7 +151,21 @@ function rowToPost(r: PostRow): SanityPost {
     _updatedAt: r.updated_at ?? undefined,
     lastEditedBy: r.last_edited_by ?? undefined,
     lastEditedAt: r.last_edited_at ?? undefined,
+    pinnedHero: !!r.pinned_hero,
+    pinnedTop: !!r.pinned_top,
   };
+}
+
+// pinned_hero is single (pinning one clears any other). pinned_top is a plain
+// toggle — any number of posts can be pinned into the Top Stories row.
+export function sqliteSetPins(id: string, hero: boolean, top: boolean): void {
+  if (hero) {
+    db().prepare(`UPDATE posts SET pinned_hero = 0 WHERE pinned_hero = 1 AND id != ?`).run(id);
+    db().prepare(`UPDATE posts SET pinned_hero = 1 WHERE id = ?`).run(id);
+  } else {
+    db().prepare(`UPDATE posts SET pinned_hero = 0 WHERE id = ?`).run(id);
+  }
+  db().prepare(`UPDATE posts SET pinned_top = ? WHERE id = ?`).run(top ? 1 : 0, id);
 }
 
 const PUBLIC_WHERE = `status != 'trashed' AND (
@@ -167,7 +185,8 @@ export function sqliteAllPublishedPosts(): SanityPost[] {
 // tables) must use these; only single-post reads need the body.
 const LIGHT_COLS = `id, slug, section, headline, subheadline, byline, date, status, access,
   scheduled_at, image, seo_headline, social_headline, social_description,
-  reading_time, sort_order, created_at, updated_at, last_edited_by, last_edited_at`;
+  reading_time, sort_order, created_at, updated_at, last_edited_by, last_edited_at,
+  pinned_hero, pinned_top`;
 
 export function sqliteAllPublishedPostsLight(): SanityPost[] {
   const rows = db().prepare(`SELECT ${LIGHT_COLS} FROM posts WHERE ${PUBLIC_WHERE} ORDER BY date DESC, COALESCE(sort_order, 0) ASC`).all();

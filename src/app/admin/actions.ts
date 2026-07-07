@@ -219,6 +219,8 @@ export async function savePost(formData: FormData) {
   const access = (formData.get("access") as string) === "paid" ? "paid" : "free";
   const scheduledAt = (formData.get("scheduledAt") as string) || null;
   const shouldSnapshot = formData.get("snapshot") === "1";
+  const pinHero = formData.get("pinHero") === "1";
+  const pinTop = formData.get("pinTop") === "1";
   const seoHeadline = (formData.get("seoHeadline") as string) || null;
   const socialHeadline = (formData.get("socialHeadline") as string) || null;
   const socialDescription = (formData.get("socialDescription") as string) || null;
@@ -289,6 +291,13 @@ export async function savePost(formData: FormData) {
       seoHeadline: sq(seoHeadline), socialHeadline: sq(socialHeadline), socialDescription: sq(socialDescription),
       readingTime, sortOrder, lastEditedBy: fullName(me),
     });
+    // Homepage pins — a pin only makes sense for a live story, so clear both
+    // when this isn't published.
+    const { sqliteSetPins } = await import("@/lib/storage/sqlite");
+    sqliteSetPins(doc._id as string, status === "published" && pinHero, status === "published" && pinTop);
+    // A pin change alters the homepage regardless of publish state (e.g.
+    // unpinning by moving to draft), so refresh it here too.
+    revalidatePath("/");
     if (shouldSnapshot || status === "published") {
       sqliteSnapshotVersion({
         slug, type: status === "published" ? "publish" : "autosave",
