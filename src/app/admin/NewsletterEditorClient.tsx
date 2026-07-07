@@ -19,7 +19,7 @@ import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
 import { portableToLines, relativeTime, dayLabel, colorForName } from "@/lib/editorDiff";
 import VersionCompare from "@/components/admin/VersionCompare";
 
-const FONT = "var(--font-inter), sans-serif";
+const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
 
 const INPUT: React.CSSProperties = {
   fontFamily: FONT, fontSize: "0.9rem", padding: "0.5rem 0.7rem",

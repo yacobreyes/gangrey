@@ -3,7 +3,7 @@
 import { redlineParagraphs } from "@/lib/editorDiff";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
 
-const FONT = "var(--font-inter), sans-serif";
+const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
 
 // Google-Docs-style version compare: the document rendered as one flowing
 // redline — unchanged text plain, additions highlighted green, deletions struck
