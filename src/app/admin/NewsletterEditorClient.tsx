@@ -20,6 +20,16 @@ import { portableToLines, relativeTime, dayLabel, colorForName } from "@/lib/edi
 import VersionCompare from "@/components/admin/VersionCompare";
 
 const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
+// Site font (Astoria) for the email-canvas byline, so the preview matches the
+// site rather than showing the Mac system font.
+const CANVAS_BYLINE = "var(--font-subhead), " + FONT;
+
+// Request a downsized derivative for card-preview images so the editor doesn't
+// load full-resolution photos (megabytes) at a few hundred px — the cause of
+// images blinking/glitching into place. Local media (/media/...) only.
+function sized(url: string, w: number): string {
+  return url.startsWith("/media/") ? `${url}${url.includes("?") ? "&" : "?"}w=${w}` : url;
+}
 
 const INPUT: React.CSSProperties = {
   fontFamily: FONT, fontSize: "0.9rem", padding: "0.5rem 0.7rem",
@@ -382,7 +392,7 @@ export default function NewsletterEditorClient({
     }
     return (
       <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", justifyContent: align === "center" ? "center" : "flex-start", marginBottom: align === "center" ? "1rem" : "0.85rem" }}>
-        <span style={{ fontFamily: FONT, fontSize: "0.8rem", fontWeight: 700, color: TEXT_DARK, letterSpacing: "0.02em" }}>By</span>
+        <span style={{ fontFamily: CANVAS_BYLINE, fontSize: "0.8rem", fontWeight: 700, color: TEXT_DARK, letterSpacing: "0.02em" }}>By</span>
         <input value={card.byline} onChange={e => nlUpdateCard(card.id, { byline: e.target.value })} placeholder="Author name" autoFocus={!card.byline}
           style={{ fontFamily: FONT, fontSize: "0.8rem", fontWeight: 700, color: TEXT_DARK, letterSpacing: "0.02em", border: "none", outline: "none", background: "transparent", padding: 0, textAlign: "left", width: `${card.byline.length > 0 ? card.byline.length + 1 : 11}ch`, boxSizing: "content-box" }} />
         <button type="button" title="Remove byline" onClick={() => nlUpdateCard(card.id, { byline: undefined })}
@@ -870,7 +880,7 @@ export default function NewsletterEditorClient({
                 style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1rem", lineHeight: 1.6, color: "#ffffff", border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, resize: "none", boxSizing: "border-box", display: "block", textAlign: "center", overflow: "hidden" }}
               />
               {nlAuthor && (
-                <p style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, color: "#ffffff", margin: "0.6rem 0 0", letterSpacing: "0.08em", textTransform: "uppercase" }}>By {nlAuthor}</p>
+                <p style={{ fontFamily: CANVAS_BYLINE, fontSize: "0.72rem", fontWeight: 700, color: "#ffffff", margin: "0.6rem 0 0", letterSpacing: "0.08em", textTransform: "uppercase" }}>By {nlAuthor}</p>
               )}
             </div>
           </div>
@@ -952,7 +962,7 @@ export default function NewsletterEditorClient({
                         {card.image ? (
                           <div style={{ margin: "0 -2.5rem 1.75rem", position: "relative" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={card.image.url} alt={card.image.alt ?? ""} style={{ width: "100%", maxHeight: 400, objectFit: "cover", display: "block" }} />
+                            <img src={sized(card.image.url, 1040)} alt={card.image.alt ?? ""} style={{ width: "100%", maxHeight: 400, objectFit: "cover", display: "block" }} />
                             <input value={card.image.caption ?? ""} onChange={e => nlUpdateCard(card.id, { image: { ...card.image!, caption: straightenQuotes(e.target.value) } })}
                               placeholder="Add a caption…"
                               style={{ fontFamily: FONT, fontSize: "0.7rem", color: TEXT_MUTED, fontStyle: "italic", border: "none", outline: "none", background: "transparent", width: "100%", padding: 0, margin: "0.4rem 1rem 0", boxSizing: "border-box", display: "block" }} />
@@ -988,7 +998,7 @@ export default function NewsletterEditorClient({
                         {card.image ? (
                           <div style={{ marginBottom: "0.85rem", position: "relative" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={card.image.url} alt={card.image.alt ?? ""} style={{ width: "100%", maxHeight: 240, objectFit: "cover", display: "block" }} />
+                            <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", maxHeight: 240, objectFit: "cover", display: "block" }} />
                             <div className="nl-card-controls" style={{ position: "absolute", top: "0.4rem", right: "0.4rem", display: "flex", gap: "0.35rem" }}>
                               <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Change</button>
                               <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Remove</button>
@@ -1016,7 +1026,7 @@ export default function NewsletterEditorClient({
                         <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Title"
                           style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.7rem", fontStyle: "normal", fontWeight: 400, lineHeight: 1.2, letterSpacing: "0.02em", color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "0.35rem", display: "block", boxSizing: "border-box", textAlign: "center" }} />
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.35rem", flexWrap: "wrap", margin: "0 0 1.5rem" }}>
-                          <span style={{ fontFamily: FONT, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: CRIMSON }}>A Micro-Memoir</span>
+                          <span style={{ fontFamily: CANVAS_BYLINE, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: CRIMSON }}>A Micro-Memoir</span>
                           {card.byline === undefined ? (
                             <button type="button" onClick={() => nlUpdateCard(card.id, { byline: "" })}
                               style={{ background: "none", border: "none", padding: 0, fontFamily: FONT, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.02em", color: CRIMSON, cursor: "pointer" }}>+ by</button>
