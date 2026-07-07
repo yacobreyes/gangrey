@@ -81,9 +81,11 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
           gap: clamp(16px, 2vw, 28px);
           align-items: center;
           font-family: var(--font-subhead);
-          font-size: 10px;
-          font-weight: 700;
-          letter-spacing: .15em;
+          /* Match the footer nav (12px / 800 / .2em) — same element type, so
+             the site's primary navigation reads at a consistent size. */
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: .2em;
           text-transform: uppercase;
           color: #000000;
           white-space: nowrap;
@@ -97,9 +99,9 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
           border: none;
           padding: 0;
           font-family: var(--font-subhead);
-          font-size: 9.5px;
-          font-weight: 700;
-          letter-spacing: .14em;
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: .2em;
           text-transform: uppercase;
           cursor: pointer;
         }
