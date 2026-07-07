@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { parseBody } from "@/lib/parseBody";
-import { requireAuth } from "@/lib/adminAuth";
+import { requireAuth, requireAdmin } from "@/lib/adminAuth";
 import { fullName } from "@/lib/users";
 import { client } from "@/lib/sanity";
 import { straightenQuotes, straightenBlocks } from "@/lib/straighten";
@@ -467,7 +467,9 @@ export async function updateMediaAsset(assetId: string, fields: { title?: string
 }
 
 export async function saveAbout(formData: FormData) {
-  await requireAuth();
+  // About is admin-only (editors don't see the panel in the UI) — enforce it
+  // server-side too, since a server action is callable directly.
+  await requireAdmin();
   const raw = formData.get("body") as string;
   let body: unknown;
   try {
