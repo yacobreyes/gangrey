@@ -57,21 +57,13 @@ export default function Feed({
   // piece); otherwise the most recent non-archive.
   const hero = published.find(p => p.pinnedHero) ?? nonGangrey[0];
   const used = new Set<string>(hero ? [hero._id] : []);
-  // Top Stories: pinned-to-top stories lead (any section), then fill with the
-  // most recent non-archive up to 3 — always excluding whatever's in the hero.
+  // Top Stories: up to 4 (the grid is a 4-up). Pinned-to-top stories lead (any
+  // section, in the order encountered), then fill with the most recent
+  // non-archive — always excluding whatever's in the hero.
   const pinnedTop = published.filter(p => p.pinnedTop && !used.has(p._id));
   pinnedTop.forEach(p => used.add(p._id));
   const recentFill = nonGangrey.filter(p => !used.has(p._id));
-  const cards = [...pinnedTop, ...recentFill].slice(0, 3);
-  cards.forEach(p => used.add(p._id));
-  // Legacy hardcoded archive feature — kept as a fallback, deduped against pins.
-  const archiveFeature = published.find(p =>
-    isGangrey(p) && !used.has(p._id) && (
-      p.slug === "starting-somewhere" ||
-      p.headline?.toLowerCase().includes("starting somewhere")
-    )
-  ) ?? null;
-  const latestCards = [...cards, ...(archiveFeature ? [archiveFeature] : [])];
+  const latestCards = [...pinnedTop, ...recentFill].slice(0, 4);
 
   // Dot pagination for the mobile carousel — tracks which card is currently
   // snapped into view so the active dot can highlight, New Yorker-style.
@@ -411,7 +403,7 @@ export default function Feed({
       )}
 
       {/* LATEST FROM THE MAGAZINE */}
-      {!q && cards.length > 0 && (
+      {!q && latestCards.length > 0 && (
         <section className="hm-latest">
           <div className="hm-latest-head">
             <h2>Top Stories</h2>
