@@ -132,7 +132,7 @@ export default function AnalyticsPanel() {
               <span>Views {date ? "by hour" : "over time"}</span>
               {date && <span style={{ color: TEXT_DARK, fontWeight: 700, letterSpacing: 0, textTransform: "none", fontSize: "0.78rem" }}>{fmtDateLabel(date)}</span>}
             </div>
-            <Series data={data} prevLabel={date ? "Day before" : range === "7d" ? "Previous week" : range === "30d" ? "Previous month" : "Previous 90 days"} />
+            <Series data={data} prevLabel={date ? "Day before" : range === "7d" ? "Previous week" : range === "30d" ? "Previous month" : "Previous 90 days"} onPickDate={setDate} />
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1rem" }}>
@@ -212,12 +212,21 @@ function Kpi({ title, value, d, card, h2, compareLabel }: { title: string; value
 // day / week-over-week / month-over-month" is something you can actually see
 // rather than infer from a KPI percentage. Each bucket shows this-period
 // (solid crimson) beside the same bucket from the prior period (light grey).
-function Series({ data, prevLabel }: { data: Data; prevLabel: string }) {
+function Series({ data, prevLabel, onPickDate }: { data: Data; prevLabel: string; onPickDate: (d: string) => void }) {
   const { series: values, prevSeries, since, until, buckets } = data;
   const [hover, setHover] = useState<number | null>(null);
+  // Clicking a bar pins its tooltip open (essential on touch, where there's no
+  // hover). On daily charts, clicking also drills the whole panel into that day.
+  const [pinned, setPinned] = useState<number | null>(null);
+  const active = hover ?? pinned;
   const max = Math.max(1, ...values, ...prevSeries);
   const bucketMs = (until - since) / buckets;
   const hourly = buckets === 24 && bucketMs <= 3600_000 + 1000;
+
+  function bucketDateStr(i: number): string {
+    const t = new Date(since + i * bucketMs);
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+  }
 
   function bucketLabel(i: number, short = false): string {
     const t = new Date(since + i * bucketMs);
@@ -243,24 +252,31 @@ function Series({ data, prevLabel }: { data: Data; prevLabel: string }) {
         </span>
       </div>
       <div style={{ position: "relative" }}>
-        {hover !== null && (
+        {active !== null && (
           <div style={{
-            position: "absolute", bottom: "calc(100% + 6px)", left: `${((hover + 0.5) / buckets) * 100}%`, transform: "translateX(-50%)",
+            position: "absolute", bottom: "calc(100% + 6px)", left: `${((active + 0.5) / buckets) * 100}%`, transform: "translateX(-50%)",
             background: "#2a2622", color: "white", borderRadius: 6, padding: "0.4rem 0.6rem", fontFamily: FONT, fontSize: "0.72rem",
             whiteSpace: "nowrap", pointerEvents: "none", zIndex: 5, boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
           }}>
-            <div style={{ fontWeight: 700, marginBottom: 2 }}>{bucketLabel(hover)}{hourly ? "" : `, ${new Date(since + hover * bucketMs).getFullYear()}`}</div>
-            <div><span style={{ color: "#f0a8a8" }}>●</span> {fmtN(values[hover] ?? 0)} views</div>
-            <div style={{ color: "#a8a29b" }}><span style={{ color: "#a8a29b" }}>●</span> {fmtN(prevSeries[hover] ?? 0)} {prevLabel.toLowerCase()}</div>
+            <div style={{ fontWeight: 700, marginBottom: 2 }}>{bucketLabel(active)}{hourly ? "" : `, ${new Date(since + active * bucketMs).getFullYear()}`}</div>
+            <div><span style={{ color: "#f0a8a8" }}>●</span> {fmtN(values[active] ?? 0)} page views</div>
+            <div style={{ color: "#a8a29b" }}><span style={{ color: "#a8a29b" }}>●</span> {fmtN(prevSeries[active] ?? 0)} {prevLabel.toLowerCase()}</div>
+            {!hourly && <div style={{ color: "#a8a29b", marginTop: 2 }}>Click to open this day</div>}
           </div>
         )}
         <div style={{ display: "flex", alignItems: "flex-end", gap: buckets > 30 ? 1 : 3, height: 130 }}>
           {values.map((v, i) => (
             <div key={i} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
+              onClick={() => {
+                // Daily bars drill the whole panel into that day; hourly bars
+                // pin/unpin the tooltip (there's no hover on touch).
+                if (!hourly) onPickDate(bucketDateStr(i));
+                else setPinned(p => (p === i ? null : i));
+              }}
               style={{ flex: 1, height: "100%", display: "flex", alignItems: "flex-end", gap: 1, cursor: "pointer", position: "relative" }}>
-              {hover === i && <div style={{ position: "absolute", inset: "0 -1px", background: "rgba(73,0,0,0.05)" }} />}
+              {active === i && <div style={{ position: "absolute", inset: "0 -1px", background: "rgba(73,0,0,0.05)" }} />}
               <div style={{ flex: 1, height: `${((prevSeries[i] ?? 0) / max) * 100}%`, minHeight: (prevSeries[i] ?? 0) > 0 ? 2 : 0, background: "#e3ded9", borderRadius: "2px 2px 0 0" }} />
-              <div style={{ flex: 1, height: `${(v / max) * 100}%`, minHeight: v > 0 ? 2 : 0, background: CRIMSON, borderRadius: "2px 2px 0 0", opacity: hover === null || hover === i ? 0.9 : 0.45, transition: "opacity .1s" }} />
+              <div style={{ flex: 1, height: `${(v / max) * 100}%`, minHeight: v > 0 ? 2 : 0, background: CRIMSON, borderRadius: "2px 2px 0 0", opacity: active === null || active === i ? 0.9 : 0.45, transition: "opacity .1s" }} />
             </div>
           ))}
         </div>
