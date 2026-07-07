@@ -4,7 +4,7 @@ import {
   isSqliteBackend,
   sqliteAnalyticsOverview, sqliteAnalyticsSeries, sqliteAnalyticsTopContent,
   sqliteAnalyticsBreakdown, sqliteAnalyticsRealtime, sqliteAnalyticsTrending,
-  sqliteAllPostsAdmin,
+  sqliteAllPostsAdminLight,
 } from "@/lib/storage/sqlite";
 
 // Admin-only analytics dashboard data. One call returns everything the panel
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
 
   // Headline titles so the UI can label slugs without a second round-trip.
   const titleBySlug: Record<string, string> = {};
-  for (const p of sqliteAllPostsAdmin()) titleBySlug[p.slug] = p.headline;
+  for (const p of sqliteAllPostsAdminLight()) titleBySlug[p.slug] = p.headline;
 
   const overview = sqliteAnalyticsOverview(since, until);
   const prev = sqliteAnalyticsOverview(prevSince, since);

@@ -160,6 +160,42 @@ export function sqliteAllPublishedPosts(): SanityPost[] {
   return rows.map(rowToPost);
 }
 
+// Every column EXCEPT the portable-text body. With the ~2,500-story archive
+// imported, `SELECT *` + JSON.parse of every body costs real time per request
+// and, worse, ships megabytes to the browser when a list feeds a client
+// component. List/index contexts (homepage, latest, related, slugs, admin
+// tables) must use these; only single-post reads need the body.
+const LIGHT_COLS = `id, slug, section, headline, subheadline, byline, date, status, access,
+  scheduled_at, image, seo_headline, social_headline, social_description,
+  reading_time, sort_order, created_at, updated_at, last_edited_by, last_edited_at`;
+
+export function sqliteAllPublishedPostsLight(): SanityPost[] {
+  const rows = db().prepare(`SELECT ${LIGHT_COLS} FROM posts WHERE ${PUBLIC_WHERE} ORDER BY date DESC, COALESCE(sort_order, 0) ASC`).all();
+  return rows.map((r: PostRow) => rowToPost({ ...r, body: "[]" }));
+}
+
+export function sqliteAllPostsAdminLight(excludeArchive = false): SanityPost[] {
+  const where = excludeArchive ? `WHERE section != 'Archive'` : "";
+  const rows = db().prepare(`SELECT ${LIGHT_COLS} FROM posts ${where} ORDER BY COALESCE(updated_at, created_at) DESC`).all();
+  return rows.map((r: PostRow) => rowToPost({ ...r, body: "[]" }));
+}
+
+// slug -> plain body text, for client-side search. Parses bodies, so only call
+// when a search actually needs it (?q=), never on plain page loads.
+export function sqliteBodyTextBySlug(publishedOnly = true): Record<string, string> {
+  const where = publishedOnly ? `WHERE ${PUBLIC_WHERE}` : "";
+  const rows = db().prepare(`SELECT slug, body FROM posts ${where}`).all();
+  const out: Record<string, string> = {};
+  for (const r of rows) {
+    try {
+      const blocks = JSON.parse(r.body || "[]") as { _type?: string; children?: { text?: string }[] }[];
+      out[r.slug] = blocks.filter(b => b._type === "block")
+        .map(b => (b.children ?? []).map(c => c.text ?? "").join("")).join(" ");
+    } catch { out[r.slug] = ""; }
+  }
+  return out;
+}
+
 export function sqliteAllPostsAdmin(excludeArchive = false): SanityPost[] {
   const where = excludeArchive ? `WHERE section != 'Archive'` : "";
   const rows = db().prepare(`SELECT * FROM posts ${where} ORDER BY COALESCE(updated_at, created_at) DESC`).all();

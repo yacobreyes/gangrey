@@ -1,10 +1,10 @@
 import { MetadataRoute } from "next";
-import { getAllPosts } from "@/lib/sanity";
+import { getPostsLight } from "@/lib/sanity";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org";
-  let posts: Awaited<ReturnType<typeof getAllPosts>> = [];
-  try { posts = await getAllPosts(); } catch {}
+  let posts: Awaited<ReturnType<typeof getPostsLight>> = [];
+  try { posts = await getPostsLight(); } catch {}
 
   const storyEntries: MetadataRoute.Sitemap = posts.map(p => ({
     url: `${siteUrl}/stories/${p.slug}`,

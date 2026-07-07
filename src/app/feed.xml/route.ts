@@ -1,11 +1,13 @@
-import { getAllPosts } from "@/lib/sanity";
+import { getPostsLight } from "@/lib/sanity";
 import { postImageUrl } from "@/lib/sanityImage";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org";
-  const posts = await getAllPosts();
+  // withSearch gives plain-text searchText for the description fallback without
+  // shipping/parsing full portable-text bodies.
+  const posts = await getPostsLight(true);
 
   const items = posts
     .filter(p => p.status === "published" || !p.status)
@@ -13,12 +15,7 @@ export async function GET() {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 30)
     .map(p => {
-      const body = (p.body ?? [])
-        .filter((b: { _type: string }) => b._type === "block")
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((b: any) => (b.children ?? []).map((c: any) => c.text ?? "").join(""))
-        .join("\n\n")
-        .slice(0, 500);
+      const body = (p.searchText ?? "").slice(0, 500);
 
       const img = postImageUrl(p.image, 1200, 630);
       const imgAbs = img ? (img.startsWith("http") ? img : siteUrl + img) : null;

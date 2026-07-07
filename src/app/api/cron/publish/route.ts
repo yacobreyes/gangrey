@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { renderNewsletterHtml, type NlCard } from "@/lib/newsletterEmail";
-import { isSqliteBackend, sqliteAllPostsAdmin, sqliteDocsByType, sqliteMutate } from "@/lib/storage/sqlite";
+import { isSqliteBackend, sqliteAllPostsAdminLight, sqliteDocsByType, sqliteMutate } from "@/lib/storage/sqlite";
 import { deliverNewsletter } from "@/app/admin/newsletterActions";
 
 export const runtime = "nodejs";
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 async function runSqlite(): Promise<{ published: number; newslettersSent: number }> {
   const now = Date.now();
 
-  const duePosts = sqliteAllPostsAdmin().filter(
+  const duePosts = sqliteAllPostsAdminLight().filter(
     p => p.status === "scheduled" && p.scheduledAt && new Date(p.scheduledAt).getTime() <= now
   );
   if (duePosts.length) {

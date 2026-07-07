@@ -2,6 +2,7 @@ import { createClient } from "next-sanity";
 import { straightenQuotes, straightenBlocks } from "./straighten";
 import {
   isSqliteBackend, sqliteAllPublishedPosts, sqliteAllPostsAdmin, sqliteGetPost, sqliteGetSingleton,
+  sqliteAllPublishedPostsLight, sqliteAllPostsAdminLight, sqliteBodyTextBySlug,
   sqliteDocsByType, sqliteListMedia, sqliteGetMediaMeta,
 } from "./storage/sqlite";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -191,8 +192,14 @@ const POSTS_LIGHT_FILTER = `*[_type == "post" && (
 // (false) keeps the homepage payload small for fast navigation back to it.
 export async function getPostsLight(withSearch = false): Promise<SanityPost[]> {
   if (isSqliteBackend()) {
-    // Local reads are cheap — serve full posts, adding searchText when asked.
-    return sqliteAllPublishedPosts().map(p => straightenPost(withSearch ? { ...p, searchText: bodyText(p) } : p));
+    // Light rows only — with the imported archive, full bodies here meant
+    // parsing ~2,500 stories per request AND shipping them to the browser.
+    // searchText is computed from a targeted slug->text query only when a
+    // search actually needs it.
+    const posts = sqliteAllPublishedPostsLight();
+    if (!withSearch) return posts.map(straightenPost);
+    const text = sqliteBodyTextBySlug(true);
+    return posts.map(p => straightenPost({ ...p, searchText: text[p.slug] ?? "" }));
   }
   const fields = withSearch ? POST_LIST_FIELDS_SEARCH : POST_LIST_FIELDS;
   const posts: SanityPost[] = await client.fetch(
@@ -211,7 +218,10 @@ export async function getPostsLight(withSearch = false): Promise<SanityPost[]> {
 // otherwise make the editorial dashboard slow to load and unwieldy to scroll.
 export async function getAllPostsAdmin(withSearch = false, excludeArchive = false): Promise<SanityPost[]> {
   if (isSqliteBackend()) {
-    return sqliteAllPostsAdmin(excludeArchive).map(p => straightenPost(withSearch ? { ...p, searchText: bodyText(p) } : p));
+    const posts = sqliteAllPostsAdminLight(excludeArchive);
+    if (!withSearch) return posts.map(straightenPost);
+    const text = sqliteBodyTextBySlug(false);
+    return posts.map(p => straightenPost({ ...p, searchText: text[p.slug] ?? "" }));
   }
   const fields = withSearch ? POST_LIST_FIELDS_SEARCH : POST_LIST_FIELDS;
   const archiveFilter = excludeArchive ? ` && section != "Archive"` : "";
@@ -234,7 +244,7 @@ const ARCHIVE_LIST_FIELDS = `
 `;
 export async function getArchivePostsAdmin(): Promise<SanityPost[]> {
   if (isSqliteBackend()) {
-    return sqliteAllPostsAdmin(false).filter(p => p.section === "Archive").map(straightenPost);
+    return sqliteAllPostsAdminLight(false).filter(p => p.section === "Archive").map(straightenPost);
   }
   const posts: SanityPost[] = await clientCdn.fetch(
     `*[_type == "post" && !(_id in path("drafts.**")) && section == "Archive"] | order(date desc) { ${ARCHIVE_LIST_FIELDS} }`,
@@ -252,7 +262,14 @@ export async function getArchivePostsAdmin(): Promise<SanityPost[]> {
 // body[].children[].text for search/excerpt/reading-time) works unchanged.
 export async function getArchivePosts(): Promise<SanityPost[]> {
   if (isSqliteBackend()) {
-    return sqliteAllPublishedPosts().filter(p => p.section === "Archive").map(straightenPost);
+    // Same trick as the Sanity path below: plain text wrapped in one synthetic
+    // block, so the archive page's search/excerpt/reading-time logic works
+    // without parsing 2,500 full portable-text bodies.
+    const text = sqliteBodyTextBySlug(true);
+    return sqliteAllPublishedPostsLight().filter(p => p.section === "Archive").map(p => straightenPost({
+      ...p,
+      body: [{ _type: "block", style: "normal", children: [{ _type: "span", text: text[p.slug] ?? "" }] }] as SanityPost["body"],
+    }));
   }
   type Row = { _id: string; slug: string; section: SanityPost["section"]; headline: string; byline: string; date: string; status?: SanityPost["status"]; sortOrder?: number; plain?: string };
   const rows: Row[] = await clientCdn.fetch(
@@ -313,7 +330,7 @@ export type AdminMediaAsset = {
 export async function getMediaLibrary(): Promise<AdminMediaAsset[]> {
   if (isSqliteBackend()) {
     const usage: Record<string, { slug: string; headline: string }[]> = {};
-    for (const p of sqliteAllPostsAdmin(false)) {
+    for (const p of sqliteAllPostsAdminLight(false)) {
       if (p.image?.url) (usage[p.image.url] ??= []).push({ slug: p.slug, headline: p.headline });
     }
     return sqliteListMedia().map(m => {
@@ -378,7 +395,7 @@ export async function getPost(slug: string): Promise<SanityPost | null> {
 }
 
 export async function getAllSlugs(): Promise<string[]> {
-  if (isSqliteBackend()) return sqliteAllPostsAdmin(false).map(p => p.slug);
+  if (isSqliteBackend()) return sqliteAllPostsAdminLight(false).map(p => p.slug);
   return client.fetch(`*[_type == "post"].slug.current`, {}, { next: { revalidate: 300 } });
 }
 
