@@ -27,15 +27,12 @@ function isActiveMember(m: Member): boolean {
 // transition, but they're one person and belong in one list.
 type Row = { email: string; member?: Member; subscriber?: Subscriber };
 
-export type TopStory = { id: string; headline: string; slug: string; views: number };
-
 export default function AudiencePanel({
-  subscribers, setSubscribers, subscribersLoading, topStories = [],
+  subscribers, setSubscribers, subscribersLoading,
 }: {
   subscribers: Subscriber[];
   setSubscribers: (updater: Subscriber[] | ((prev: Subscriber[]) => Subscriber[])) => void;
   subscribersLoading: boolean;
-  topStories?: TopStory[];
 }) {
   const [members, setMembers] = useState<Member[]>([]);
   const [membersLoading, setMembersLoading] = useState(true);
@@ -129,22 +126,8 @@ export default function AudiencePanel({
   return (
     <div style={{ maxWidth: 720 }}>
       <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: "0 0 1.25rem" }}>
-        Everything about your readership in one place.
+        Your subscribers and members, in one list.
       </p>
-
-      {/* Top Stories — most-viewed published pieces (one view per device per day) */}
-      {topStories.length > 0 && (
-        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "0.9rem 1rem 0.55rem", marginBottom: "1.5rem" }}>
-          <p style={{ fontFamily: FONT, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: CRIMSON, margin: "0 0 0.5rem" }}>Top Stories</p>
-          {topStories.map((s, i) => (
-            <a key={s.id} href={`/stories/${s.slug}`} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "baseline", gap: "0.6rem", padding: "0.38rem 0", borderTop: i > 0 ? `1px solid ${BORDER}` : "none", textDecoration: "none" }}>
-              <span style={{ fontFamily: FONT, fontSize: "0.8rem", fontWeight: 700, color: TEXT_MUTED, width: 16, flexShrink: 0 }}>{i + 1}</span>
-              <span style={{ fontFamily: FONT, fontSize: "0.88rem", fontWeight: 600, color: TEXT_DARK, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{s.headline}</span>
-              <span style={{ fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, flexShrink: 0 }}>{s.views.toLocaleString("en-US")} {s.views === 1 ? "view" : "views"}</span>
-            </a>
-          ))}
-        </div>
-      )}
 
       <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "center", marginBottom: "1.25rem" }}>
         <input
