@@ -403,14 +403,8 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
           display: flex;
           flex-direction: column;
           transition: width 0.2s ease, min-width 0.2s ease;
-          /* Pin to the viewport so it's always exactly one screen tall and the
-             Sign-out button stays anchored at the bottom — without this the
-             sidebar stretches to the full (very tall) page height on long
-             content like the Archive, pushing Sign-out far below the fold. The
-             nav list in the middle scrolls internally when it overflows. */
-          position: sticky;
-          top: 0;
-          height: 100vh;
+          overflow: hidden;
+          position: relative;
           z-index: 10;
           overflow: visible;
         }
