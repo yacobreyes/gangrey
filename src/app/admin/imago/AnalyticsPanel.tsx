@@ -9,8 +9,10 @@ type Bd = { key: string; views: number };
 type Top = { slug: string; title: string; section: string; byline: string; views: number; visitors: number; avgEngagedMs: number };
 type Data = {
   range: string;
+  since: number; until: number; buckets: number;
   overview: { views: number; visitors: number; engagedMs: number; avgEngagedMs: number; viewsDelta: number; visitorsDelta: number; engagedDelta: number };
   series: number[];
+  prevSeries: number[];
   top: Top[];
   sources: Bd[]; sections: Bd[]; authors: Bd[]; devices: Bd[];
   trending: { slug: string; title: string; recent: number; score: number }[];
@@ -130,7 +132,7 @@ export default function AnalyticsPanel() {
               <span>Views {date ? "by hour" : "over time"}</span>
               {date && <span style={{ color: TEXT_DARK, fontWeight: 700, letterSpacing: 0, textTransform: "none", fontSize: "0.78rem" }}>{fmtDateLabel(date)}</span>}
             </div>
-            <Series values={data.series} />
+            <Series data={data} prevLabel={date ? "Day before" : range === "7d" ? "Previous week" : range === "30d" ? "Previous month" : "Previous 90 days"} />
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1rem" }}>
@@ -206,13 +208,70 @@ function Kpi({ title, value, d, card, h2, compareLabel }: { title: string; value
   );
 }
 
-function Series({ values }: { values: number[] }) {
-  const max = Math.max(1, ...values);
+// Labeled, hoverable bar chart with a previous-period overlay, so "day-over-
+// day / week-over-week / month-over-month" is something you can actually see
+// rather than infer from a KPI percentage. Each bucket shows this-period
+// (solid crimson) beside the same bucket from the prior period (light grey).
+function Series({ data, prevLabel }: { data: Data; prevLabel: string }) {
+  const { series: values, prevSeries, since, until, buckets } = data;
+  const [hover, setHover] = useState<number | null>(null);
+  const max = Math.max(1, ...values, ...prevSeries);
+  const bucketMs = (until - since) / buckets;
+  const hourly = buckets === 24 && bucketMs <= 3600_000 + 1000;
+
+  function bucketLabel(i: number, short = false): string {
+    const t = new Date(since + i * bucketMs);
+    if (hourly) {
+      const h = t.getHours();
+      const label = h === 0 ? "12a" : h === 12 ? "12p" : h > 12 ? `${h - 12}p` : `${h}a`;
+      return label;
+    }
+    return t.toLocaleDateString("en-US", short ? { month: "numeric", day: "numeric" } : { month: "short", day: "numeric" });
+  }
+
+  // Thin out x-axis labels so they don't collide — show every Nth tick.
+  const labelEvery = buckets <= 8 ? 1 : buckets <= 24 ? 3 : Math.ceil(buckets / 8);
+
   return (
-    <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 120 }}>
-      {values.map((v, i) => (
-        <div key={i} title={`${v}`} style={{ flex: 1, height: `${(v / max) * 100}%`, minHeight: v > 0 ? 2 : 0, background: CRIMSON, borderRadius: "2px 2px 0 0", opacity: 0.85 }} />
-      ))}
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.6rem" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED }}>
+          <span style={{ width: 9, height: 9, borderRadius: 2, background: CRIMSON, display: "inline-block" }} /> This period
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED }}>
+          <span style={{ width: 9, height: 9, borderRadius: 2, background: "#e3ded9", display: "inline-block" }} /> {prevLabel}
+        </span>
+      </div>
+      <div style={{ position: "relative" }}>
+        {hover !== null && (
+          <div style={{
+            position: "absolute", bottom: "calc(100% + 6px)", left: `${((hover + 0.5) / buckets) * 100}%`, transform: "translateX(-50%)",
+            background: "#2a2622", color: "white", borderRadius: 6, padding: "0.4rem 0.6rem", fontFamily: FONT, fontSize: "0.72rem",
+            whiteSpace: "nowrap", pointerEvents: "none", zIndex: 5, boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+          }}>
+            <div style={{ fontWeight: 700, marginBottom: 2 }}>{bucketLabel(hover)}{hourly ? "" : `, ${new Date(since + hover * bucketMs).getFullYear()}`}</div>
+            <div><span style={{ color: "#f0a8a8" }}>●</span> {fmtN(values[hover] ?? 0)} views</div>
+            <div style={{ color: "#a8a29b" }}><span style={{ color: "#a8a29b" }}>●</span> {fmtN(prevSeries[hover] ?? 0)} {prevLabel.toLowerCase()}</div>
+          </div>
+        )}
+        <div style={{ display: "flex", alignItems: "flex-end", gap: buckets > 30 ? 1 : 3, height: 130 }}>
+          {values.map((v, i) => (
+            <div key={i} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
+              style={{ flex: 1, height: "100%", display: "flex", alignItems: "flex-end", gap: 1, cursor: "pointer", position: "relative" }}>
+              {hover === i && <div style={{ position: "absolute", inset: "0 -1px", background: "rgba(73,0,0,0.05)" }} />}
+              <div style={{ flex: 1, height: `${((prevSeries[i] ?? 0) / max) * 100}%`, minHeight: (prevSeries[i] ?? 0) > 0 ? 2 : 0, background: "#e3ded9", borderRadius: "2px 2px 0 0" }} />
+              <div style={{ flex: 1, height: `${(v / max) * 100}%`, minHeight: v > 0 ? 2 : 0, background: CRIMSON, borderRadius: "2px 2px 0 0", opacity: hover === null || hover === i ? 0.9 : 0.45, transition: "opacity .1s" }} />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ display: "flex", marginTop: "0.4rem" }}>
+        {values.map((_, i) => (
+          <div key={i} style={{ flex: 1, textAlign: "center", fontFamily: FONT, fontSize: "0.65rem", color: TEXT_MUTED }}>
+            {i % labelEvery === 0 ? bucketLabel(i, true) : ""}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

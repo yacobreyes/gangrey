@@ -57,7 +57,11 @@ export async function GET(req: NextRequest) {
       visitorsDelta: pctDelta(overview.visitors, prev.visitors),
       engagedDelta: pctDelta(overview.avgEngagedMs, prev.avgEngagedMs),
     },
+    since, until, buckets,
     series: sqliteAnalyticsSeries(since, until, buckets),
+    // Same bucket count over the immediately-prior equal-length window, so the
+    // chart can overlay day-over-day / week-over-week / month-over-month.
+    prevSeries: sqliteAnalyticsSeries(prevSince, since, buckets),
     top: sqliteAnalyticsTopContent(since, until, 20).map(t => ({ ...t, title: titleBySlug[t.slug] ?? t.slug })),
     sources: sqliteAnalyticsBreakdown("source", since, until, 10),
     sections: sqliteAnalyticsBreakdown("section", since, until, 10),
