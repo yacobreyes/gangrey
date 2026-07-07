@@ -179,6 +179,9 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
   const [showCropModal, setShowCropModal] = useState(false);
   const [showImageDetails, setShowImageDetails] = useState(false);
   const [imageMenuOpen, setImageMenuOpen] = useState(false);
+  // Where inside the featured image the menu opens (click point, clamped so it
+  // never overflows the image edges).
+  const [imageMenuPos, setImageMenuPos] = useState({ x: 0, y: 0 });
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -737,19 +740,32 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                       not an arbitrary taller box. */}
                   <div style={{ position: "relative", lineHeight: 0, borderRadius: 6, overflow: "visible", background: "#f4f4f5" }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={imagePreview} alt="" onClick={() => setImageMenuOpen(v => !v)}
+                    <img src={imagePreview} alt=""
+                      onClick={e => {
+                        // Open the menu at the click point, clamped so it stays
+                        // fully inside the image.
+                        const r = e.currentTarget.getBoundingClientRect();
+                        const MENU_W = 190, MENU_H = 88;
+                        setImageMenuPos({
+                          x: Math.min(e.clientX - r.left, r.width - MENU_W - 6),
+                          y: Math.min(e.clientY - r.top, r.height - MENU_H - 6),
+                        });
+                        setImageMenuOpen(v => !v);
+                      }}
                       style={{ width: "100%", aspectRatio: "16 / 9", objectFit: "cover", display: "block", borderRadius: 6, cursor: "pointer" }} />
                     {imageMenuOpen && (
                       <>
                         <div onClick={() => setImageMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-                        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 41, background: "white", borderRadius: 10, boxShadow: "0 6px 24px rgba(0,0,0,0.22)", overflow: "hidden", minWidth: 190 }}>
+                        <div style={{ position: "absolute", top: Math.max(0, imageMenuPos.y), left: Math.max(0, imageMenuPos.x), zIndex: 41, background: "#ffffff", borderRadius: 8, border: "1px solid #e6e4e0", boxShadow: "0 4px 18px rgba(0,0,0,0.16)", overflow: "hidden", minWidth: 190, padding: "6px 0" }}>
                           {[
-                            { label: "View image alt text", onClick: () => setShowImageDetails(true) },
+                            { label: "View image alt text", onClick: () => setShowImageDetails(true), danger: false },
                             { label: "Delete image", onClick: () => { setImagePreview(""); setImageAssetId(""); setImageCrops({}); }, danger: true },
-                          ].map((item, i, arr) => (
+                          ].map(item => (
                             <button key={item.label} type="button"
                               onClick={() => { setImageMenuOpen(false); item.onClick(); }}
-                              style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", borderBottom: i < arr.length - 1 ? `1px solid ${BORDER}` : "none", padding: "0.7rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: item.danger ? CRIMSON : TEXT_DARK, cursor: "pointer" }}>
+                              onMouseEnter={e => (e.currentTarget.style.background = "#f4f3f1")}
+                              onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                              style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", padding: "8px 16px", fontFamily: FONT, fontSize: "0.85rem", color: item.danger ? "#c0392b" : "#3c4043", cursor: "pointer" }}>
                               {item.label}
                             </button>
                           ))}

@@ -462,7 +462,7 @@ export function sqliteRecordEvent(e: AnalyticsEvent): void {
 
 // Prune events older than `days` so the table doesn't grow unbounded (all-time
 // totals live in the counters). Called opportunistically from the track route.
-export function sqlitePruneEvents(days = 120): void {
+export function sqlitePruneEvents(days = 365): void {
   const cutoff = Date.now() - days * 86400_000;
   db().prepare(`DELETE FROM analytics_events WHERE ts < ?`).run(cutoff);
 }

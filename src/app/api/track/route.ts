@@ -75,7 +75,8 @@ export async function POST(req: NextRequest) {
   }
 
   // Opportunistic retention prune (~0.5% of pageviews) so the log stays bounded.
-  if (Math.random() < 0.005) { try { sqlitePruneEvents(120); } catch {} }
+  // Keep a full year of events so year-over-year analytics are possible.
+  if (Math.random() < 0.005) { try { sqlitePruneEvents(365); } catch {} }
 
   return NextResponse.json({ ok: true });
 }

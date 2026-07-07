@@ -63,12 +63,6 @@ export default function Feed({
   ) ?? null;
   const latestCards = [...cards, ...(archiveFeature ? [archiveFeature] : [])];
 
-  // Hides the hero photo until it's fully decoded, then fades it in — so the
-  // progressive-JPEG decode passes (which paint low-quality/blotchy before
-  // resolving) never flash on screen; readers just see the dark hero
-  // background hold until the real image is ready.
-  const [heroLoaded, setHeroLoaded] = useState(false);
-
   // Dot pagination for the mobile carousel — tracks which card is currently
   // snapped into view so the active dot can highlight, New Yorker-style.
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -116,9 +110,7 @@ export default function Feed({
         .hm-hero-img {
           position: absolute; inset: 0; width: 100%; height: 100%;
           object-fit: cover; display: block;
-          opacity: 0; transition: opacity .3s ease;
         }
-        .hm-hero-img.loaded { opacity: 1; }
         .hm-hero-scrim {
           position: absolute; inset: 0;
           background: linear-gradient(to top, rgba(15,11,8,.92) 0%, rgba(15,11,8,.5) 42%, rgba(15,11,8,.1) 100%);
@@ -370,12 +362,7 @@ export default function Feed({
           <div className="hm-hero">
             {heroImg && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img
-                className={`hm-hero-img${heroLoaded ? " loaded" : ""}`}
-                src={heroImg} alt={hero.image?.alt ?? hero.headline}
-                fetchPriority="high" decoding="async"
-                onLoad={() => setHeroLoaded(true)}
-              />
+              <img className="hm-hero-img" src={heroImg} alt={hero.image?.alt ?? hero.headline} fetchPriority="high" decoding="async" />
             )}
             <div className="hm-hero-scrim" />
             {/* On-image kicker: the only hero text that stays over the photo on
