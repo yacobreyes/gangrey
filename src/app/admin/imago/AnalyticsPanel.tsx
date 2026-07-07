@@ -17,7 +17,17 @@ type Data = {
   realtime: { active: number; reading: { slug: string; title: string; views: number }[] };
 };
 
-const RANGES: [string, string][] = [["today", "Today"], ["7d", "7 days"], ["30d", "30 days"], ["90d", "90 days"]];
+const RANGES: [string, string][] = [["7d", "7 days"], ["30d", "30 days"], ["90d", "90 days"]];
+
+function todayStr(): string { return new Date().toISOString().slice(0, 10); }
+function shiftDate(d: string, days: number): string {
+  const dt = new Date(d + "T00:00:00");
+  dt.setDate(dt.getDate() + days);
+  return dt.toISOString().slice(0, 10);
+}
+function fmtDateLabel(d: string): string {
+  return new Date(d + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
 
 function fmtDur(ms: number): string {
   const s = Math.round(ms / 1000);
@@ -32,17 +42,25 @@ function delta(d: number) {
 
 export default function AnalyticsPanel() {
   const [range, setRange] = useState("7d");
+  // A selected calendar day takes priority over `range` when set — lets you
+  // jump to "yesterday" or any specific date, like Parse.ly's day picker.
+  const [date, setDate] = useState<string | null>(null);
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback((r: string, quiet = false) => {
+  const load = useCallback((r: string, d: string | null, quiet = false) => {
     if (!quiet) setLoading(true);
-    fetch(`/api/analytics?range=${r}`).then(res => res.json()).then(d => { if (!d.error) setData(d); }).catch(() => {}).finally(() => setLoading(false));
+    const qs = d ? `date=${d}` : `range=${r}`;
+    fetch(`/api/analytics?${qs}`).then(res => res.json()).then(res => { if (!res.error) setData(res); }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { load(range); }, [range, load]);
-  // Live-refresh the realtime numbers every 20s without a full spinner.
-  useEffect(() => { const t = setInterval(() => load(range, true), 20_000); return () => clearInterval(t); }, [range, load]);
+  useEffect(() => { load(range, date); }, [range, date, load]);
+  // Live-refresh the realtime numbers every 20s without a full spinner. Only
+  // meaningful when viewing today/rolling ranges — still harmless on a past day.
+  useEffect(() => { const t = setInterval(() => load(range, date, true), 20_000); return () => clearInterval(t); }, [range, date, load]);
+
+  const today = todayStr();
+  const yesterday = shiftDate(today, -1);
 
   const card: React.CSSProperties = { background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "1.1rem 1.25rem" };
   const h2: React.CSSProperties = { fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: TEXT_MUTED, margin: "0 0 0.9rem" };
@@ -54,13 +72,37 @@ export default function AnalyticsPanel() {
           <h1 style={{ fontFamily: FONT, fontSize: "1.4rem", fontWeight: 800, color: TEXT_DARK, margin: 0 }}>Analytics</h1>
           <p style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, margin: "0.25rem 0 0" }}>Your traffic, engagement, and what&apos;s trending — all self-hosted.</p>
         </div>
-        <div style={{ display: "flex", gap: 4, background: "#f4f4f5", borderRadius: 8, padding: 3 }}>
-          {RANGES.map(([k, label]) => (
-            <button key={k} onClick={() => setRange(k)} style={{
+        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+          {/* Day picker: Today / Yesterday / any date, with prev-next arrows —
+              answers "how did I do on [day]" the way Parse.ly's date nav does. */}
+          <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#f4f4f5", borderRadius: 8, padding: 3 }}>
+            <button onClick={() => setDate(today)} style={{
               border: "none", borderRadius: 6, padding: "0.35rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer",
-              background: range === k ? "white" : "transparent", color: range === k ? CRIMSON : TEXT_MUTED, boxShadow: range === k ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
-            }}>{label}</button>
-          ))}
+              background: date === today ? "white" : "transparent", color: date === today ? CRIMSON : TEXT_MUTED, boxShadow: date === today ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
+            }}>Today</button>
+            <button onClick={() => setDate(yesterday)} style={{
+              border: "none", borderRadius: 6, padding: "0.35rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer",
+              background: date === yesterday ? "white" : "transparent", color: date === yesterday ? CRIMSON : TEXT_MUTED, boxShadow: date === yesterday ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
+            }}>Yesterday</button>
+            <div style={{ display: "flex", alignItems: "center", gap: 2, marginLeft: 2 }}>
+              <button aria-label="Previous day" onClick={() => setDate(shiftDate(date ?? today, -1))} style={{ border: "none", background: "none", cursor: "pointer", color: TEXT_MUTED, padding: "0.3rem 0.35rem", display: "flex" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <input type="date" value={date ?? ""} max={today} onChange={e => e.target.value && setDate(e.target.value)}
+                style={{ border: "none", background: date ? "white" : "transparent", borderRadius: 6, boxShadow: date && date !== today && date !== yesterday ? "0 1px 3px rgba(0,0,0,0.12)" : "none", padding: "0.32rem 0.4rem", fontFamily: FONT, fontSize: "0.76rem", color: date && date !== today && date !== yesterday ? CRIMSON : TEXT_MUTED, cursor: "pointer" }} />
+              <button aria-label="Next day" disabled={date === today} onClick={() => setDate(shiftDate(date ?? today, 1))} style={{ border: "none", background: "none", cursor: date === today ? "default" : "pointer", color: date === today ? "#d0cec9" : TEXT_MUTED, padding: "0.3rem 0.35rem", display: "flex" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 4, background: "#f4f4f5", borderRadius: 8, padding: 3 }}>
+            {RANGES.map(([k, label]) => (
+              <button key={k} onClick={() => { setDate(null); setRange(k); }} style={{
+                border: "none", borderRadius: 6, padding: "0.35rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer",
+                background: !date && range === k ? "white" : "transparent", color: !date && range === k ? CRIMSON : TEXT_MUTED, boxShadow: !date && range === k ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
+              }}>{label}</button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -77,14 +119,17 @@ export default function AnalyticsPanel() {
               <div style={{ fontFamily: FONT, fontSize: "2rem", fontWeight: 800, color: "#1a7f37", lineHeight: 1 }}>{fmtN(data.realtime.active)}</div>
               <div style={{ fontFamily: FONT, fontSize: "0.75rem", color: TEXT_MUTED, marginTop: 4 }}>readers in the last 5 min</div>
             </div>
-            <Kpi title="Views" value={fmtN(data.overview.views)} d={data.overview.viewsDelta} card={card} h2={h2} />
-            <Kpi title="Visitors" value={fmtN(data.overview.visitors)} d={data.overview.visitorsDelta} card={card} h2={h2} />
-            <Kpi title="Avg. engaged time" value={fmtDur(data.overview.avgEngagedMs)} d={data.overview.engagedDelta} card={card} h2={h2} />
+            <Kpi title="Views" value={fmtN(data.overview.views)} d={data.overview.viewsDelta} card={card} h2={h2} compareLabel={date ? "vs. day before" : "vs. previous period"} />
+            <Kpi title="Visitors" value={fmtN(data.overview.visitors)} d={data.overview.visitorsDelta} card={card} h2={h2} compareLabel={date ? "vs. day before" : "vs. previous period"} />
+            <Kpi title="Avg. engaged time" value={fmtDur(data.overview.avgEngagedMs)} d={data.overview.engagedDelta} card={card} h2={h2} compareLabel={date ? "vs. day before" : "vs. previous period"} />
           </div>
 
           {/* Time series */}
           <div style={card}>
-            <div style={h2}>Views over time</div>
+            <div style={{ ...h2, display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <span>Views {date ? "by hour" : "over time"}</span>
+              {date && <span style={{ color: TEXT_DARK, fontWeight: 700, letterSpacing: 0, textTransform: "none", fontSize: "0.78rem" }}>{fmtDateLabel(date)}</span>}
+            </div>
             <Series values={data.series} />
           </div>
 
@@ -148,7 +193,7 @@ export default function AnalyticsPanel() {
   );
 }
 
-function Kpi({ title, value, d, card, h2 }: { title: string; value: string; d: number; card: React.CSSProperties; h2: React.CSSProperties }) {
+function Kpi({ title, value, d, card, h2, compareLabel }: { title: string; value: string; d: number; card: React.CSSProperties; h2: React.CSSProperties; compareLabel: string }) {
   return (
     <div style={card}>
       <div style={h2}>{title}</div>
@@ -156,7 +201,7 @@ function Kpi({ title, value, d, card, h2 }: { title: string; value: string; d: n
         <div style={{ fontFamily: FONT, fontSize: "2rem", fontWeight: 800, color: TEXT_DARK, lineHeight: 1 }}>{value}</div>
         {delta(d)}
       </div>
-      <div style={{ fontFamily: FONT, fontSize: "0.75rem", color: TEXT_MUTED, marginTop: 4 }}>vs. previous period</div>
+      <div style={{ fontFamily: FONT, fontSize: "0.75rem", color: TEXT_MUTED, marginTop: 4 }}>{compareLabel}</div>
     </div>
   );
 }

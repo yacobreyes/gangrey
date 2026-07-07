@@ -12,7 +12,6 @@ import {
 export const dynamic = "force-dynamic";
 
 const RANGES: Record<string, { ms: number; buckets: number }> = {
-  today: { ms: 24 * 3600_000, buckets: 24 },
   "7d": { ms: 7 * 86400_000, buckets: 7 },
   "30d": { ms: 30 * 86400_000, buckets: 30 },
   "90d": { ms: 90 * 86400_000, buckets: 30 },
@@ -22,11 +21,25 @@ export async function GET(req: NextRequest) {
   if (!(await isAuthed())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!isSqliteBackend()) return NextResponse.json({ error: "Analytics is only available on the self-hosted backend." }, { status: 400 });
 
-  const rangeKey = req.nextUrl.searchParams.get("range") ?? "7d";
-  const { ms, buckets } = RANGES[rangeKey] ?? RANGES["7d"];
-  const until = Date.now();
-  const since = until - ms;
-  const prevSince = since - ms; // previous equal window, for deltas
+  // A specific calendar day (?date=YYYY-MM-DD) — e.g. "how did I do yesterday" —
+  // takes priority over the rolling-window ranges below. Hourly buckets, and
+  // the comparison window is the single day before it, so "vs previous period"
+  // means "vs the day before," not an arbitrary equal-length window.
+  const dateParam = req.nextUrl.searchParams.get("date");
+  let rangeKey: string, since: number, until: number, buckets: number;
+  if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+    since = new Date(dateParam + "T00:00:00").getTime();
+    until = Math.min(since + 86400_000, Date.now());
+    buckets = 24;
+    rangeKey = dateParam;
+  } else {
+    rangeKey = req.nextUrl.searchParams.get("range") ?? "7d";
+    const r = RANGES[rangeKey] ?? RANGES["7d"];
+    until = Date.now();
+    since = until - r.ms;
+    buckets = r.buckets;
+  }
+  const prevSince = since - (until - since); // equal-length prior window, for deltas
 
   // Headline titles so the UI can label slugs without a second round-trip.
   const titleBySlug: Record<string, string> = {};
