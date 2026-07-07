@@ -756,19 +756,11 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                     {imageMenuOpen && (
                       <>
                         <div onClick={() => setImageMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-                        <div style={{ position: "absolute", top: Math.max(0, imageMenuPos.y), left: Math.max(0, imageMenuPos.x), zIndex: 41, background: "#ffffff", borderRadius: 8, border: "1px solid #e8e6e2", boxShadow: "0 2px 12px rgba(0,0,0,0.14)", overflow: "hidden", minWidth: 190 }}>
-                          {[
-                            { label: "View image alt text", onClick: () => setShowImageDetails(true), danger: false },
-                            { label: "Delete image", onClick: () => { setImagePreview(""); setImageAssetId(""); setImageCrops({}); }, danger: true },
-                          ].map((item, i) => (
-                            <button key={item.label} type="button"
-                              onClick={() => { setImageMenuOpen(false); item.onClick(); }}
-                              onMouseEnter={e => (e.currentTarget.style.background = "#f4f3f1")}
-                              onMouseLeave={e => (e.currentTarget.style.background = "#ffffff")}
-                              style={{ display: "block", width: "100%", textAlign: "left", background: "#ffffff", border: "none", borderTop: i > 0 ? "1px solid #ececea" : "none", padding: "11px 18px", fontFamily: FONT, fontSize: "0.85rem", color: item.danger ? "#c0392b" : "#3c4043", cursor: "pointer" }}>
-                              {item.label}
-                            </button>
-                          ))}
+                        {/* Identical styling to the dashboard's right-click Open/Delete menu. */}
+                        <div style={{ position: "absolute", top: Math.max(0, imageMenuPos.y), left: Math.max(0, imageMenuPos.x), background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.14)", minWidth: 180, overflow: "hidden", zIndex: 41 }} onClick={e => e.stopPropagation()}>
+                          <button type="button" onClick={() => { setImageMenuOpen(false); setShowImageDetails(true); }} style={{ display: "block", width: "100%", background: "none", border: "none", textAlign: "left", padding: "0.65rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: TEXT_DARK, cursor: "pointer" }}>View image alt text</button>
+                          <div style={{ borderTop: `1px solid ${BORDER}` }} />
+                          <button type="button" onClick={() => { setImageMenuOpen(false); setImagePreview(""); setImageAssetId(""); setImageCrops({}); }} style={{ display: "block", width: "100%", background: "none", border: "none", textAlign: "left", padding: "0.65rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: CRIMSON, cursor: "pointer" }}>Delete image</button>
                         </div>
                       </>
                     )}
