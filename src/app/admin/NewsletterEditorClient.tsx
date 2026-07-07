@@ -1038,7 +1038,7 @@ export default function NewsletterEditorClient({
 
                     {/* MICRO-MEMOIR card — literary magazine style */}
                     {type === "micro-memoir" && (
-                      <div style={{ background: "#b8b8ba", padding: "2rem 2rem 2.5rem", borderTop: `1px solid #b8b8ba`, borderBottom: `1px solid #b8b8ba`, margin: "0 -2.5rem" }}>
+                      <div style={{ background: "#ffffff", padding: "2rem 2rem 2.5rem", borderTop: `1px solid #b8b8ba`, borderBottom: `1px solid #b8b8ba`, margin: "0 -2.5rem" }}>
                         <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Title"
                           style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.7rem", fontStyle: "normal", fontWeight: 400, lineHeight: 1.2, letterSpacing: "0.02em", color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "0.35rem", display: "block", boxSizing: "border-box", textAlign: "center" }} />
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.35rem", flexWrap: "wrap", margin: "0 0 1.5rem" }}>
@@ -1070,7 +1070,7 @@ export default function NewsletterEditorClient({
                     {/* ARCHIVE card — a framed "from the archive" reprint on warm
                         parchment, italic serif headline, to feel like a classic. */}
                     {type === "archive" && (
-                      <div style={{ background: "#f3ede4", borderTop: `2px solid ${CRIMSON}`, borderBottom: `2px solid ${CRIMSON}`, padding: "1.5rem 2rem 2rem", margin: "0 -2.5rem" }}>
+                      <div style={{ background: "#ffffff", border: `1px solid #b8b8ba`, borderTop: `3px solid ${CRIMSON}`, padding: "1.5rem 2rem 2rem", margin: "0 -1rem" }}>
                         {card.image && (
                           <div style={{ margin: "0 0 1.25rem", position: "relative" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1082,9 +1082,9 @@ export default function NewsletterEditorClient({
                           </div>
                         )}
                         <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Archive title"
-                          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.7rem", fontStyle: "italic", fontWeight: 400, lineHeight: 1.2, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "0.5rem", display: "block", boxSizing: "border-box", textAlign: "center" }} />
+                          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.7rem", fontStyle: "normal", fontWeight: 700, lineHeight: 1.2, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "0.5rem", display: "block", boxSizing: "border-box", textAlign: "center" }} />
                         <div style={{ textAlign: "center", marginBottom: "1.25rem" }}>{nlBylineField(card, "center")}</div>
-                        <div style={{ width: 32, height: 1, background: "#c9bda9", margin: "0 auto 1.25rem" }} />
+                        <div style={{ width: 32, height: 1, background: "#b8b8ba", margin: "0 auto 1.25rem" }} />
                         <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} placeholder="From the archive…"
                           onChange={doc => nlUpdateCard(card.id, { doc })}
                           onEditor={ed => { nlEditors.current[card.id] = ed; }}

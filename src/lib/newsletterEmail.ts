@@ -185,18 +185,18 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): stri
         : "";
       return `<div>
         ${sectionLabel("FROM THE ARCHIVE")}
-        <div style="background:#f3ede4;border-top:2px solid ${CRIMSON};border-bottom:2px solid ${CRIMSON};padding:24px 32px 32px;text-align:center;margin:12px 0;">
+        <div style="background:#ffffff;border:1px solid ${LINE};border-top:3px solid ${CRIMSON};padding:24px 32px 32px;text-align:center;margin:12px 24px;">
           ${img}
-          <h2 style="font-family:${SERIF};font-size:26px;font-style:italic;font-weight:400;line-height:1.25;color:${INK};margin:0 0 8px;">${esc(card.headline ?? "")}</h2>
+          <h2 style="font-family:${SERIF};font-size:26px;font-weight:700;line-height:1.25;color:${INK};margin:0 0 8px;">${esc(card.headline ?? "")}</h2>
           ${card.byline ? `<p style="font-family:${FONT};font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:${CRIMSON};margin:0 0 20px;">By ${esc(card.byline)}</p>` : ""}
-          <div style="width:32px;height:1px;background:#c9bda9;margin:0 auto 20px;"></div>
+          <div style="width:32px;height:1px;background:${LINE};margin:0 auto 20px;"></div>
           <div style="text-align:left;">${renderBody(card.body ?? [])}</div>
         </div>
       </div>`;
     }
 
     return `<div>
-      <div style="background:#b8b8ba;border-top:1px solid ${LINE};border-bottom:1px solid ${LINE};padding:32px 32px 40px;text-align:center;margin:20px 0 0;">
+      <div style="background:#ffffff;border-top:1px solid ${LINE};border-bottom:1px solid ${LINE};padding:32px 32px 40px;text-align:center;margin:20px 0 0;">
         <p style="font-family:${SERIF};font-size:27px;font-weight:400;line-height:1.2;letter-spacing:0.02em;color:${INK};margin:0 0 6px;">${esc(card.headline ?? "")}</p>
         <p style="font-family:${FONT};font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:${CRIMSON};margin:0 0 24px;">A Micro-Memoir${card.byline ? ` by ${esc(card.byline)}` : ""}</p>
         <div style="width:32px;height:1px;background:${LINE};margin:0 auto 24px;"></div>
