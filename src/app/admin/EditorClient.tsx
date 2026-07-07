@@ -756,16 +756,16 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                     {imageMenuOpen && (
                       <>
                         <div onClick={() => setImageMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-                        <div style={{ position: "absolute", top: Math.max(0, imageMenuPos.y), left: Math.max(0, imageMenuPos.x), zIndex: 41, background: "#ffffff", borderRadius: 8, border: "1px solid #e6e4e0", boxShadow: "0 4px 18px rgba(0,0,0,0.16)", overflow: "hidden", minWidth: 190, padding: "6px 0" }}>
+                        <div style={{ position: "absolute", top: Math.max(0, imageMenuPos.y), left: Math.max(0, imageMenuPos.x), zIndex: 41, background: "#ffffff", borderRadius: 8, border: "1px solid #e8e6e2", boxShadow: "0 2px 12px rgba(0,0,0,0.14)", overflow: "hidden", minWidth: 190 }}>
                           {[
                             { label: "View image alt text", onClick: () => setShowImageDetails(true), danger: false },
                             { label: "Delete image", onClick: () => { setImagePreview(""); setImageAssetId(""); setImageCrops({}); }, danger: true },
-                          ].map(item => (
+                          ].map((item, i) => (
                             <button key={item.label} type="button"
                               onClick={() => { setImageMenuOpen(false); item.onClick(); }}
                               onMouseEnter={e => (e.currentTarget.style.background = "#f4f3f1")}
-                              onMouseLeave={e => (e.currentTarget.style.background = "none")}
-                              style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", padding: "8px 16px", fontFamily: FONT, fontSize: "0.85rem", color: item.danger ? "#c0392b" : "#3c4043", cursor: "pointer" }}>
+                              onMouseLeave={e => (e.currentTarget.style.background = "#ffffff")}
+                              style={{ display: "block", width: "100%", textAlign: "left", background: "#ffffff", border: "none", borderTop: i > 0 ? "1px solid #ececea" : "none", padding: "11px 18px", fontFamily: FONT, fontSize: "0.85rem", color: item.danger ? "#c0392b" : "#3c4043", cursor: "pointer" }}>
                               {item.label}
                             </button>
                           ))}

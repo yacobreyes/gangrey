@@ -39,6 +39,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
   const w = Number(sp.get("w")) || 0;
   const h = Number(sp.get("h")) || 0;
   const crop = parseCrop(sp.get("crop"));
+  // prog=0 → baseline JPEG. The hero uses this: a progressive JPEG's first pass
+  // is a full-frame blurry color wash that reads as a "flash" on a large warm
+  // photo. Baseline paints without that averaged-color pre-render.
+  const progressive = sp.get("prog") !== "0";
 
   // No transform requested, or a non-raster format — serve the original bytes.
   if ((!w && !h && !crop) || ext === ".svg" || ext === ".gif") {
@@ -49,7 +53,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
   // Cache derivatives on disk so each size/crop is processed once.
   const cacheDir = path.join(sqliteMediaDir(), ".cache");
   fs.mkdirSync(cacheDir, { recursive: true });
-  const key = crypto.createHash("sha1").update(`${name}|${w}|${h}|${sp.get("crop") ?? ""}`).digest("hex");
+  const key = crypto.createHash("sha1").update(`${name}|${w}|${h}|${sp.get("crop") ?? ""}|p${progressive ? 1 : 0}`).digest("hex");
   const cached = path.join(cacheDir, `${key}${ext === ".png" ? ".png" : ".jpg"}`);
   if (fs.existsSync(cached)) {
     return new NextResponse(new Uint8Array(fs.readFileSync(cached)), { headers });
@@ -73,9 +77,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
     if (w || h) img = img.resize(w || null, h || null, { fit: "cover" });
     const out = ext === ".png"
       ? await img.png().toBuffer()
-      // progressive: the image renders coarse-to-sharp as bytes arrive, instead
-      // of painting top-to-bottom in scanlines (which looks broken mid-load).
-      : await img.jpeg({ quality: 82, mozjpeg: true, progressive: true }).toBuffer();
+      // progressive renders coarse-to-sharp as bytes arrive (smooth for small
+      // cards); baseline (prog=0) avoids the full-frame color pre-render that
+      // reads as a flash on the large hero.
+      : await img.jpeg({ quality: 82, mozjpeg: true, progressive }).toBuffer();
     fs.writeFileSync(cached, out);
     return new NextResponse(new Uint8Array(out), { headers });
   } catch {

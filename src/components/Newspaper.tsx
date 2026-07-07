@@ -84,7 +84,12 @@ export default function Feed({
     if (card) el.scrollTo({ left: card.offsetLeft - el.offsetLeft, behavior: "smooth" });
   }
 
-  const heroImg = postImageUrl(hero?.image, 1600, 900);
+  // Baseline (prog=0) for the hero: a progressive JPEG's blurry full-frame first
+  // pass reads as a color flash on a photo this large. Baseline just paints in.
+  const heroRaw = postImageUrl(hero?.image, 1600, 900);
+  const heroImg = heroRaw && heroRaw.startsWith("/media/")
+    ? heroRaw + (heroRaw.includes("?") ? "&" : "?") + "prog=0"
+    : heroRaw;
 
   return (
     <>
