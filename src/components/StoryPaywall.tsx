@@ -14,8 +14,8 @@ export default function StoryPaywall() {
         }
         .story-paywall::before {
           content: "";
-          position: absolute; top: 0; left: 0; right: 0; height: 120px;
-          background: linear-gradient(to bottom, rgba(255,255,255,0), #ffffff 88%);
+          position: absolute; top: 0; left: 0; right: 0; height: 80px;
+          background: linear-gradient(to bottom, rgba(255,255,255,0), #ffffff 92%);
           pointer-events: none;
         }
         .story-paywall-inner {
