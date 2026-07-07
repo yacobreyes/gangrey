@@ -11,11 +11,7 @@ import {
 // needs for the selected time range.
 export const dynamic = "force-dynamic";
 
-const RANGES: Record<string, { ms: number; buckets: number }> = {
-  "7d": { ms: 7 * 86400_000, buckets: 7 },
-  "30d": { ms: 30 * 86400_000, buckets: 30 },
-  "90d": { ms: 90 * 86400_000, buckets: 30 },
-};
+const RANGE_DAYS: Record<string, number> = { "7d": 7, "30d": 30, "90d": 90 };
 
 export async function GET(req: NextRequest) {
   if (!(await isAuthed())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -39,11 +35,17 @@ export async function GET(req: NextRequest) {
     buckets = 24;
     rangeKey = dateParam;
   } else {
+    // Rolling ranges are aligned to the viewer's local calendar days ending
+    // with TODAY — so today gets its own bar (rightmost) and every bucket is a
+    // real calendar day, not an unaligned 24h slice that buries today in the
+    // previous day's bucket.
     rangeKey = req.nextUrl.searchParams.get("range") ?? "7d";
-    const r = RANGES[rangeKey] ?? RANGES["7d"];
-    until = Date.now();
-    since = until - r.ms;
-    buckets = r.buckets;
+    const days = RANGE_DAYS[rangeKey] ?? 7;
+    const shifted = new Date(Date.now() - tz * 60_000); // its UTC fields = viewer-local Y/M/D
+    const todayMidnight = Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()) + tz * 60_000;
+    until = todayMidnight + 86400_000;              // end of today (local)
+    since = todayMidnight - (days - 1) * 86400_000; // start of the first day in range
+    buckets = days;
   }
   const prevSince = since - (until - since); // equal-length prior window, for deltas
 
