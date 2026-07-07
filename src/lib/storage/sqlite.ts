@@ -175,6 +175,38 @@ export function sqliteSetArchiveFree(id: string, on: boolean): void {
   db().prepare(`UPDATE posts SET archive_free = ? WHERE id = ?`).run(on ? 1 : 0, id);
 }
 
+// Current slug for a post id (null if none) — used to detect slug renames.
+export function sqliteSlugForId(id: string): string | null {
+  const row = db().prepare(`SELECT slug FROM posts WHERE id = ?`).get(id);
+  return row ? String(row.slug) : null;
+}
+
+// When a post's slug changes, everything keyed by slug — analytics events,
+// view/like/read counters, comments — must move with it, or it's orphaned
+// (stale analytics rows that 404, lost view counts). Re-point them all.
+export function sqliteRenameSlugData(oldSlug: string, newSlug: string): void {
+  if (!oldSlug || oldSlug === newSlug) return;
+  const safe = (s: string) => s.replace(/[^a-zA-Z0-9-_]/g, "-");
+  db().prepare(`UPDATE analytics_events SET slug = ? WHERE slug = ?`).run(newSlug, oldSlug);
+  // Counters are documents with id `<kind>-<safe(slug)>`.
+  for (const kind of ["views", "likes", "reads"]) {
+    const oldId = `${kind}-${safe(oldSlug)}`, newId = `${kind}-${safe(newSlug)}`;
+    const row = db().prepare(`SELECT data FROM documents WHERE id = ? AND type = 'counter'`).get(oldId);
+    if (row) {
+      db().prepare(`INSERT INTO documents (id, type, data) VALUES (?, 'counter', ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`).run(newId, row.data);
+      db().prepare(`DELETE FROM documents WHERE id = ?`).run(oldId);
+    }
+  }
+  // Comments carry the slug inside their JSON payload.
+  const comments = db().prepare(`SELECT id, data FROM documents WHERE type = 'comment'`).all();
+  for (const c of comments) {
+    try {
+      const d = JSON.parse(c.data);
+      if (d.slug === oldSlug) { d.slug = newSlug; db().prepare(`UPDATE documents SET data = ? WHERE id = ?`).run(JSON.stringify(d), c.id); }
+    } catch { /* skip */ }
+  }
+}
+
 const PUBLIC_WHERE = `status != 'trashed' AND (
   status = 'published' OR status IS NULL OR status = '' OR
   (status = 'scheduled' AND scheduled_at IS NOT NULL AND scheduled_at <= datetime('now'))
