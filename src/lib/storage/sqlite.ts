@@ -114,6 +114,8 @@ function migrate(d: any) {
   // any number, forced into the Top Stories row (before auto-filled recents).
   ensureColumn(d, "posts", "pinned_hero", "INTEGER DEFAULT 0");
   ensureColumn(d, "posts", "pinned_top", "INTEGER DEFAULT 0");
+  // Per-story override to let an individual Archive post out of the paywall.
+  ensureColumn(d, "posts", "archive_free", "INTEGER DEFAULT 0");
 }
 
 function ensureColumn(d: any, table: string, col: string, decl: string) {
@@ -153,6 +155,7 @@ function rowToPost(r: PostRow): SanityPost {
     lastEditedAt: r.last_edited_at ?? undefined,
     pinnedHero: !!r.pinned_hero,
     pinnedTop: !!r.pinned_top,
+    archiveFree: !!r.archive_free,
   };
 }
 
@@ -166,6 +169,10 @@ export function sqliteSetPins(id: string, hero: boolean, top: boolean): void {
     db().prepare(`UPDATE posts SET pinned_hero = 0 WHERE id = ?`).run(id);
   }
   db().prepare(`UPDATE posts SET pinned_top = ? WHERE id = ?`).run(top ? 1 : 0, id);
+}
+
+export function sqliteSetArchiveFree(id: string, on: boolean): void {
+  db().prepare(`UPDATE posts SET archive_free = ? WHERE id = ?`).run(on ? 1 : 0, id);
 }
 
 const PUBLIC_WHERE = `status != 'trashed' AND (
@@ -186,7 +193,7 @@ export function sqliteAllPublishedPosts(): SanityPost[] {
 const LIGHT_COLS = `id, slug, section, headline, subheadline, byline, date, status, access,
   scheduled_at, image, seo_headline, social_headline, social_description,
   reading_time, sort_order, created_at, updated_at, last_edited_by, last_edited_at,
-  pinned_hero, pinned_top`;
+  pinned_hero, pinned_top, archive_free`;
 
 export function sqliteAllPublishedPostsLight(): SanityPost[] {
   const rows = db().prepare(`SELECT ${LIGHT_COLS} FROM posts WHERE ${PUBLIC_WHERE} ORDER BY date DESC, COALESCE(sort_order, 0) ASC`).all();

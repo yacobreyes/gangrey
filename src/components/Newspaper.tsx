@@ -53,15 +53,20 @@ export default function Feed({
       )
     : [];
 
-  // Hero: an editor-pinned story wins; otherwise the most recent non-archive.
-  const hero = nonGangrey.find(p => p.pinnedHero) ?? nonGangrey[0];
-  // Top Stories: pinned-to-top stories lead (in date order), then fill with the
+  // Hero: an editor-pinned story wins (any section, including a pinned Archive
+  // piece); otherwise the most recent non-archive.
+  const hero = published.find(p => p.pinnedHero) ?? nonGangrey[0];
+  const used = new Set<string>(hero ? [hero._id] : []);
+  // Top Stories: pinned-to-top stories lead (any section), then fill with the
   // most recent non-archive up to 3 — always excluding whatever's in the hero.
-  const rest = nonGangrey.filter(p => p._id !== hero?._id);
-  const pinnedTop = rest.filter(p => p.pinnedTop);
-  const cards = [...pinnedTop, ...rest.filter(p => !p.pinnedTop)].slice(0, 3);
+  const pinnedTop = published.filter(p => p.pinnedTop && !used.has(p._id));
+  pinnedTop.forEach(p => used.add(p._id));
+  const recentFill = nonGangrey.filter(p => !used.has(p._id));
+  const cards = [...pinnedTop, ...recentFill].slice(0, 3);
+  cards.forEach(p => used.add(p._id));
+  // Legacy hardcoded archive feature — kept as a fallback, deduped against pins.
   const archiveFeature = published.find(p =>
-    isGangrey(p) && (
+    isGangrey(p) && !used.has(p._id) && (
       p.slug === "starting-somewhere" ||
       p.headline?.toLowerCase().includes("starting somewhere")
     )

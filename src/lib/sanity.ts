@@ -83,6 +83,8 @@ export interface SanityPost {
   // into the Top Stories row.
   pinnedHero?: boolean;
   pinnedTop?: boolean;
+  // Archive stories are members-only by default; this frees an individual one.
+  archiveFree?: boolean;
 }
 
 // Lightweight field set for the admin dashboard list — excludes the heavy

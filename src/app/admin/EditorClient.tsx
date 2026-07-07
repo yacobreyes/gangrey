@@ -79,6 +79,8 @@ type FormState = {
   readingTime: string; sortOrder: string;
   // Homepage pins, "1"/"0" so they flow through the save FormData and dirty check.
   pinHero: string; pinTop: string;
+  // Free-an-archive-story override, "1"/"0".
+  archiveFree: string;
 };
 
 type MediaAsset = { _id: string; url: string; originalFilename?: string; title?: string; description?: string; altText?: string };
@@ -144,6 +146,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
     sortOrder: post.sortOrder != null ? String(post.sortOrder) : "",
     pinHero: post.pinnedHero ? "1" : "0",
     pinTop: post.pinnedTop ? "1" : "0",
+    archiveFree: post.archiveFree ? "1" : "0",
   };
 
   const [form, setForm] = useState<FormState>(initialForm);
@@ -803,9 +806,15 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
               <div>
                 <label style={LABEL}>Access</label>
                 {form.section === "Archive" ? (
-                  <p style={{ fontFamily: FONT, fontSize: "0.8rem", color: TEXT_MUTED, margin: 0, lineHeight: 1.5 }}>
-                    Archive stories are always members-only.
-                  </p>
+                  <>
+                    <label style={{ display: "flex", alignItems: "flex-start", gap: "0.6rem", cursor: "pointer" }}>
+                      <input type="checkbox" checked={form.archiveFree === "1"} onChange={e => updateForm({ archiveFree: e.target.checked ? "1" : "0" })} style={{ marginTop: 3 }} />
+                      <span>
+                        <span style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_DARK, fontWeight: 600 }}>Make this story free</span>
+                        <span style={{ display: "block", fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, lineHeight: 1.4 }}>Archive stories are members-only by default. Check this to let anyone read this one, outside the paywall.</span>
+                      </span>
+                    </label>
+                  </>
                 ) : (
                   <>
                     <select style={INPUT} value={form.access} onChange={e => updateForm({ access: e.target.value as "free" | "paid" })}>
@@ -818,7 +827,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                   </>
                 )}
               </div>
-              {form.section !== "Archive" && (
+              {(
                 <div>
                   <label style={LABEL}>Homepage</label>
                   <label style={{ display: "flex", alignItems: "flex-start", gap: "0.6rem", cursor: "pointer", marginBottom: "0.6rem" }}>

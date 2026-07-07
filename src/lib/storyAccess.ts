@@ -1,10 +1,11 @@
 import type { SanityPost } from "./sanity";
 import type { PortableTextBlock } from "@portabletext/types";
 
-// A story is members-only if it's an Archive post (the whole archive is a
-// paid benefit) or it's been explicitly marked "paid" in the editor.
-export function storyRequiresMembership(post: Pick<SanityPost, "section" | "access">): boolean {
-  if (post.section === "Archive") return true;
+// A story is members-only if it's an Archive post (the whole archive is a paid
+// benefit) — UNLESS that archive story is explicitly freed — or it's a regular
+// post marked "paid" in the editor.
+export function storyRequiresMembership(post: Pick<SanityPost, "section" | "access" | "archiveFree">): boolean {
+  if (post.section === "Archive") return !post.archiveFree;
   return post.access === "paid";
 }
 
