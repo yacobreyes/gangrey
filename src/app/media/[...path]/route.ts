@@ -76,11 +76,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
     }
     if (w || h) img = img.resize(w || null, h || null, { fit: "cover" });
     const out = ext === ".png"
-      ? await img.png().toBuffer()
-      // progressive renders coarse-to-sharp as bytes arrive (smooth for small
-      // cards); baseline (prog=0) avoids the full-frame color pre-render that
-      // reads as a flash on the large hero.
-      : await img.jpeg({ quality: 82, mozjpeg: true, progressive }).toBuffer();
+      ? await img.png({ compressionLevel: 6 }).toBuffer()
+      // libjpeg-turbo (mozjpeg:false) encodes several times faster than mozjpeg
+      // for ~5% larger files — a good trade on a 2-vCPU box, since the *first*
+      // request for each size generates on demand and the reader waits for it.
+      : await img.jpeg({ quality: 80, mozjpeg: false, progressive }).toBuffer();
     fs.writeFileSync(cached, out);
     return new NextResponse(new Uint8Array(out), { headers });
   } catch {

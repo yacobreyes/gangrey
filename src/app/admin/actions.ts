@@ -6,10 +6,25 @@ import { requireAuth, requireAdmin } from "@/lib/adminAuth";
 import { fullName } from "@/lib/users";
 import { client } from "@/lib/sanity";
 import { straightenQuotes, straightenBlocks } from "@/lib/straighten";
+import { postImageUrl } from "@/lib/sanityImage";
 import {
   isSqliteBackend, sqliteSavePost, sqliteDeletePost, sqliteSetStatus,
   sqliteSnapshotVersion, sqliteGetVersions, sqliteSetSingleton,
 } from "@/lib/storage/sqlite";
+
+// Pre-generate the resized/cropped derivatives readers will request for a
+// featured photo, so nobody waits on a cold sharp resize. Fire-and-forget
+// against the app's own /media route (self-host: localhost). The sizes mirror
+// what the hero, OG card, and story-list thumbnails actually ask for.
+function warmImageDerivatives(src: string, crops: Record<string, { x: number; y: number; w: number; h: number }> | undefined) {
+  if (!src || !src.startsWith("/media/")) return;
+  const image = { url: src, crops: crops as never };
+  const sizes: [number, number][] = [[1600, 900], [1200, 630], [720, 540], [640, 474], [520, 293]];
+  for (const [w, h] of sizes) {
+    const u = postImageUrl(image, w, h);
+    if (u) fetch(`http://localhost:3000${u}`).catch(() => {});
+  }
+}
 
 // Enforce house style (straight quotes) on every text field at save time, so
 // stored data is straight regardless of where it was typed (rich editor or
@@ -301,6 +316,9 @@ export async function savePost(formData: FormData) {
     // when this isn't published.
     // Post row is written — now migrate slug-keyed data if the slug changed.
     if (prevSlug && prevSlug !== slug) sqliteRenameSlugData(prevSlug, slug);
+    // Warm the featured-photo derivatives on publish so the first reader doesn't
+    // wait on a cold resize (only published stories are reader-visible).
+    if (status === "published" && imageAssetId) warmImageDerivatives(imageAssetId, imageCrops);
     const { sqliteSetPins, sqliteSetArchiveFree } = await import("@/lib/storage/sqlite");
     sqliteSetPins(doc._id as string, status === "published" && pinHero, status === "published" && pinTop);
     sqliteSetArchiveFree(doc._id as string, archiveFree);
