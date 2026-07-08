@@ -723,14 +723,14 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                 <input
                   placeholder="Type your headline"
                   readOnly={readOnly}
-                  style={{ fontFamily: FONT, fontSize: isMobile ? "1.5rem" : "2rem", fontWeight: 700, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", lineHeight: 1.2, padding: 0, margin: 0 }}
+                  style={{ fontFamily: "var(--font-headline)", fontSize: isMobile ? "1.5rem" : "2rem", fontWeight: 700, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", lineHeight: 1.2, padding: 0, margin: 0 }}
                   value={form.headline}
                   onChange={e => { const v = straightenQuotes(e.target.value); updateForm({ headline: v, ...(post.slug.startsWith("untitled-") ? { slug: slugify(v) || post.slug } : {}) }); }}
                 />
                 <input
                   placeholder="Type your subheadline"
                   readOnly={readOnly}
-                  style={{ fontFamily: FONT, fontSize: "1.1rem", fontWeight: 400, color: TEXT_MUTED, border: "none", outline: "none", width: "100%", background: "transparent", lineHeight: 1.4, padding: 0, margin: 0 }}
+                  style={{ fontFamily: "var(--font-subhead)", fontSize: "1.1rem", fontWeight: 400, color: TEXT_MUTED, border: "none", outline: "none", width: "100%", background: "transparent", lineHeight: 1.4, padding: 0, margin: 0 }}
                   value={form.subheadline}
                   onChange={e => updateForm({ subheadline: straightenQuotes(e.target.value) })}
                 />
@@ -781,7 +781,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                   </div>
                 </div>
               )}
-              <RichBodyEditor editable={!readOnly} fontFamily={FONT} initialContent={form.body} onChange={doc => updateForm({ body: doc })} onEditor={setEditor} onToolbar={h => {
+              <RichBodyEditor editable={!readOnly} initialContent={form.body} onChange={doc => updateForm({ body: doc })} onEditor={setEditor} onToolbar={h => {
                 if (!h) { setToolbar(null); return; }
                 setToolbar({ ...h, openImage: () => { setBodySelectedAsset(null); setBodyUploadFile(null); setBodyUploadPreviewUrl(""); setBodyUploadAlt(""); setBodyImageTab("library"); setShowBodyImageModal(true); fetch("/api/media").then(r => r.json()).then(d => { if (Array.isArray(d)) setPhotoPickerAssets(d); }).catch(() => {}); } });
               }} />

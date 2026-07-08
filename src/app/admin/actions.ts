@@ -71,7 +71,10 @@ export async function createPostFromNewsletterCard(input: {
   await requireAuth();
   const base = (input.headline || "untitled")
     .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "untitled";
-  const slug = `${base}-${Date.now().toString(36)}`;
+  // Prefer the clean headline slug; only add a disambiguating suffix when a
+  // post already owns it (e.g. the draft button was clicked twice).
+  const { sqliteGetPost } = await import("@/lib/storage/sqlite");
+  const slug = sqliteGetPost(base) ? `${base}-${Date.now().toString(36)}` : base;
   const doc: Record<string, unknown> = {
     _id: `post-${slug}`,
     _type: "post",
