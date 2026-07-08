@@ -925,7 +925,7 @@ export default function NewsletterEditorClient({
                 <span style={{ fontFamily: FONT, fontSize: "0.6rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#ffffff" }}>Est. 2026</span>
                 {nlClassics ? (
                   <span style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.75rem", color: "#ffffff" }}>
-                    {coverDateLabel}{nlIssue ? <> &nbsp; <span style={{ color: "#b8b8ba" }}>No.</span> {nlIssue}</> : ""}
+                    {coverDateLabel}
                   </span>
                 ) : (
                   <span style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.75rem", color: "#ffffff" }}>
@@ -1235,14 +1235,9 @@ export default function NewsletterEditorClient({
         <div style={{ maxWidth: 600, margin: "2rem auto 0" }}>
           <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.85rem" }}>
             <h3 style={{ fontFamily: FONT, fontSize: "1rem", fontWeight: 700, color: TEXT_DARK, margin: 0 }}>Newsletter info</h3>
-            {nlClassics ? (
-              // Classics issues show today's date instead of a volume number (see
-              // the cover's Est./No. row above) — Guest Editor doesn't apply.
-              <div>
-                <label style={{ fontFamily: FONT, fontSize: "0.75rem", fontWeight: 600, color: TEXT_MUTED, display: "block", marginBottom: "0.3rem" }}>Issue</label>
-                <input value={nlIssue} onChange={e => setNlIssue(e.target.value)} readOnly={nlReadOnly} placeholder="1" style={INPUT} />
-              </div>
-            ) : (
+            {/* Classics issues carry no Volume, Issue, or Guest Editor — the cover
+                shows only today's date. So only Subject/Preview apply below. */}
+            {!nlClassics && (
               <>
                 <div style={{ display: "flex", gap: "0.75rem" }}>
                   <div style={{ flex: 1 }}>

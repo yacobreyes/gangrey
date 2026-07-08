@@ -494,27 +494,33 @@ export async function sendTestNewsletter(id: string): Promise<{ ok: boolean; err
         { id },
         { cache: "no-store" }
       );
-  if (!nl) return { ok: false, error: "Newsletter not found" };
+  if (!nl) return { ok: false, error: "Newsletter not found. Wait for it to save, then try again." };
 
-  const html = renderNewsletterHtml({
-    subject: nl.subject ?? "",
-    preview: nl.preview ?? "",
-    intro: nl.intro ?? "",
-    author: nl.author ?? "",
-    volume: nl.volume ?? "",
-    issue: nl.issue ?? "",
-    classics: nl.classics,
-    cards: (nl.cards ?? []) as NlCard[],
-    viewOnlineUrl: await issueViewUrl(id),
-  });
+  try {
+    const html = renderNewsletterHtml({
+      subject: nl.subject ?? "",
+      preview: nl.preview ?? "",
+      intro: nl.intro ?? "",
+      author: nl.author ?? "",
+      volume: nl.volume ?? "",
+      issue: nl.issue ?? "",
+      classics: nl.classics,
+      cards: (nl.cards ?? []) as NlCard[],
+      viewOnlineUrl: await issueViewUrl(id),
+    });
 
-  const resend = new Resend(apiKey);
-  const { error } = await resend.emails.send({
-    from,
-    to: [TEST_RECIPIENT],
-    subject: `[TEST] ${nl.subject || "Untitled newsletter"}`,
-    html,
-  });
-  if (error) return { ok: false, error: error.message };
-  return { ok: true };
+    const resend = new Resend(apiKey);
+    const { error } = await resend.emails.send({
+      from,
+      to: [TEST_RECIPIENT],
+      subject: `[TEST] ${nl.subject || "Untitled newsletter"}`,
+      html,
+    });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  } catch (e) {
+    // Surface the real reason instead of letting the server action throw (which
+    // the client only sees as a generic "failed").
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }

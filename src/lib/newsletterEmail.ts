@@ -18,6 +18,10 @@ export type NlCard = {
   image?: { url?: string; caption?: string; alt?: string } | null;
   cardType?: "narratives" | "essays" | "micro-memoir" | "archive" | "feature" | "standard" | "digest";
   byline?: string;
+  // Original publish date of the source story (ISO). Used for the "Gangrey ·
+  // Archive · <date>" running head on archive clippings so it reflects when the
+  // piece actually ran, not when the newsletter is sent.
+  date?: string;
 };
 
 // Email + web-reader typography. Astoria is deliberately NOT used here: mail
@@ -164,6 +168,14 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): stri
     image: c.image ? { ...c.image, caption: c.image.caption ? straightenQuotes(c.image.caption) : c.image.caption } : c.image,
   }));
   const shortDate = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  // Format a story's ISO publish date as "Month D, YYYY"; fall back to today
+  // only when a card carries no date (shouldn't happen for imported archive
+  // pieces, which always have one).
+  const fmtDate = (iso?: string) => {
+    if (!iso) return shortDate;
+    const d = new Date(iso);
+    return isNaN(+d) ? shortDate : d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+  };
 
   // Kicker + 40×2 crimson rule (grey on the black ground). center aligns both.
   const kicker = (name: string, onDark: boolean, center: boolean) => {
@@ -246,7 +258,7 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): stri
       <div style="background:transparent;padding:26px 4px;">
         <div style="position:relative;filter:drop-shadow(0 8px 16px rgba(0,0,0,0.5));">
           <div style="background:${PAPER};clip-path:${TORN[c]};padding:34px 28px 40px;">
-            <div style="border-bottom:1px solid ${GROUND};padding-bottom:7px;margin-bottom:18px;font-family:${SERIF};font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:${GROUND};">Gangrey · Archive &nbsp;·&nbsp; ${esc(shortDate)}</div>
+            <div style="border-bottom:1px solid ${GROUND};padding-bottom:7px;margin-bottom:18px;font-family:${SERIF};font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:${GROUND};">Gangrey · Archive &nbsp;·&nbsp; ${esc(fmtDate(card.date))}</div>
             <h2 style="font-family:${SERIF};font-size:${HEAD_SIZE}px;font-weight:700;line-height:${HEAD_LINE};color:${GROUND};text-align:left;margin:0 0 8px;">${esc(card.headline ?? "")}</h2>
             ${card.byline ? `<p style="font-family:${SERIF};font-size:12px;letter-spacing:0.02em;color:${EARTH};text-align:left;margin:0 0 16px;">By ${esc(card.byline)}</p>` : ""}
             ${img}
@@ -280,7 +292,7 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): stri
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid ${RULE};"><tr>
             <td align="left" style="padding-top:16px;font-family:${FONT};font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#ffffff;">Est. 2026</td>
             <td align="right" style="padding-top:16px;font-family:${SERIF};font-size:11px;letter-spacing:0.06em;color:#ffffff;">${raw.classics
-              ? `${esc(shortDate)}${issue ? ` &nbsp; <span style="color:${RULE};">No.</span> ${esc(issue)}` : ""}`
+              ? esc(shortDate)
               : `${volume ? `<span style="color:${RULE};">Vol.</span> ${esc(volume)}` : ""}${volume && issue ? " &nbsp; " : ""}${issue ? `<span style="color:${RULE};">No.</span> ${esc(issue)}` : ""}`
             }</td>
           </tr></table>
