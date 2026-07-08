@@ -1072,9 +1072,9 @@ export default function NewsletterEditorClient({
                             + Add a featured image
                           </button>
                         )}
-                        <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Feature headline"
+                        <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Type your headline"
                           style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.9rem", fontWeight: 700, lineHeight: 1.15, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "0.6rem", display: "block", boxSizing: "border-box", textAlign: "center" }} />
-                        <textarea value={card.deck ?? ""} onChange={e => nlUpdateCard(card.id, { deck: e.target.value })} readOnly={nlReadOnly} placeholder="Standfirst / deck (optional)" rows={1}
+                        <textarea value={card.deck ?? ""} onChange={e => nlUpdateCard(card.id, { deck: e.target.value })} readOnly={nlReadOnly} placeholder="Type your subheadline (optional)" rows={1}
                           style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.2rem", lineHeight: 1.45, color: TEXT_MUTED, border: "none", outline: "none", width: "100%", maxWidth: 440, margin: "0 auto 1rem", background: "transparent", padding: 0, resize: "none", boxSizing: "border-box", display: "block", textAlign: "center", overflow: "hidden" }} />
                         {nlBylineField(card, "center")}
                         <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} 
@@ -1089,10 +1089,10 @@ export default function NewsletterEditorClient({
                     {type === "essays" && (
                       <div style={{ paddingTop: "1rem", paddingBottom: "1.75rem" }}>
                         <div style={{ borderTop: `2px solid ${CRIMSON}`, paddingTop: "0.85rem", marginBottom: "0.85rem" }}>
-                          <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Essay title"
+                          <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Type your headline"
                             style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.9rem", fontWeight: 700, lineHeight: 1.15, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, boxSizing: "border-box", display: "block" }} />
                         </div>
-                        <textarea value={card.deck ?? ""} onChange={e => nlUpdateCard(card.id, { deck: e.target.value })} readOnly={nlReadOnly} placeholder="Standfirst / deck (optional)" rows={1}
+                        <textarea value={card.deck ?? ""} onChange={e => nlUpdateCard(card.id, { deck: e.target.value })} readOnly={nlReadOnly} placeholder="Type your subheadline (optional)" rows={1}
                           style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.2rem", lineHeight: 1.45, color: TEXT_MUTED, border: "none", outline: "none", width: "100%", margin: "0 0 0.85rem", background: "transparent", padding: 0, resize: "none", boxSizing: "border-box", display: "block", overflow: "hidden" }} />
                         {nlBylineField(card, "left")}
                         {card.image ? (
@@ -1132,7 +1132,7 @@ export default function NewsletterEditorClient({
                             <input value={card.byline ?? ""} onChange={e => nlUpdateCard(card.id, { byline: e.target.value })} readOnly={nlReadOnly} placeholder="Author name"
                               style={{ fontFamily: FONT, fontSize: "0.95rem", fontWeight: 700, color: TEXT_DARK, lineHeight: 1.2, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, display: "block", boxSizing: "border-box" }} />
                             <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", marginTop: 2 }}>
-                              <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Story title"
+                              <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Type your headline"
                                 style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, lineHeight: 1.2, border: "none", outline: "none", background: "transparent", padding: 0, boxSizing: "border-box", flexShrink: 1, minWidth: 0, width: `${Math.max((card.headline?.length || 10), 6)}ch` }} />
                               <span style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, whiteSpace: "nowrap" }}>· {todayLabel}</span>
                             </div>
@@ -1187,7 +1187,7 @@ export default function NewsletterEditorClient({
                         <div style={{ position: "relative", filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.5))" }}>
                           <div style={{ background: "#ffffff", clipPath: torn[c], padding: "2.1rem 1.75rem 2.5rem" }}>
                             <div style={{ borderBottom: `1px solid #000`, paddingBottom: "0.45rem", marginBottom: "1.1rem", fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.58rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "#000" }}>Gangrey · Archive &nbsp;·&nbsp; {fmtCardDate(card.date)}</div>
-                            <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Archive title"
+                            <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Type your headline"
                               style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.9rem", fontWeight: 700, lineHeight: 1.15, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "0.5rem", display: "block", boxSizing: "border-box", textAlign: "left" }} />
                             <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.75rem", color: TEXT_MUTED, marginBottom: "1rem" }}>{nlBylineField(card, "left")}</div>
                             {card.image ? (
