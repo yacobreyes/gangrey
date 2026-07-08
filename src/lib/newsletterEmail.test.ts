@@ -40,12 +40,19 @@ describe("renderNewsletterHtml", () => {
     expect(html).toContain("It's Complicated");
   });
 
-  it("absolutizes a relative /media image URL instead of shipping it as-is", () => {
+  it("absolutizes a relative /media image URL and requests the 1200×675 derivative (not the raw multi-MB original)", () => {
     const html = renderNewsletterHtml(baseOpts({
       cards: [{ ...essayCard, image: { url: "/media/photo.jpg", alt: "a photo" } }],
     }));
-    expect(html).toContain('src="https://gangrey.org/media/photo.jpg"');
-    expect(html).not.toContain('src="/media/photo.jpg"');
+    expect(html).toContain('src="https://gangrey.org/media/photo.jpg?w=1200&h=675"');
+    expect(html).not.toContain('src="/media/photo.jpg');
+  });
+
+  it("does not double-append resize params when the stored URL already has them", () => {
+    const html = renderNewsletterHtml(baseOpts({
+      cards: [{ ...essayCard, image: { url: "/media/photo.jpg?w=1600&h=900" } }],
+    }));
+    expect(html).toContain('src="https://gangrey.org/media/photo.jpg?w=1600&h=900"');
   });
 
   it("leaves an already-absolute image URL untouched", () => {

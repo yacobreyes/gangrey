@@ -154,6 +154,16 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean; web?: b
   // has no page to resolve against, so relative photos silently fail to load —
   // every image src sent in the email must be absolute.
   const absUrl = (url?: string) => (url && url.startsWith("/") ? `${base}${url}` : url ?? "");
+  // The picker stores the RAW upload path with no resize params, so cards were
+  // shipping original multi-MB photos into a 600px column — the source of slow
+  // image loads in both the email and the web reader. Request the 1200×675
+  // derivative instead (matches the 16:9 card crop; pre-generated on publish
+  // by warmImageDerivatives, so it's a warm cache hit).
+  const imgSrc = (url?: string) => {
+    const abs = absUrl(url);
+    if (!abs.includes("/media/") || abs.includes("w=")) return abs;
+    return `${abs}${abs.includes("?") ? "&" : "?"}w=1200&h=675`;
+  };
   const cards = raw.cards.map(c => ({
     ...c,
     headline: c.headline ? straightenQuotes(c.headline) : c.headline,
@@ -197,7 +207,7 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean; web?: b
         ? `<p style="font-family:${FONT};font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:${EARTH};${alignC(center)}margin:0 0 24px;">By ${esc(card.byline)}</p>`
         : "";
       const img = card.image?.url
-        ? `<img src="${absUrl(card.image.url)}" alt="${esc(card.image.alt ?? "")}" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;margin-bottom:8px;" />`
+        ? `<img src="${imgSrc(card.image.url)}" alt="${esc(card.image.alt ?? "")}" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;margin-bottom:8px;" />`
           + (card.image.caption ? `<p style="font-family:${FONT};font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:${EARTH};margin:0 0 24px;">${esc(card.image.caption)}</p>` : `<div style="height:16px;"></div>`)
         : "";
       return `<div style="padding:0 ${gx} 16px;">
@@ -215,7 +225,7 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean; web?: b
     // ---- MICRO-MEMOIR: tweet card on the black ground ----
     if (type === "micro-memoir") {
       const img = card.image?.url
-        ? `<img src="${absUrl(card.image.url)}" alt="${esc(card.image.alt ?? "")}" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;border-radius:12px;margin-bottom:16px;" />`
+        ? `<img src="${imgSrc(card.image.url)}" alt="${esc(card.image.alt ?? "")}" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;border-radius:12px;margin-bottom:16px;" />`
         : "";
       return `<div style="padding:0 ${gx} 16px;">
         <div style="background:transparent;padding:22px 16px 26px;">
@@ -246,12 +256,12 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean; web?: b
     const c = archiveN % 2;
     archiveN++;
     const img = card.image?.url
-      ? `<img src="${absUrl(card.image.url)}" alt="${esc(card.image.alt ?? "")}" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;margin-bottom:4px;" />`
+      ? `<img src="${imgSrc(card.image.url)}" alt="${esc(card.image.alt ?? "")}" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;margin-bottom:4px;" />`
         + (card.image.caption ? `<p style="font-family:${SERIF};font-size:9px;letter-spacing:0.04em;text-transform:uppercase;color:${EARTH};margin:0 0 16px;">${esc(card.image.caption)}</p>` : `<div style="height:16px;"></div>`)
       : "";
     return `<div style="padding:0 ${gx} 16px;">
       <div style="background:transparent;padding:26px 4px;">
-        <div style="position:relative;filter:drop-shadow(0 8px 16px rgba(0,0,0,0.5));">
+        <div style="position:relative;${opts.web ? "" : "filter:drop-shadow(0 8px 16px rgba(0,0,0,0.5));"}">
           <div style="background:${PAPER};clip-path:${TORN[c]};padding:34px 28px 40px;">
             <div style="border-bottom:1px solid ${GROUND};padding-bottom:7px;margin-bottom:18px;font-family:${SERIF};font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:${GROUND};">Gangrey · Archive &nbsp;·&nbsp; ${esc(fmtDate(card.date))}</div>
             <h2 style="font-family:${SERIF};font-size:${HEAD_SIZE}px;font-weight:700;line-height:${HEAD_LINE};color:${GROUND};text-align:left;margin:0 0 8px;">${esc(card.headline ?? "")}</h2>
