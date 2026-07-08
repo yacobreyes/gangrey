@@ -80,7 +80,7 @@ export default function AuthorsClient({ authors }: { authors: Author[] }) {
         }
       `}</style>
 
-      <ListingHeader title="Authors" sub="Writers featured in Gangrey." marginBottom={0} borderWidth={1} />
+      <ListingHeader title="Authors" marginBottom={0} borderWidth={1} />
 
       {/* Filter row — alphabet jump list + search, under the shared title border */}
       <div className="au-filter-row">
