@@ -86,6 +86,54 @@ export async function respondToSubmission(
   return { ok: true };
 }
 
+// Spin a submission into a publishable story draft in Imago (same machinery the
+// newsletter uses to turn a card into a post). Converts the plain pasted text
+// into portable-text blocks, maps the category to a section, and prefills the
+// byline with the author's name so the editor can open and polish it.
+const CATEGORY_SECTION: Record<string, string> = {
+  "Essay": "Essays",
+  "Reported Narrative": "Narratives",
+  "Micro-Memoir": "Micro-Memoir",
+};
+
+function textToBlocks(text: string): unknown[] {
+  const paras = text.replace(/\r\n/g, "\n").split(/\n{2,}/).map(p => p.replace(/\n/g, " ").trim()).filter(Boolean);
+  return (paras.length ? paras : [text.trim()]).map(p => ({
+    _type: "block",
+    _key: `b${Math.random().toString(36).slice(2, 9)}`,
+    style: "normal",
+    markDefs: [],
+    children: [{ _type: "span", _key: `s${Math.random().toString(36).slice(2, 9)}`, text: p, marks: [] }],
+  }));
+}
+
+export async function createStoryFromSubmission(id: string): Promise<{ ok: boolean; slug?: string; error?: string }> {
+  await requireAuth();
+  const sub = await getFull(id);
+  if (!sub) return { ok: false, error: "Submission not found." };
+  const { createPostFromNewsletterCard } = await import("./actions");
+  try {
+    const { slug } = await createPostFromNewsletterCard({
+      headline: sub.title,
+      body: textToBlocks(sub.text || ""),
+      byline: sub.name,
+      section: CATEGORY_SECTION[sub.category] ?? "",
+    });
+    return { ok: true, slug };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Couldn't create the draft." };
+  }
+}
+
+async function getFull(id: string): Promise<SubmissionRow | null> {
+  if (isSqliteBackend()) return sqliteGetSubmission(id);
+  const r = await client.fetch(
+    `*[_id == $id][0]{ "_id": _id, name, email, title, category, coverLetter, text, wordCount, status, respondedAt, _createdAt }`,
+    { id }, { cache: "no-store" }
+  );
+  return (r ?? null) as SubmissionRow | null;
+}
+
 export async function deleteSubmission(id: string): Promise<{ ok: boolean }> {
   await requireAuth();
   if (isSqliteBackend()) sqliteDeleteSubmission(id);

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
-import { getSubmissions, setSubmissionStatus, respondToSubmission, deleteSubmission } from "../submissionActions";
+import { getSubmissions, setSubmissionStatus, respondToSubmission, deleteSubmission, createStoryFromSubmission } from "../submissionActions";
 import type { SubmissionRow, SubmissionStatus } from "@/lib/storage/sqlite";
 
 const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
@@ -92,6 +92,26 @@ function SubmissionCard({ sub, open, onToggle, onChanged }: { sub: SubmissionRow
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [creating, setCreating] = useState(false);
+
+  async function copyStory() {
+    // Include a title + byline header so it pastes cleanly into a Google Doc.
+    const payload = `${sub.title}\nBy ${sub.name} · ${sub.category}\n\n${sub.text}`;
+    try {
+      await navigator.clipboard.writeText(payload);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch { /* clipboard blocked — no-op */ }
+  }
+
+  async function createStory() {
+    setCreating(true); setErr("");
+    const res = await createStoryFromSubmission(sub._id).catch(() => ({ ok: false, error: "Something went wrong." } as { ok: boolean; slug?: string; error?: string }));
+    setCreating(false);
+    if (res.ok && res.slug) window.open(`/admin/imago/posts/${res.slug}`, "_blank");
+    else setErr(res.error || "Couldn't create the draft.");
+  }
 
   async function mark(status: "new" | "reading") {
     setBusy(true);
@@ -148,7 +168,17 @@ function SubmissionCard({ sub, open, onToggle, onChanged }: { sub: SubmissionRow
             </div>
           )}
 
-          <div style={{ fontFamily: FONT, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: CRIMSON, marginBottom: "0.4rem" }}>The story</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.4rem" }}>
+            <span style={{ fontFamily: FONT, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: CRIMSON }}>The story</span>
+            <button onClick={copyStory} title="Copy the full story to paste into a Google Doc"
+              style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.04em", color: copied ? "#1a7f37" : TEXT_MUTED, cursor: "pointer" }}>
+              {copied ? (
+                <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Copied</>
+              ) : (
+                <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</>
+              )}
+            </button>
+          </div>
           <div style={{ fontFamily: SERIF, fontSize: "1.05rem", lineHeight: 1.72, color: "#000", whiteSpace: "pre-wrap", maxHeight: 460, overflowY: "auto", padding: "0.5rem 0.9rem", background: "#faf9f7", border: `1px solid ${BORDER}`, borderRadius: 4 }}>
             {sub.text}
           </div>
@@ -175,6 +205,7 @@ function SubmissionCard({ sub, open, onToggle, onChanged }: { sub: SubmissionRow
               {sub.status === "reading" && (
                 <button onClick={() => mark("new")} disabled={busy} style={btn(TEXT_MUTED, false, busy)}>Back to new</button>
               )}
+              <button onClick={createStory} disabled={busy || creating} style={btn(TEXT_DARK, false, busy || creating)}>{creating ? "Creating…" : "Create story draft →"}</button>
               <button onClick={() => openCompose("accepted")} disabled={busy} style={btn("#1a7f37", true, busy)}>Accept</button>
               <button onClick={() => openCompose("declined")} disabled={busy} style={btn(CRIMSON, false, busy)}>Decline</button>
               <button onClick={remove} disabled={busy} style={{ ...btn("#8a8a8c", false, busy), marginLeft: "auto" }}>Delete</button>
