@@ -10,7 +10,7 @@ export const revalidate = 60;
 export const metadata: Metadata = {
   title: "Gangrey | Authors",
   alternates: { canonical: "/authors" },
-  description: "Writers featured in Gangrey.",
+  description: "Every writer published in Gangrey.",
 };
 
 // Exclude archive (Archive) pieces — the author board only lists
