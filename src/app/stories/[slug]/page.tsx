@@ -146,8 +146,21 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
             <div className="story-hero">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={postImageUrl(post.image, 1600, 900)!}
+                src={postImageUrl(post.image, 1200, 675)!}
+                srcSet={[
+                  `${postImageUrl(post.image, 800, 450)} 800w`,
+                  `${postImageUrl(post.image, 1200, 675)} 1200w`,
+                  `${postImageUrl(post.image, 1600, 900)} 1600w`,
+                ].join(", ")}
+                // Hero is full-width on phones, capped at the 600px reading
+                // column on desktop — so a phone downloads the 800/1200 crop
+                // instead of the full 1600, cutting the load lapse over cellular.
+                sizes="(max-width: 720px) 100vw, 600px"
                 alt={post.image?.alt ?? post.image?.caption ?? ""}
+                // Above-the-fold hero: fetch it immediately with priority
+                // rather than letting the browser lazy-queue it.
+                fetchPriority="high"
+                decoding="async"
               />
             </div>
           </div>

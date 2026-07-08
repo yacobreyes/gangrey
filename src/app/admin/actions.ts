@@ -19,7 +19,11 @@ import {
 function warmImageDerivatives(src: string, crops: Record<string, { x: number; y: number; w: number; h: number }> | undefined) {
   if (!src || !src.startsWith("/media/")) return;
   const image = { url: src, crops: crops as never };
-  const sizes: [number, number][] = [[1600, 900], [1200, 630], [720, 540], [640, 474], [520, 293]];
+  // Hero srcset (1600/1200/800×...9), OG card (1200×630), and story-list
+  // thumbnails. The 800×450 + 1200×675 pair is what phones actually request
+  // off the responsive hero, so warming them keeps the first mobile visitor
+  // off a cold resize.
+  const sizes: [number, number][] = [[1600, 900], [1200, 675], [800, 450], [1200, 630], [720, 540], [640, 474], [520, 293]];
   for (const [w, h] of sizes) {
     const u = postImageUrl(image, w, h);
     if (u) fetch(`http://localhost:3000${u}`).catch(() => {});
