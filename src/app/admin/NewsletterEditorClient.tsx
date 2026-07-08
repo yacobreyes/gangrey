@@ -950,7 +950,15 @@ export default function NewsletterEditorClient({
                     {/* Section label — small-caps flag, non-editable. Omitted for
                         micro-memoir, whose byline already reads "A Micro-Memoir by…". */}
                     {type !== "micro-memoir" && (
-                      <div style={{ paddingTop: sheet ? "0.75rem" : "1.25rem", fontFamily: FONT, fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.24em", color: sheet ? CRIMSON : "#b8b8ba", marginBottom: type === "archive" ? "-0.5rem" : "0.4rem" }}>
+                      // paddingTop only matters visually for archive: essay/narrative
+                      // labels sit inset inside a white sheet that already fills from
+                      // the wrapper's top edge, so their own paddingTop is invisible
+                      // from outside. Archive has no such background — its label is
+                      // the first visible pixel — so it needs the same near-zero
+                      // offset as the others, or the hover toolbar (anchored a fixed
+                      // distance above the wrapper) ends up floating twice as far
+                      // above the clipping as it does above every other card type.
+                      <div style={{ paddingTop: sheet ? "0.75rem" : "0", fontFamily: FONT, fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.24em", color: sheet ? CRIMSON : "#b8b8ba", marginBottom: "0.5rem" }}>
                         {sectionLabel}
                       </div>
                     )}
@@ -1102,7 +1110,7 @@ export default function NewsletterEditorClient({
                       ];
                       const taperot = [["-6deg", "5deg"], ["-5deg", "6deg"]];
                       return (
-                      <div style={{ background: "transparent", padding: "0.5rem 0.25rem 1.6rem", margin: "0 0 0.5rem" }}>
+                      <div style={{ background: "transparent", padding: "0 0.25rem 1.6rem", margin: "0 0 0.5rem" }}>
                         <div style={{ position: "relative", filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.5))" }}>
                           <div style={{ background: "#ffffff", clipPath: torn[c], padding: "2.1rem 1.75rem 2.5rem" }}>
                             <div style={{ borderBottom: `1px solid #000`, paddingBottom: "0.45rem", marginBottom: "1.1rem", fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.58rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "#000" }}>Gangrey · Archive &nbsp;·&nbsp; {todayLabel}</div>
