@@ -125,11 +125,15 @@ function initials(name?: string): string {
   return (words[0][0] + (words[1]?.[0] ?? "")).toUpperCase();
 }
 
-// Irregular torn top/bottom edges for the archive clippings — the exact
-// polygons from the design reference (straight left/right, uneven notches).
+// Irregular torn top/bottom edges for the archive clippings. Amplitude is
+// fixed in PIXELS (not percent) so the tear looks the same regardless of how
+// tall the card is — a percentage-based clip-path made a short blank card's
+// tear subtle and a long photo+body card's tear an exaggerated sawtooth (the
+// same 1-2% notch is a couple of px on a short card, a dozen+ px on a tall
+// one), which also threw off the tape strips' fixed-pixel placement.
 const TORN = [
-  "polygon(0% 1.6%,6% 0.5%,12% 2.1%,18% 0.8%,24% 1.7%,31% 0.4%,38% 2.3%,45% 1.0%,52% 0.6%,59% 2.0%,66% 0.9%,73% 1.8%,80% 0.5%,87% 2.2%,94% 1.0%,100% 0.8%,100% 99.2%,94% 98.6%,87% 99.4%,80% 98.5%,73% 99.3%,66% 98.4%,59% 99.4%,52% 98.7%,45% 99.3%,38% 98.4%,31% 99.2%,24% 98.6%,18% 99.4%,12% 98.6%,6% 99.3%,0% 98.8%)",
-  "polygon(0% 1.2%,7% 0.4%,13% 2.0%,19% 0.7%,26% 1.9%,33% 0.5%,39% 2.2%,46% 0.9%,53% 0.5%,60% 2.1%,67% 0.8%,74% 1.7%,81% 0.6%,88% 2.0%,95% 0.9%,100% 1.4%,100% 98.8%,95% 99.3%,88% 98.5%,81% 99.4%,74% 98.6%,67% 99.2%,60% 98.4%,53% 99.4%,46% 98.7%,39% 99.3%,33% 98.5%,26% 99.2%,19% 98.6%,13% 99.4%,7% 98.7%,0% 99.2%)",
+  "polygon(0% 8px,6% 3px,12% 10px,18% 4px,24% 8px,31% 2px,38% 11px,45% 5px,52% 3px,59% 10px,66% 4px,73% 9px,80% 3px,87% 11px,94% 5px,100% 4px,100% calc(100% - 4px),94% calc(100% - 7px),87% calc(100% - 3px),80% calc(100% - 7px),73% calc(100% - 3px),66% calc(100% - 8px),59% calc(100% - 3px),52% calc(100% - 6px),45% calc(100% - 3px),38% calc(100% - 8px),31% calc(100% - 4px),24% calc(100% - 7px),18% calc(100% - 3px),12% calc(100% - 7px),6% calc(100% - 3px),0% calc(100% - 6px))",
+  "polygon(0% 6px,7% 2px,13% 10px,19% 4px,26% 9px,33% 3px,39% 11px,46% 4px,53% 3px,60% 10px,67% 4px,74% 8px,81% 3px,88% 10px,95% 4px,100% 7px,100% calc(100% - 6px),95% calc(100% - 3px),88% calc(100% - 7px),81% calc(100% - 3px),74% calc(100% - 7px),67% calc(100% - 4px),60% calc(100% - 8px),53% calc(100% - 3px),46% calc(100% - 6px),39% calc(100% - 3px),33% calc(100% - 7px),26% calc(100% - 4px),19% calc(100% - 7px),13% calc(100% - 3px),7% calc(100% - 6px),0% calc(100% - 4px))",
 ];
 const TAPE_ROT = [["-6deg", "5deg"], ["-5deg", "6deg"]];
 
