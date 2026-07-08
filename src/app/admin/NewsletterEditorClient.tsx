@@ -1163,7 +1163,7 @@ export default function NewsletterEditorClient({
                       ];
                       const taperot = [["-6deg", "5deg"], ["-5deg", "6deg"]];
                       return (
-                      <div style={{ background: "transparent", padding: "0 0.25rem 1.6rem", margin: "0 0 0.5rem" }}>
+                      <div style={{ background: "transparent", padding: "0.9rem 0.25rem 1.6rem", margin: "0 0 0.5rem" }}>
                         <div style={{ position: "relative", filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.5))" }}>
                           <div style={{ background: "#ffffff", clipPath: torn[c], padding: "2.1rem 1.75rem 2.5rem" }}>
                             <div style={{ borderBottom: `1px solid #000`, paddingBottom: "0.45rem", marginBottom: "1.1rem", fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.58rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "#000" }}>Gangrey · Archive &nbsp;·&nbsp; {todayLabel}</div>
@@ -1194,8 +1194,8 @@ export default function NewsletterEditorClient({
                             {nlCardDraftRow(card, "left")}
                           </div>
                           {/* Tape strips */}
-                          <div style={{ position: "absolute", top: 12, left: 40, width: 92, height: 22, background: "rgba(233,230,225,0.5)", transform: `rotate(${taperot[c][0]})`, boxShadow: "0 1px 3px rgba(0,0,0,0.18)" }} />
-                          <div style={{ position: "absolute", top: 12, right: 40, width: 92, height: 22, background: "rgba(233,230,225,0.5)", transform: `rotate(${taperot[c][1]})`, boxShadow: "0 1px 3px rgba(0,0,0,0.18)" }} />
+                          <div style={{ position: "absolute", top: -11, left: 40, width: 92, height: 22, background: "rgba(233,230,225,0.5)", transform: `rotate(${taperot[c][0]})`, boxShadow: "0 1px 3px rgba(0,0,0,0.18)" }} />
+                          <div style={{ position: "absolute", top: -11, right: 40, width: 92, height: 22, background: "rgba(233,230,225,0.5)", transform: `rotate(${taperot[c][1]})`, boxShadow: "0 1px 3px rgba(0,0,0,0.18)" }} />
                         </div>
                       </div>
                       );
