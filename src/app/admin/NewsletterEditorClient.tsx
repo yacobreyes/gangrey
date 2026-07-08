@@ -1044,60 +1044,79 @@ export default function NewsletterEditorClient({
                       </div>
                     )}
 
-                    {/* MICRO-MEMOIR card — literary magazine style */}
-                    {type === "micro-memoir" && (
-                      <div style={{ background: "#ffffff", padding: "1.75rem 1.75rem 2rem", border: `1px solid #b8b8ba`, borderRadius: 16, boxShadow: "0 2px 12px rgba(0,0,0,0.4)", margin: "0 0 1rem" }}>
-                        <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Title"
-                          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.7rem", fontStyle: "normal", fontWeight: 400, lineHeight: 1.2, letterSpacing: "0.02em", color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "0.35rem", display: "block", boxSizing: "border-box", textAlign: "center" }} />
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.35rem", flexWrap: "wrap", margin: "0 0 1.5rem" }}>
-                          <span style={{ fontFamily: CANVAS_BYLINE, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: CRIMSON }}>A Micro-Memoir</span>
-                          {card.byline === undefined ? (
-                            <button type="button" onClick={() => nlUpdateCard(card.id, { byline: "" })}
-                              style={{ background: "none", border: "none", padding: 0, fontFamily: FONT, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.02em", color: CRIMSON, cursor: "pointer" }}>+ by</button>
-                          ) : (
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", fontFamily: FONT, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: CRIMSON }}>
-                              by
-                              <input value={card.byline} onChange={e => nlUpdateCard(card.id, { byline: e.target.value })} placeholder="author" autoFocus={!card.byline}
-                                style={{ fontFamily: FONT, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: CRIMSON, border: "none", outline: "none", background: "transparent", padding: 0, textAlign: "left", width: `calc(${card.byline.length > 0 ? card.byline.length + 1 : 7}ch + ${(card.byline.length > 0 ? card.byline.length : 7) * 0.18}em)`, boxSizing: "content-box" }} />
-                              <button type="button" title="Remove byline" onClick={() => nlUpdateCard(card.id, { byline: undefined })}
-                                style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: TEXT_MUTED, fontSize: "0.9rem", lineHeight: 1 }}>×</button>
-                            </span>
-                          )}
+                    {/* MICRO-MEMOIR card — tweet-style social post (matches email) */}
+                    {type === "micro-memoir" && (() => {
+                      const mmInit = ((card.byline || "").trim().split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase()) || "GR";
+                      return (
+                      <div style={{ background: "#ffffff", padding: "1.25rem 1.4rem", border: `1px solid #b8b8ba`, borderRadius: 16, boxShadow: "0 2px 12px rgba(0,0,0,0.4)", margin: "0 0 1rem", textAlign: "left" }}>
+                        {/* Header: avatar + name + subline */}
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.9rem" }}>
+                          <div style={{ width: 44, height: 44, borderRadius: "50%", background: CRIMSON, color: "#fff", fontFamily: FONT, fontSize: "1rem", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{mmInit}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <input value={card.byline ?? ""} onChange={e => nlUpdateCard(card.id, { byline: e.target.value })} readOnly={nlReadOnly} placeholder="Author name"
+                              style={{ fontFamily: FONT, fontSize: "0.95rem", fontWeight: 700, color: TEXT_DARK, lineHeight: 1.2, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, display: "block", boxSizing: "border-box" }} />
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", marginTop: 2 }}>
+                              <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Story title"
+                                style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, lineHeight: 1.2, border: "none", outline: "none", background: "transparent", padding: 0, boxSizing: "border-box", flexShrink: 1, minWidth: 0, width: `${Math.max((card.headline?.length || 10), 6)}ch` }} />
+                              <span style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, whiteSpace: "nowrap" }}>· {todayLabel}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div style={{ width: 32, height: 1, background: "#b8b8ba", margin: "0 auto 1.5rem" }} />
-                        <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.1rem", lineHeight: 1.85, textAlign: "center" }}>
-                          <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={100} placeholder="Write intimately…"
+                        {/* Body */}
+                        <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.25rem", lineHeight: 1.5 }}>
+                          <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} placeholder="Write intimately, in fewer than 40 words…"
                             onChange={doc => nlUpdateCard(card.id, { doc })}
                             onEditor={ed => { nlEditors.current[card.id] = ed; }}
                             onToolbar={tb => { nlToolbars.current[card.id] = tb; }} />
                         </div>
-                        {nlCardDraftRow(card, "center")}
-                      </div>
-                    )}
-
-                    {/* ARCHIVE card — a framed "from the archive" reprint on warm
-                        parchment, italic serif headline, to feel like a classic. */}
-                    {type === "archive" && (
-                      <div style={{ background: "#ffffff", border: `1px solid #b8b8ba`, padding: "1.75rem 1.75rem 2rem", margin: "0 0 1rem", transform: "rotate(-0.7deg)", boxShadow: "0 8px 16px rgba(0,0,0,0.5)" }}>
-                        {card.image && (
-                          <div style={{ margin: "0 0 1.25rem", position: "relative" }}>
+                        {/* Optional attached photo */}
+                        {card.image ? (
+                          <div style={{ margin: "0.9rem 0 0", position: "relative" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", maxHeight: 220, objectFit: "cover", display: "block" }} />
+                            <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", maxHeight: 220, objectFit: "cover", display: "block", borderRadius: 12 }} />
+                            <div className="nl-card-controls" style={{ position: "absolute", top: "0.4rem", right: "0.4rem", display: "flex", gap: "0.35rem" }}>
+                              <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Change</button>
+                              <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Remove</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ background: "#ffffff", border: `1px dashed ${BORDER}`, fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, cursor: "pointer", margin: "0.9rem 0 0", padding: "0.6rem 1rem", borderRadius: 12, display: "block", width: "100%", textAlign: "center", boxSizing: "border-box" }}>
+                            + Add photo
+                          </button>
+                        )}
+                        {/* Footer meta */}
+                        <div style={{ borderTop: `1px solid #b8b8ba`, marginTop: "1rem", paddingTop: "0.75rem", fontFamily: FONT, fontSize: "0.75rem", color: TEXT_MUTED }}>
+                          {todayLabel} <span style={{ color: "#b8b8ba" }}>·</span> <span style={{ color: CRIMSON, fontWeight: 700 }}>A micro-memoir</span>
+                        </div>
+                        {nlCardDraftRow(card, "left")}
+                      </div>
+                      );
+                    })()}
+
+                    {/* ARCHIVE card — torn newspaper clipping reprint (matches email) */}
+                    {type === "archive" && (
+                      <div style={{ background: "#ffffff", border: `1px solid #b8b8ba`, padding: "1.75rem 1.75rem 2rem", margin: "0 0 1rem", boxShadow: "0 8px 16px rgba(0,0,0,0.5)" }}>
+                        <div style={{ borderBottom: `1px solid #000`, paddingBottom: "0.45rem", marginBottom: "1.1rem", fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.58rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "#000" }}>Gangrey · Archive · {todayLabel}</div>
+                        <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Archive title"
+                          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "2.1rem", fontWeight: 700, lineHeight: 1.03, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "0.5rem", display: "block", boxSizing: "border-box", textAlign: "left" }} />
+                        {nlBylineField(card, "left")}
+                        {card.image && (
+                          <div style={{ margin: "1rem 0 0.25rem", position: "relative" }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", maxHeight: 150, objectFit: "cover", display: "block" }} />
                             <div className="nl-card-controls" style={{ position: "absolute", top: "0.4rem", right: "0.4rem", display: "flex", gap: "0.35rem" }}>
                               <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Change</button>
                               <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Remove</button>
                             </div>
                           </div>
                         )}
-                        <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Archive title"
-                          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.7rem", fontStyle: "normal", fontWeight: 700, lineHeight: 1.2, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "0.5rem", display: "block", boxSizing: "border-box", textAlign: "center" }} />
-                        <div style={{ textAlign: "center", marginBottom: "1.25rem" }}>{nlBylineField(card, "center")}</div>
-                        <div style={{ width: 32, height: 1, background: "#b8b8ba", margin: "0 auto 1.25rem" }} />
-                        <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} placeholder="From the archive…"
-                          onChange={doc => nlUpdateCard(card.id, { doc })}
-                          onEditor={ed => { nlEditors.current[card.id] = ed; }}
-                          onToolbar={tb => { nlToolbars.current[card.id] = tb; }} />
-                        {nlCardDraftRow(card, "center")}
+                        <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.95rem", lineHeight: 1.62, textAlign: "justify", marginTop: "1rem" }}>
+                          <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} placeholder="From the archive…"
+                            onChange={doc => nlUpdateCard(card.id, { doc })}
+                            onEditor={ed => { nlEditors.current[card.id] = ed; }}
+                            onToolbar={tb => { nlToolbars.current[card.id] = tb; }} />
+                        </div>
+                        {nlCardDraftRow(card, "left")}
                       </div>
                     )}
                   </>)}
