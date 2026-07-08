@@ -31,13 +31,13 @@ export function submissionEmailHtml(innerHtml: string, kicker?: string): string 
         <tr><td style="padding:32px 34px 8px;text-align:center;">
           <img src="${SITE_URL}/Wordmark.png?v=7" alt="Gangrey" width="150" style="width:150px;max-width:60%;display:block;margin:0 auto 16px;border:0;" />
           <div style="width:36px;height:2px;background-color:${CRIMSON};margin:0 auto;"></div>
-          ${kicker ? `<div style="font-family:${SANS};font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:${CRIMSON};margin:16px 0 0;">${escapeHtml(kicker)}</div>` : ""}
+          ${kicker ? `<div style="font-family:${SERIF};font-size:22px;font-weight:700;color:${CRIMSON};margin:18px 0 0;">${escapeHtml(kicker)}</div>` : ""}
         </td></tr>
         <tr><td style="padding:20px 34px 30px;font-family:${SERIF};color:#000000;">
           ${innerHtml}
         </td></tr>
       </table>
-      <p style="font-family:${SANS};font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8a8a8c;text-align:center;margin:20px 0 0;">Gangrey &middot; A Literary Magazine &middot; gangrey.org</p>
+      <p style="font-family:${SANS};font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#8a8a8c;text-align:center;margin:20px 0 0;">Gangrey &middot; A Literary Magazine</p>
     </td></tr>
   </table>
 </body></html>`;

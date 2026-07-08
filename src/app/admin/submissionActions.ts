@@ -70,7 +70,7 @@ export async function respondToSubmission(
     if (!body) return { ok: false, error: "Write a message to the author before sending." };
 
     const html = submissionEmailHtml(
-      `<p style="font-size:15px;line-height:1.5;color:#392a22 !important;margin:0 0 20px;">Re: &ldquo;${escapeHtml(sub.title)}&rdquo;</p>
+      `<p style="font-size:17px;line-height:1.6;color:#392a22 !important;margin:0 0 20px;">Re: "${escapeHtml(sub.title)}"</p>
        <p style="font-size:17px;line-height:1.7;color:#000000 !important;margin:0;white-space:pre-line;">${escapeHtml(body)}</p>`,
       decision === "accepted" ? "You're In" : "About Your Submission"
     );
