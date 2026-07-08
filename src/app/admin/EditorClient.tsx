@@ -67,6 +67,16 @@ function formatTime(iso: string) {
   return d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
 }
 
+// "Jul 7 at 6:20am ET" — fixed to the newsroom's own timezone (not the
+// viewer's) so "published on X" reads the same to every editor regardless of
+// where they are, matching the Axios-style view-mode banner.
+function formatPublishedTime(iso: string) {
+  const d = new Date(iso);
+  const time = d.toLocaleString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit", hour12: true }).replace(" ", "").toLowerCase();
+  const date = d.toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric" });
+  return `${date} at ${time} ET`;
+}
+
 
 const EMPTY_DOC: JSONContent = { type: "doc", content: [{ type: "paragraph" }] };
 
@@ -479,11 +489,14 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
       <EditLockBanner holder={locked ? lockHolder : null} selfOtherTab={selfOtherTab} onTakeOver={takeOver} />
       {viewMode && !locked && (() => {
         const isScheduled = form.status === "scheduled";
+        const isPublished = form.status === "published";
         const message = isScheduled
           ? `This story was scheduled${post.scheduledBy ? ` by ${post.scheduledBy}` : ""} for ${formatTime(post.scheduledAt ?? scheduledAt)}.`
           : viewLockHolder
             ? `${viewLockHolder.name} is currently editing this. Do you want to kick them out?`
-            : "You’re viewing this story. Do you want to make changes?";
+            : isPublished && post.lastEditedAt
+              ? `This story was published on ${formatPublishedTime(post.lastEditedAt)}. Do you want to make changes?`
+              : "You're viewing this story. Do you want to make changes?";
         const action = isScheduled ? "Unschedule to edit" : viewLockHolder ? "Kick them out" : "Start editing";
         const onClick = isScheduled
           ? unscheduleToEdit
