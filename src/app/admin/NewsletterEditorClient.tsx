@@ -1100,11 +1100,10 @@ export default function NewsletterEditorClient({
                         "polygon(0% 1.6%,6% 0.5%,12% 2.1%,18% 0.8%,24% 1.7%,31% 0.4%,38% 2.3%,45% 1.0%,52% 0.6%,59% 2.0%,66% 0.9%,73% 1.8%,80% 0.5%,87% 2.2%,94% 1.0%,100% 0.8%,100% 99.2%,94% 98.6%,87% 99.4%,80% 98.5%,73% 99.3%,66% 98.4%,59% 99.4%,52% 98.7%,45% 99.3%,38% 98.4%,31% 99.2%,24% 98.6%,18% 99.4%,12% 98.6%,6% 99.3%,0% 98.8%)",
                         "polygon(0% 1.2%,7% 0.4%,13% 2.0%,19% 0.7%,26% 1.9%,33% 0.5%,39% 2.2%,46% 0.9%,53% 0.5%,60% 2.1%,67% 0.8%,74% 1.7%,81% 0.6%,88% 2.0%,95% 0.9%,100% 1.4%,100% 98.8%,95% 99.3%,88% 98.5%,81% 99.4%,74% 98.6%,67% 99.2%,60% 98.4%,53% 99.4%,46% 98.7%,39% 99.3%,33% 98.5%,26% 99.2%,19% 98.6%,13% 99.4%,7% 98.7%,0% 99.2%)",
                       ];
-                      const tilt = ["-1.1deg", "0.9deg"];
                       const taperot = [["-6deg", "5deg"], ["-5deg", "6deg"]];
                       return (
                       <div style={{ background: "transparent", padding: "1.6rem 0.25rem", margin: "0 0 0.5rem" }}>
-                        <div style={{ position: "relative", transform: `rotate(${tilt[c]})`, filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.5))" }}>
+                        <div style={{ position: "relative", filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.5))" }}>
                           <div style={{ background: "#ffffff", clipPath: torn[c], padding: "2.1rem 1.75rem 2.5rem" }}>
                             <div style={{ borderBottom: `1px solid #000`, paddingBottom: "0.45rem", marginBottom: "1.1rem", fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.58rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "#000" }}>Gangrey · Archive &nbsp;·&nbsp; {todayLabel}</div>
                             <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Archive title"
