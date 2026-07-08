@@ -2,16 +2,12 @@
 
 import { useState, useTransition, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { savePost, deletePost, trashPost, restorePost, saveAbout, uploadImage, clearCloudDraft, deleteMediaAsset, updateMediaAsset } from "../actions";
 import { deleteNewsletter as deleteNewsletterDoc, getSubscribers, type Subscriber } from "../newsletterActions";
 import type { NlCard } from "@/lib/newsletterEmail";
 import { tiptapToPortableText, portableTextToTiptap } from "@/lib/tiptapConvert";
-import RichBodyEditor, { type ToolbarHandles } from "@/components/RichBodyEditor";
-import ImagePickerModal from "@/components/ImagePickerModal";
-import UsersPanel from "./UsersPanel";
-import AudiencePanel from "./AudiencePanel";
-import AnalyticsPanel from "./AnalyticsPanel";
-import SubmissionsPanel from "./SubmissionsPanel";
+import type { ToolbarHandles } from "@/components/RichBodyEditor";
 import { getActiveLocks, type LockHolder } from "../lockActions";
 import { listUsers } from "../userActions";
 import type { JSONContent, Editor } from "@tiptap/react";
@@ -19,6 +15,22 @@ import type { SanityPost, AdminNewsletterListItem, AdminMediaAsset } from "@/lib
 import type { FlatplanUser } from "@/lib/users";
 import { straightenQuotes } from "@/lib/straighten";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
+
+// Every panel below is only ever rendered one at a time (gated on
+// activePanel), but was previously imported statically — so opening Imago at
+// all shipped and parsed the Tiptap rich-text editor, the analytics charts,
+// the submissions review UI, and the users panel in one eager bundle
+// regardless of which panel you actually landed on. That's the real cause of
+// "everything is slower on mobile": phone CPUs parse/execute JS far slower
+// than desktop, so a bundle padded with four panels' worth of code you're not
+// looking at costs real, felt time on every load. next/dynamic code-splits
+// each into its own chunk, fetched only when its panel is actually opened.
+const RichBodyEditor = dynamic(() => import("@/components/RichBodyEditor"), { ssr: false, loading: () => <div style={{ minHeight: 200 }} /> });
+const ImagePickerModal = dynamic(() => import("@/components/ImagePickerModal"), { ssr: false });
+const UsersPanel = dynamic(() => import("./UsersPanel"), { ssr: false });
+const AudiencePanel = dynamic(() => import("./AudiencePanel"), { ssr: false });
+const AnalyticsPanel = dynamic(() => import("./AnalyticsPanel"), { ssr: false });
+const SubmissionsPanel = dynamic(() => import("./SubmissionsPanel"), { ssr: false });
 
 const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
 

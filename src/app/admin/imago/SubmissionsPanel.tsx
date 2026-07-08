@@ -207,26 +207,34 @@ function SubmissionCard({ sub, open, onToggle, onChanged }: { sub: SubmissionRow
               <textarea value={message} onChange={e => setMessage(e.target.value)} rows={6}
                 style={{ width: "100%", boxSizing: "border-box", fontFamily: SERIF, fontSize: "0.98rem", lineHeight: 1.55, padding: "0.7rem 0.8rem", border: `1px solid ${BORDER}`, borderRadius: 4, outline: "none", resize: "vertical", color: "#000" }} />
               {err && <p style={{ fontFamily: FONT, fontSize: "0.78rem", color: CRIMSON, margin: "0.5rem 0 0" }}>{err}</p>}
-              <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.75rem" }}>
                 <button onClick={send} disabled={busy} style={btn(compose === "accepted" ? "#1a7f37" : CRIMSON, true, busy)}>{busy ? "Sending…" : `Send ${compose === "accepted" ? "acceptance" : "decline"}`}</button>
                 <button onClick={() => setCompose(null)} disabled={busy} style={btn(TEXT_MUTED, false, busy)}>Cancel</button>
               </div>
             </div>
           ) : (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "1.25rem", alignItems: "center" }}>
-              {sub.status !== "reading" && sub.status !== "accepted" && sub.status !== "declined" && (
-                <button onClick={() => mark("reading")} disabled={busy} style={btn(TEXT_DARK, false, busy)}>Start reading</button>
-              )}
-              {sub.status === "reading" && (
-                <button onClick={() => mark("new")} disabled={busy} style={btn(TEXT_MUTED, false, busy)}>Back to new</button>
-              )}
-              <button onClick={() => openCompose("accepted")} disabled={busy} style={btn("#1a7f37", true, busy)}>Accept</button>
-              <button onClick={() => openCompose("declined")} disabled={busy} style={btn(CRIMSON, false, busy)}>Decline</button>
-              {sub.status === "accepted" && (
-                <button onClick={createStory} disabled={busy || creating} style={btn(TEXT_DARK, false, busy || creating)}>{creating ? "Creating…" : "Create story draft →"}</button>
-              )}
-              <button onClick={remove} disabled={busy} style={{ ...btn(CRIMSON, false, busy), color: TEXT_MUTED, marginLeft: "auto" }}>Delete</button>
-              {err && <p style={{ flexBasis: "100%", fontFamily: FONT, fontSize: "0.78rem", color: CRIMSON, margin: "0.25rem 0 0" }}>{err}</p>}
+            <div style={{ marginTop: "1.25rem" }}>
+              {/* Primary actions — their own row so they wrap predictably on
+                  narrow screens instead of fighting Delete for space. */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
+                {sub.status !== "reading" && sub.status !== "accepted" && sub.status !== "declined" && (
+                  <button onClick={() => mark("reading")} disabled={busy} style={btn(TEXT_DARK, false, busy)}>Start reading</button>
+                )}
+                {sub.status === "reading" && (
+                  <button onClick={() => mark("new")} disabled={busy} style={btn(TEXT_MUTED, false, busy)}>Back to new</button>
+                )}
+                <button onClick={() => openCompose("accepted")} disabled={busy} style={btn("#1a7f37", true, busy)}>Accept</button>
+                <button onClick={() => openCompose("declined")} disabled={busy} style={btn(CRIMSON, false, busy)}>Decline</button>
+                {sub.status === "accepted" && (
+                  <button onClick={createStory} disabled={busy || creating} style={btn(TEXT_DARK, false, busy || creating)}>{creating ? "Creating…" : "Create story draft →"}</button>
+                )}
+              </div>
+              {/* Delete — always its own row, so it never ends up stranded
+                  alone at a wrapped edge (what marginLeft:auto did on mobile). */}
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.6rem", paddingTop: "0.6rem", borderTop: `1px solid ${BORDER}` }}>
+                <button onClick={remove} disabled={busy} style={{ ...btn(CRIMSON, false, busy), color: TEXT_MUTED }}>Delete</button>
+              </div>
+              {err && <p style={{ fontFamily: FONT, fontSize: "0.78rem", color: CRIMSON, margin: "0.5rem 0 0" }}>{err}</p>}
             </div>
           )}
         </div>
