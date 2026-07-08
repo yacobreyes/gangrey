@@ -236,7 +236,7 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): stri
           <div style="background:${PAPER};clip-path:${TORN[c]};padding:34px 28px 40px;">
             <div style="border-bottom:1px solid ${GROUND};padding-bottom:7px;margin-bottom:18px;font-family:${SERIF};font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:${GROUND};">Gangrey · Archive &nbsp;·&nbsp; ${esc(shortDate)}</div>
             <h2 style="font-family:${SERIF};font-size:34px;font-weight:700;line-height:1.03;color:${GROUND};text-align:left;margin:0 0 8px;">${esc(card.headline ?? "")}</h2>
-            ${card.byline ? `<p style="font-family:${SERIF};font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:${EARTH};text-align:left;margin:0 0 16px;">By ${esc(card.byline)}</p>` : ""}
+            ${card.byline ? `<p style="font-family:${SERIF};font-size:12px;letter-spacing:0.02em;color:${EARTH};text-align:left;margin:0 0 16px;">By ${esc(card.byline)}</p>` : ""}
             ${img}
             <div>${renderBody(card.body ?? [], CLIP_BODY)}</div>
           </div>

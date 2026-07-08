@@ -957,7 +957,7 @@ export default function NewsletterEditorClient({
 
                     {/* Card hover toolbar */}
                     {!nlMovingId && (
-                      <div className="nl-card-controls" style={{ position: "absolute", top: "2.5rem", left: 0, right: 0, display: "flex", alignItems: "center", justifyContent: "space-between", zIndex: 10, pointerEvents: "none" }}>
+                      <div className="nl-card-controls" style={{ position: "absolute", top: "-2.2rem", left: 0, right: 0, display: "flex", alignItems: "center", justifyContent: "space-between", zIndex: 10, pointerEvents: "none" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", pointerEvents: "auto" }}>
                           <button type="button" title="Move" onMouseDown={e => { e.preventDefault(); e.stopPropagation(); const r = nlCardRefs.current[card.id]?.getBoundingClientRect(); if (r) nlMoveRectRef.current = { left: r.left, width: r.width }; nlMoveStartYRef.current = e.clientY; setNlMovingId(card.id); }}
                             style={{ width: 28, height: 28, borderRadius: 4, background: "white", border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "grab", color: TEXT_MUTED, boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
@@ -1108,7 +1108,7 @@ export default function NewsletterEditorClient({
                             <div style={{ borderBottom: `1px solid #000`, paddingBottom: "0.45rem", marginBottom: "1.1rem", fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.58rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "#000" }}>Gangrey · Archive &nbsp;·&nbsp; {todayLabel}</div>
                             <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Archive title"
                               style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "2.1rem", fontWeight: 700, lineHeight: 1.03, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "0.5rem", display: "block", boxSizing: "border-box", textAlign: "left" }} />
-                            <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", color: TEXT_MUTED, marginBottom: "1rem" }}>{nlBylineField(card, "left")}</div>
+                            <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.75rem", color: TEXT_MUTED, marginBottom: "1rem" }}>{nlBylineField(card, "left")}</div>
                             {card.image ? (
                               <div style={{ margin: "0 0 1rem", position: "relative" }}>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
