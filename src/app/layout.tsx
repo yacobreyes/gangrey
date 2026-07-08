@@ -12,6 +12,19 @@ export const metadata: Metadata = {
   title: "Gangrey | A Literary Magazine",
   description: "Gangrey is a literary magazine that publishes true stories for the time you have, from reported narratives and essays to micro-memoirs and craft talks.",
   metadataBase: new URL(siteUrl),
+  // Two favicon treatments: the browser tab uses the small transparent "G"
+  // (16/32px); Google Search only picks icons whose size is a multiple of 48px,
+  // so it lands on the black circle-bubble "G" (48/96/192px) instead.
+  icons: {
+    icon: [
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-circle-48.png", sizes: "48x48", type: "image/png" },
+      { url: "/favicon-circle-96.png", sizes: "96x96", type: "image/png" },
+      { url: "/favicon-circle-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
   alternates: {
     types: { "application/rss+xml": `${siteUrl}/feed.xml` },
   },
