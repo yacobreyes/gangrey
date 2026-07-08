@@ -139,9 +139,11 @@ type NlOpts = { subject: string; preview: string; intro?: string; author?: strin
 // whether to include the wordmark cover masthead (the web reader omits it
 // because MagHeader already shows the wordmark above it).
 function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean; web?: boolean }): string {
-  // The web reader sits the cards on white (the page supplies an edge shadow
-  // around the 600px column); the email keeps the black ground + 16px gutters.
-  const ground = opts.web ? "#ffffff" : GROUND;
+  // The web reader keeps the black ground BETWEEN cards but drops the 16px
+  // side gutters so the white sheets bleed to the column edge (the page adds
+  // an edge shadow around the whole 600px column instead). The email keeps
+  // gutters on all sides.
+  const gx = opts.web ? "0" : "16px";
   const intro = raw.intro ? straightenQuotes(raw.intro) : raw.intro;
   const author = raw.author ? straightenQuotes(raw.author) : raw.author;
   const subject = raw.subject ? straightenQuotes(raw.subject) : raw.subject;
@@ -172,7 +174,7 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean; web?: b
 
   // Kicker + 40×2 crimson rule (grey on the black ground). center aligns both.
   const kicker = (name: string, onDark: boolean, center: boolean) => {
-    const color = onDark && !opts.web ? RULE : CRIMSON;
+    const color = onDark ? RULE : CRIMSON;
     const c = center ? "text-align:center;" : "";
     const rc = center ? "margin:0 auto 22px;" : "margin-bottom:22px;";
     return `<div style="font-family:${FONT};font-size:10px;font-weight:700;letter-spacing:0.24em;text-transform:uppercase;color:${color};${c}margin-bottom:10px;">${esc(name)}</div>`
@@ -198,7 +200,7 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean; web?: b
         ? `<img src="${absUrl(card.image.url)}" alt="${esc(card.image.alt ?? "")}" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;margin-bottom:8px;" />`
           + (card.image.caption ? `<p style="font-family:${FONT};font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:${EARTH};margin:0 0 24px;">${esc(card.image.caption)}</p>` : `<div style="height:16px;"></div>`)
         : "";
-      return `<div style="padding:0 16px 16px;">
+      return `<div style="padding:0 ${gx} 16px;">
         <div style="background:${PAPER};padding:36px 34px 34px;">
           ${kicker(center ? "Narratives" : "Essays", false, center)}
           <h1 style="font-family:${SERIF};font-size:${HEAD_SIZE}px;font-weight:700;line-height:${HEAD_LINE};color:${GROUND};${alignC(center)}margin:0 0 16px;">${esc(card.headline ?? "")}</h1>
@@ -215,7 +217,7 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean; web?: b
       const img = card.image?.url
         ? `<img src="${absUrl(card.image.url)}" alt="${esc(card.image.alt ?? "")}" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;border-radius:12px;margin-bottom:16px;" />`
         : "";
-      return `<div style="padding:0 16px 16px;">
+      return `<div style="padding:0 ${gx} 16px;">
         <div style="background:transparent;padding:22px 16px 26px;">
           ${kicker("Micro-Memoir", true, false)}
           <div style="background:${PAPER};border:1px solid ${RULE};border-radius:16px;padding:20px 22px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
@@ -247,7 +249,7 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean; web?: b
       ? `<img src="${absUrl(card.image.url)}" alt="${esc(card.image.alt ?? "")}" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;margin-bottom:4px;" />`
         + (card.image.caption ? `<p style="font-family:${SERIF};font-size:9px;letter-spacing:0.04em;text-transform:uppercase;color:${EARTH};margin:0 0 16px;">${esc(card.image.caption)}</p>` : `<div style="height:16px;"></div>`)
       : "";
-    return `<div style="padding:0 16px 16px;">
+    return `<div style="padding:0 ${gx} 16px;">
       <div style="background:transparent;padding:26px 4px;">
         <div style="position:relative;filter:drop-shadow(0 8px 16px rgba(0,0,0,0.5));">
           <div style="background:${PAPER};clip-path:${TORN[c]};padding:34px 28px 40px;">
@@ -274,8 +276,8 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean; web?: b
           </tr></table>
           <a href="${SITE_URL}" target="_blank" rel="noopener" style="text-decoration:none;">
             ${raw.classics
-              ? `<img src="${base}/Gangrey%20Classics%20Wordmark.png" alt="Gangrey Classics" width="290" style="width:290px;max-width:80%;display:block;margin:0 auto 20px;border:0;" />`
-              : `<img src="${base}/Wordmark-White.png?v=1" alt="Gangrey" width="290" height="106" style="width:290px;height:106px;max-width:80%;display:block;margin:0 auto 20px;border:0;" />`
+              ? `<img src="${base}/wordmark-classics-email.png" alt="Gangrey Classics" width="290" style="width:290px;max-width:80%;display:block;margin:0 auto 20px;border:0;" />`
+              : `<img src="${base}/wordmark-white-email.png" alt="Gangrey" width="290" height="106" style="width:290px;height:106px;max-width:80%;display:block;margin:0 auto 20px;border:0;" />`
             }
           </a>
           <div style="width:40px;height:2px;background:${CRIMSON};margin:0 auto 20px;"></div>
@@ -293,14 +295,13 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean; web?: b
       </div>`
     : "";
 
-  return `${cover}<div style="background:${ground};">${cardsHtml}</div>`;
+  return `${cover}<div style="background:${GROUND};">${cardsHtml}</div>`;
 }
 
 // The full newsletter sheet — content + unsubscribe footer. The cover masthead
 // (wordmark) is included only in the email; the web reader omits it because the
 // site's MagHeader already shows the wordmark (avoids a double header).
 function renderNewsletterSheet(opts: NlOpts, includeMasthead: boolean, web = false): string {
-  const ground = web ? "#ffffff" : GROUND;
   // "View in browser" — only meaningful for the emailed copy (the web reader
   // is already the browser view). Sits in a slim strip above the cover.
   const viewOnline = includeMasthead && opts.viewOnlineUrl
@@ -310,14 +311,14 @@ function renderNewsletterSheet(opts: NlOpts, includeMasthead: boolean, web = fal
     : "";
   // Member callout — a black panel promoting membership, shown above the
   // unsubscribe footer on every issue (free content is the hook; this is the ask).
-  const memberCallout = `<div style="background:${ground};padding:0 16px 16px;">
+  const memberCallout = `<div style="background:${GROUND};padding:0 16px 16px;">
     <div style="background:${GROUND};border:1px solid ${RULE};padding:28px 34px;text-align:center;">
       <p style="font-family:${SERIF};font-size:20px;line-height:1.3;color:#ffffff;margin:0 0 10px;">Keep reading with a membership</p>
       <p style="font-family:${SERIF};font-size:14px;line-height:1.5;color:${RULE};margin:0 auto 20px;max-width:380px;">Join to read every story in full, unlock the archive, and support narrative nonfiction.</p>
       <a href="${SITE_URL}/subscribe" target="_blank" rel="noopener" style="display:inline-block;background:${CRIMSON};color:#ffffff;text-decoration:none;padding:12px 26px;font-family:${FONT};font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;">Become a Member</a>
     </div>
   </div>`;
-  return `<div style="width:100%;max-width:600px;margin:0 auto;background:${ground};">
+  return `<div style="width:100%;max-width:600px;margin:0 auto;background:${GROUND};">
     ${viewOnline}
     ${renderNewsletterContent(opts, { masthead: includeMasthead, web })}
     ${memberCallout}
