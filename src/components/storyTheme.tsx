@@ -73,7 +73,6 @@ export const storyStyles = `
     width: 100%;
     aspect-ratio: 16 / 9;
     overflow: hidden;
-    background: linear-gradient(135deg, #4a3527, #181109);
     margin-bottom: 6px;
   }
   .story-hero img {
