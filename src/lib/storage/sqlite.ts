@@ -405,6 +405,9 @@ export function sqliteMutate(mutations: unknown[]): void {
         const existing = db().prepare(`SELECT 1 FROM posts WHERE id = ?`).get(doc._id);
         if (existing && !replace) continue;
         const slug = (doc.slug as { current?: string })?.current ?? String(doc._id).replace(/^post-/, "");
+        // Sanity-shaped image ref → the sqlite image shape. On this backend the
+        // asset "ref" is the /media/... URL itself.
+        const img = doc.image as { asset?: { _ref?: string }; caption?: string; alt?: string } | undefined;
         sqliteSavePost({
           _id: doc._id, slug,
           section: (doc.section as string) ?? "", headline: (doc.headline as string) ?? "",
@@ -413,6 +416,7 @@ export function sqliteMutate(mutations: unknown[]): void {
           access: (doc.access as string) ?? "free",
           scheduledAt: (doc.scheduledAt as string) ?? null,
           body: doc.body ?? [],
+          image: img?.asset?._ref ? { src: img.asset._ref, caption: img.caption, alt: img.alt } : null,
           seoHeadline: (doc.seoHeadline as string) ?? null,
           socialHeadline: (doc.socialHeadline as string) ?? null,
           socialDescription: (doc.socialDescription as string) ?? null,

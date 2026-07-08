@@ -9,7 +9,7 @@ import { straightenQuotes, straightenBlocks } from "@/lib/straighten";
 import { postImageUrl } from "@/lib/sanityImage";
 import {
   isSqliteBackend, sqliteSavePost, sqliteDeletePost, sqliteSetStatus,
-  sqliteSnapshotVersion, sqliteGetVersions, sqliteSetSingleton,
+  sqliteSnapshotVersion, sqliteGetVersions, sqliteSetSingleton, sqliteMutate,
 } from "@/lib/storage/sqlite";
 
 // Pre-generate the resized/cropped derivatives readers will request for a
@@ -205,7 +205,10 @@ export async function createPostFromNewsletterCard(input: {
       ...(input.image.alt ? { alt: input.image.alt } : {}),
     };
   }
-  await mutate([{ createOrReplace: doc }]);
+  // Route by backend like every other write in this file — the bare Sanity
+  // mutate() throws "Missing Sanity config" on the self-hosted sqlite build.
+  if (isSqliteBackend()) sqliteMutate([{ createOrReplace: doc }]);
+  else await mutate([{ createOrReplace: doc }]);
   return { slug };
 }
 
