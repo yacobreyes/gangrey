@@ -47,9 +47,13 @@ export default function SubmissionsPanel() {
     return c;
   }, [subs]);
 
+  // Keep the currently-open card visible even if a status change (e.g. "Start
+  // reading") moves it out of the active tab's filter — otherwise the card you
+  // were mid-read on vanishes out from under you the moment you click a status
+  // button. It naturally drops away once you close it or switch tabs.
   const shown = useMemo(
-    () => (tab === "all" ? subs : subs.filter(s => s.status === tab)),
-    [subs, tab]
+    () => (tab === "all" ? subs : subs.filter(s => s.status === tab || s._id === openId)),
+    [subs, tab, openId]
   );
 
   return (
