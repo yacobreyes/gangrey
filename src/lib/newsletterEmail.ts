@@ -62,9 +62,14 @@ function renderSpans(spans: Span[], markDefs: MarkDef[]): string {
 }
 
 type BodyStyle = { size: number; line: number; align: "left" | "justify" };
+// One body size/line-height/font used everywhere — only the paragraph
+// alignment varies by card type (archive keeps justified for the newspaper
+// feel). Headlines share the same size/line-height across all card types too.
 const SHEET_BODY: BodyStyle = { size: 18, line: 1.72, align: "left" };
-const MICRO_BODY: BodyStyle = { size: 20, line: 1.5, align: "left" };
-const CLIP_BODY: BodyStyle = { size: 14, line: 1.62, align: "justify" };
+const MICRO_BODY: BodyStyle = { size: 18, line: 1.72, align: "left" };
+const CLIP_BODY: BodyStyle = { size: 18, line: 1.72, align: "justify" };
+const HEAD_SIZE = 30;
+const HEAD_LINE = 1.15;
 
 function renderBody(blocks: PortableTextBlock[], bs: BodyStyle = SHEET_BODY): string {
   const P = `font-family:${SERIF};font-size:${bs.size}px;line-height:${bs.line};color:${GROUND};text-align:${bs.align};margin:0 0 14px;`;
@@ -128,7 +133,7 @@ const TORN = [
 ];
 const TAPE_ROT = [["-6deg", "5deg"], ["-5deg", "6deg"]];
 
-type NlOpts = { subject: string; preview: string; intro?: string; author?: string; volume?: string; issue?: string; cards: NlCard[]; baseUrl?: string };
+type NlOpts = { subject: string; preview: string; intro?: string; author?: string; volume?: string; issue?: string; cards: NlCard[]; baseUrl?: string; viewOnlineUrl?: string };
 
 // Single source of truth — produces the exact markup the admin editor canvas
 // renders. Both the web reader (/issues/[slug]) and the email reuse this so the
@@ -141,6 +146,11 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): stri
   const subject = raw.subject ? straightenQuotes(raw.subject) : raw.subject;
   const { volume, issue } = raw;
   const base = (raw.baseUrl ?? SITE_URL).replace(/\/$/, "");
+  // Card image URLs are stored relative ("/media/...") since they're written
+  // by the in-app picker. That resolves fine on gangrey.org, but a mail client
+  // has no page to resolve against, so relative photos silently fail to load —
+  // every image src sent in the email must be absolute.
+  const absUrl = (url?: string) => (url && url.startsWith("/") ? `${base}${url}` : url ?? "");
   const cards = raw.cards.map(c => ({
     ...c,
     headline: c.headline ? straightenQuotes(c.headline) : c.headline,
@@ -169,8 +179,6 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): stri
     // ---- ESSAYS / NARRATIVES: white sheet ----
     if (type === "essays" || type === "narratives") {
       const center = type === "narratives";
-      const hSize = center ? 34 : 29;
-      const hLine = center ? 1.06 : 1.1;
       const deck = card.deck
         ? `<p style="font-family:${SERIF};font-size:20px;line-height:1.45;color:${EARTH};${alignC(center)}margin:0${center ? " auto" : ""} 20px;${center ? "max-width:440px;" : ""}">${esc(card.deck)}</p>`
         : "";
@@ -178,13 +186,13 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): stri
         ? `<p style="font-family:${FONT};font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:${EARTH};${alignC(center)}margin:0 0 24px;">By ${esc(card.byline)}</p>`
         : "";
       const img = card.image?.url
-        ? `<img src="${esc(card.image.url)}" alt="${esc(card.image.alt ?? "")}" style="width:100%;${center ? "aspect-ratio:16/9;" : "max-height:300px;"}object-fit:cover;display:block;margin-bottom:8px;" />`
+        ? `<img src="${absUrl(card.image.url)}" alt="${esc(card.image.alt ?? "")}" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;margin-bottom:8px;" />`
           + (card.image.caption ? `<p style="font-family:${FONT};font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:${EARTH};margin:0 0 24px;">${esc(card.image.caption)}</p>` : `<div style="height:16px;"></div>`)
         : "";
       return `<div style="padding:0 16px 16px;">
         <div style="background:${PAPER};padding:36px 34px 34px;">
           ${kicker(center ? "Narratives" : "Essays", false, center)}
-          <h1 style="font-family:${SERIF};font-size:${hSize}px;font-weight:700;line-height:${hLine};color:${GROUND};${alignC(center)}margin:0 0 16px;">${esc(card.headline ?? "")}</h1>
+          <h1 style="font-family:${SERIF};font-size:${HEAD_SIZE}px;font-weight:700;line-height:${HEAD_LINE};color:${GROUND};${alignC(center)}margin:0 0 16px;">${esc(card.headline ?? "")}</h1>
           ${deck}
           ${byline}
           ${img}
@@ -196,7 +204,7 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): stri
     // ---- MICRO-MEMOIR: tweet card on the black ground ----
     if (type === "micro-memoir") {
       const img = card.image?.url
-        ? `<img src="${esc(card.image.url)}" alt="${esc(card.image.alt ?? "")}" style="width:100%;max-height:220px;object-fit:cover;display:block;border-radius:12px;margin-bottom:16px;" />`
+        ? `<img src="${absUrl(card.image.url)}" alt="${esc(card.image.alt ?? "")}" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;border-radius:12px;margin-bottom:16px;" />`
         : "";
       return `<div style="padding:0 16px 16px;">
         <div style="background:transparent;padding:22px 16px 26px;">
@@ -227,7 +235,7 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): stri
     const c = archiveN % 2;
     archiveN++;
     const img = card.image?.url
-      ? `<img src="${esc(card.image.url)}" alt="${esc(card.image.alt ?? "")}" style="width:100%;max-height:150px;object-fit:cover;display:block;margin-bottom:4px;" />`
+      ? `<img src="${absUrl(card.image.url)}" alt="${esc(card.image.alt ?? "")}" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;margin-bottom:4px;" />`
         + (card.image.caption ? `<p style="font-family:${SERIF};font-size:9px;letter-spacing:0.04em;text-transform:uppercase;color:${EARTH};margin:0 0 16px;">${esc(card.image.caption)}</p>` : `<div style="height:16px;"></div>`)
       : "";
     return `<div style="padding:0 16px 16px;">
@@ -235,7 +243,7 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): stri
         <div style="position:relative;filter:drop-shadow(0 8px 16px rgba(0,0,0,0.5));">
           <div style="background:${PAPER};clip-path:${TORN[c]};padding:34px 28px 40px;">
             <div style="border-bottom:1px solid ${GROUND};padding-bottom:7px;margin-bottom:18px;font-family:${SERIF};font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:${GROUND};">Gangrey · Archive &nbsp;·&nbsp; ${esc(shortDate)}</div>
-            <h2 style="font-family:${SERIF};font-size:34px;font-weight:700;line-height:1.03;color:${GROUND};text-align:left;margin:0 0 8px;">${esc(card.headline ?? "")}</h2>
+            <h2 style="font-family:${SERIF};font-size:${HEAD_SIZE}px;font-weight:700;line-height:${HEAD_LINE};color:${GROUND};text-align:left;margin:0 0 8px;">${esc(card.headline ?? "")}</h2>
             ${card.byline ? `<p style="font-family:${SERIF};font-size:12px;letter-spacing:0.02em;color:${EARTH};text-align:left;margin:0 0 16px;">By ${esc(card.byline)}</p>` : ""}
             ${img}
             <div>${renderBody(card.body ?? [], CLIP_BODY)}</div>
@@ -277,8 +285,26 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): stri
 // (wordmark) is included only in the email; the web reader omits it because the
 // site's MagHeader already shows the wordmark (avoids a double header).
 function renderNewsletterSheet(opts: NlOpts, includeMasthead: boolean): string {
+  // "View in browser" — only meaningful for the emailed copy (the web reader
+  // is already the browser view). Sits in a slim strip above the cover.
+  const viewOnline = includeMasthead && opts.viewOnlineUrl
+    ? `<div style="background:${GROUND};padding:10px 16px 0;text-align:center;">
+        <a href="${opts.viewOnlineUrl}" target="_blank" rel="noopener" style="font-family:${FONT};font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:${RULE};text-decoration:none;">View in browser</a>
+      </div>`
+    : "";
+  // Member callout — a black panel promoting membership, shown above the
+  // unsubscribe footer on every issue (free content is the hook; this is the ask).
+  const memberCallout = `<div style="background:${GROUND};padding:0 16px 16px;">
+    <div style="border:1px solid ${RULE};padding:28px 34px;text-align:center;">
+      <p style="font-family:${SERIF};font-size:20px;line-height:1.3;color:#ffffff;margin:0 0 10px;">Keep reading with a membership</p>
+      <p style="font-family:${SERIF};font-size:14px;line-height:1.5;color:${RULE};margin:0 auto 20px;max-width:380px;">Join to read every story in full, unlock the archive, and support narrative nonfiction.</p>
+      <a href="${SITE_URL}/subscribe" target="_blank" rel="noopener" style="display:inline-block;background:${CRIMSON};color:#ffffff;text-decoration:none;padding:12px 26px;font-family:${FONT};font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;">Become a Member</a>
+    </div>
+  </div>`;
   return `<div style="width:100%;max-width:600px;margin:0 auto;background:${GROUND};">
+    ${viewOnline}
     ${renderNewsletterContent(opts, { masthead: includeMasthead })}
+    ${memberCallout}
     <div style="background:${GROUND};padding:16px;">
       <div style="border:1px solid ${RULE};padding:18px 34px;text-align:center;">
         <p style="font-family:${FONT};font-size:10px;line-height:1.7;letter-spacing:0.14em;text-transform:uppercase;color:${RULE};margin:0 0 10px;">You're receiving this because you subscribed to Gangrey</p>

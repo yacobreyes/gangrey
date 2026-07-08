@@ -950,7 +950,7 @@ export default function NewsletterEditorClient({
                     {/* Section label — small-caps flag, non-editable. Omitted for
                         micro-memoir, whose byline already reads "A Micro-Memoir by…". */}
                     {type !== "micro-memoir" && (
-                      <div style={{ paddingTop: sheet ? "0.75rem" : "1.25rem", fontFamily: FONT, fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.24em", color: sheet ? CRIMSON : "#b8b8ba", marginBottom: "0.4rem" }}>
+                      <div style={{ paddingTop: sheet ? "0.75rem" : "1.25rem", fontFamily: FONT, fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.24em", color: sheet ? CRIMSON : "#b8b8ba", marginBottom: type === "archive" ? "-0.5rem" : "0.4rem" }}>
                         {sectionLabel}
                       </div>
                     )}
@@ -986,7 +986,7 @@ export default function NewsletterEditorClient({
                         {card.image ? (
                           <div style={{ margin: "0 0 1.75rem", position: "relative" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={sized(card.image.url, 1040)} alt={card.image.alt ?? ""} style={{ width: "100%", maxHeight: 400, objectFit: "cover", display: "block" }} />
+                            <img src={sized(card.image.url, 1040)} alt={card.image.alt ?? ""} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block" }} />
                             <input value={card.image.caption ?? ""} onChange={e => nlUpdateCard(card.id, { image: { ...card.image!, caption: straightenQuotes(e.target.value) } })}
                               placeholder="Add a caption…"
                               style={{ fontFamily: FONT, fontSize: "0.7rem", color: TEXT_MUTED, fontStyle: "italic", border: "none", outline: "none", background: "transparent", width: "100%", padding: 0, margin: "0.4rem 1rem 0", boxSizing: "border-box", display: "block" }} />
@@ -1001,7 +1001,7 @@ export default function NewsletterEditorClient({
                           </button>
                         )}
                         <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Feature headline"
-                          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "2.1rem", fontWeight: 700, lineHeight: 1.06, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "1rem", display: "block", boxSizing: "border-box", textAlign: "center" }} />
+                          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.9rem", fontWeight: 700, lineHeight: 1.15, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "1rem", display: "block", boxSizing: "border-box", textAlign: "center" }} />
                         {nlBylineField(card, "center")}
                         <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} placeholder="Lead paragraph…"
                           onChange={doc => nlUpdateCard(card.id, { doc })}
@@ -1016,13 +1016,13 @@ export default function NewsletterEditorClient({
                       <div style={{ paddingTop: "1rem", paddingBottom: "1.75rem" }}>
                         <div style={{ borderTop: `2px solid ${CRIMSON}`, paddingTop: "0.85rem", marginBottom: "0.85rem" }}>
                           <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Essay title"
-                            style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.8rem", fontWeight: 700, lineHeight: 1.1, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, boxSizing: "border-box", display: "block" }} />
+                            style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.9rem", fontWeight: 700, lineHeight: 1.15, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, boxSizing: "border-box", display: "block" }} />
                         </div>
                         {nlBylineField(card, "left")}
                         {card.image ? (
                           <div style={{ margin: "0 0 0.85rem", position: "relative" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", maxHeight: 300, objectFit: "cover", display: "block" }} />
+                            <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block" }} />
                             <div className="nl-card-controls" style={{ position: "absolute", top: "0.4rem", right: "0.4rem", display: "flex", gap: "0.35rem" }}>
                               <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Change</button>
                               <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Remove</button>
@@ -1063,7 +1063,7 @@ export default function NewsletterEditorClient({
                           </div>
                         </div>
                         {/* Body */}
-                        <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.25rem", lineHeight: 1.5 }}>
+                        <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.1rem", lineHeight: 1.72 }}>
                           <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} placeholder="Write intimately, in fewer than 40 words…"
                             onChange={doc => nlUpdateCard(card.id, { doc })}
                             onEditor={ed => { nlEditors.current[card.id] = ed; }}
@@ -1073,7 +1073,7 @@ export default function NewsletterEditorClient({
                         {card.image ? (
                           <div style={{ margin: "0.9rem 0 0", position: "relative" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", maxHeight: 220, objectFit: "cover", display: "block", borderRadius: 12 }} />
+                            <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block", borderRadius: 12 }} />
                             <div className="nl-card-controls" style={{ position: "absolute", top: "0.4rem", right: "0.4rem", display: "flex", gap: "0.35rem" }}>
                               <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Change</button>
                               <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Remove</button>
@@ -1102,17 +1102,17 @@ export default function NewsletterEditorClient({
                       ];
                       const taperot = [["-6deg", "5deg"], ["-5deg", "6deg"]];
                       return (
-                      <div style={{ background: "transparent", padding: "1.6rem 0.25rem", margin: "0 0 0.5rem" }}>
+                      <div style={{ background: "transparent", padding: "0.5rem 0.25rem 1.6rem", margin: "0 0 0.5rem" }}>
                         <div style={{ position: "relative", filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.5))" }}>
                           <div style={{ background: "#ffffff", clipPath: torn[c], padding: "2.1rem 1.75rem 2.5rem" }}>
                             <div style={{ borderBottom: `1px solid #000`, paddingBottom: "0.45rem", marginBottom: "1.1rem", fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.58rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "#000" }}>Gangrey · Archive &nbsp;·&nbsp; {todayLabel}</div>
                             <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Archive title"
-                              style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "2.1rem", fontWeight: 700, lineHeight: 1.03, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "0.5rem", display: "block", boxSizing: "border-box", textAlign: "left" }} />
+                              style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.9rem", fontWeight: 700, lineHeight: 1.15, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "0.5rem", display: "block", boxSizing: "border-box", textAlign: "left" }} />
                             <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.75rem", color: TEXT_MUTED, marginBottom: "1rem" }}>{nlBylineField(card, "left")}</div>
                             {card.image ? (
                               <div style={{ margin: "0 0 1rem", position: "relative" }}>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", maxHeight: 150, objectFit: "cover", display: "block", marginBottom: "0.25rem" }} />
+                                <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block", marginBottom: "0.25rem" }} />
                                 {card.image.caption && <p style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.56rem", letterSpacing: "0.04em", textTransform: "uppercase", color: TEXT_MUTED, margin: 0 }}>{card.image.caption}</p>}
                                 <div className="nl-card-controls" style={{ position: "absolute", top: "0.4rem", right: "0.4rem", display: "flex", gap: "0.35rem" }}>
                                   <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Change</button>
@@ -1124,7 +1124,7 @@ export default function NewsletterEditorClient({
                                 + Add photo
                               </button>
                             )}
-                            <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.9rem", lineHeight: 1.62, textAlign: "justify" }}>
+                            <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.1rem", lineHeight: 1.72, textAlign: "justify" }}>
                               <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} placeholder="From the archive…"
                                 onChange={doc => nlUpdateCard(card.id, { doc })}
                                 onEditor={ed => { nlEditors.current[card.id] = ed; }}

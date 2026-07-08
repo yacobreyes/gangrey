@@ -16,6 +16,24 @@ async function mutate(mutations: unknown[]) {
   return sanityMutate(mutations);
 }
 
+// The "View in browser" link needs the public /issues/[slug] page for this
+// newsletter — publishing creates that issue doc at a deterministic id (see
+// syncIssueForNewsletter below), so a published issue always has a slug.
+async function issueViewUrl(newsletterId: string): Promise<string | undefined> {
+  const issueId = `issue-nl-${newsletterId}`;
+  const issue = isSqliteBackend()
+    ? sqliteGetDoc<{ slug?: { current?: string } }>(issueId)
+    : await client.fetch<{ slug?: { current?: string } } | null>(
+        `*[_id == $id][0]{ slug }`,
+        { id: issueId },
+        { cache: "no-store" }
+      );
+  const slug = issue?.slug?.current;
+  if (!slug) return undefined;
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org").replace(/\/$/, "");
+  return `${siteUrl}/issues/${slug}`;
+}
+
 export type NlPickablePost = {
   id: string;
   slug: string;
@@ -427,6 +445,7 @@ export async function deliverNewsletter(id: string, audience: SendAudience = "al
     volume: nl.volume ?? "",
     issue: nl.issue ?? "",
     cards: (nl.cards ?? []) as NlCard[],
+    viewOnlineUrl: await issueViewUrl(id),
   });
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org").replace(/\/$/, "");
 
@@ -482,6 +501,7 @@ export async function sendTestNewsletter(id: string): Promise<{ ok: boolean; err
     volume: nl.volume ?? "",
     issue: nl.issue ?? "",
     cards: (nl.cards ?? []) as NlCard[],
+    viewOnlineUrl: await issueViewUrl(id),
   });
 
   const resend = new Resend(apiKey);
