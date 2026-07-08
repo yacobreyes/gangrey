@@ -67,7 +67,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
         ) : (
           <div>
             <p style={{ fontFamily: "var(--font-body)", fontSize: 17, lineHeight: 1.5, margin: "0 0 22px", maxWidth: 480 }}>
-              Members sign in with the email they used to subscribe. We'll email you a secure link — no password needed.
+              Members sign in with the email they used to subscribe. We'll email you a secure link, no password needed.
             </p>
             {error === "expired" && (
               <p style={{ fontFamily: "var(--font-subhead)", fontSize: 13, color: "#490000", margin: "0 0 16px" }}>
