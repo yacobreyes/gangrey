@@ -1162,12 +1162,10 @@ export default function NewsletterEditorClient({
             </div>
           </div>
 
-          {/* Footer — black keyline panel (matches email/reference) */}
-          <div style={{ background: "#000000", padding: 16 }}>
-            <div style={{ border: `1px solid #b8b8ba`, padding: "18px 34px", textAlign: "center" }}>
-              <p style={{ fontFamily: FONT, fontSize: "0.62rem", lineHeight: 1.7, color: "#b8b8ba", letterSpacing: "0.14em", textTransform: "uppercase", margin: "0 0 0.6rem" }}>You&apos;re receiving this because you subscribed to Gangrey</p>
-              <span style={{ fontFamily: FONT, fontSize: "0.62rem", fontWeight: 700, color: "#ffffff", letterSpacing: "0.18em", textTransform: "uppercase", borderBottom: `1px solid ${CRIMSON}`, paddingBottom: 2 }}>Unsubscribe</span>
-            </div>
+          {/* Footer — plain black panel (matches email/reference) */}
+          <div style={{ background: "#000000", padding: "24px 34px", textAlign: "center" }}>
+            <p style={{ fontFamily: FONT, fontSize: "0.62rem", lineHeight: 1.7, color: "#b8b8ba", letterSpacing: "0.14em", textTransform: "uppercase", margin: "0 0 0.6rem" }}>You&apos;re receiving this because you subscribed to Gangrey</p>
+            <span style={{ fontFamily: FONT, fontSize: "0.62rem", fontWeight: 700, color: "#ffffff", letterSpacing: "0.18em", textTransform: "uppercase", borderBottom: `1px solid ${CRIMSON}`, paddingBottom: 2 }}>Unsubscribe</span>
           </div>
         </div>
 

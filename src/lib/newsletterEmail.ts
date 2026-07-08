@@ -305,11 +305,9 @@ function renderNewsletterSheet(opts: NlOpts, includeMasthead: boolean): string {
     ${viewOnline}
     ${renderNewsletterContent(opts, { masthead: includeMasthead })}
     ${memberCallout}
-    <div style="background:${GROUND};padding:16px;">
-      <div style="border:1px solid ${RULE};padding:18px 34px;text-align:center;">
-        <p style="font-family:${FONT};font-size:10px;line-height:1.7;letter-spacing:0.14em;text-transform:uppercase;color:${RULE};margin:0 0 10px;">You're receiving this because you subscribed to Gangrey</p>
-        <a href="${SITE_URL}/unsubscribe" target="_blank" rel="noopener" style="font-family:${FONT};font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#ffffff;text-decoration:none;border-bottom:1px solid ${CRIMSON};padding-bottom:2px;">Unsubscribe</a>
-      </div>
+    <div style="background:${GROUND};padding:24px 34px;text-align:center;">
+      <p style="font-family:${FONT};font-size:10px;line-height:1.7;letter-spacing:0.14em;text-transform:uppercase;color:${RULE};margin:0 0 10px;">You're receiving this because you subscribed to Gangrey</p>
+      <a href="${SITE_URL}/unsubscribe" target="_blank" rel="noopener" style="font-family:${FONT};font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#ffffff;text-decoration:none;border-bottom:1px solid ${CRIMSON};padding-bottom:2px;">Unsubscribe</a>
     </div>
   </div>`;
 }
