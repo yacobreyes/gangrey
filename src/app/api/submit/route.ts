@@ -64,10 +64,11 @@ export async function POST(req: Request) {
   }
 
   // Confirmation email to the writer (best-effort — a send failure must not lose
-  // the submission, which is already stored above).
+  // the submission, which is already stored above). Sent from the submissions
+  // address so replies land in the submissions inbox, not the newsletter one.
   const apiKey = process.env.GANGREY_RESEND_KEY ?? process.env.RESEND_API_KEY;
-  const from = process.env.NEWSLETTER_FROM;
-  if (apiKey && from) {
+  const from = process.env.SUBMISSIONS_FROM ?? "Gangrey <submissions@gangrey.org>";
+  if (apiKey) {
     try {
       const resend = new Resend(apiKey);
       const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="color-scheme" content="light"></head>

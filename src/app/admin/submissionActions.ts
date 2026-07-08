@@ -51,8 +51,10 @@ export async function respondToSubmission(
   if (!sub) return { ok: false, error: "Submission not found." };
 
   const apiKey = process.env.GANGREY_RESEND_KEY ?? process.env.RESEND_API_KEY;
-  const from = process.env.NEWSLETTER_FROM;
-  if (!apiKey || !from) return { ok: false, error: "Email isn't configured, so a reply can't be sent." };
+  // Replies come from (and reply-to) the submissions address so the whole
+  // conversation stays in that inbox.
+  const from = process.env.SUBMISSIONS_FROM ?? "Gangrey <submissions@gangrey.org>";
+  if (!apiKey) return { ok: false, error: "Email isn't configured, so a reply can't be sent." };
 
   const heading = decision === "accepted" ? "Good news from Gangrey" : "About your Gangrey submission";
   const body = (message || "").trim();
