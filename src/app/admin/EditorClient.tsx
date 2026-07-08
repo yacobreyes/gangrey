@@ -77,6 +77,10 @@ function formatPublishedTime(iso: string) {
   return `${date} at ${time} ET`;
 }
 
+function etDateOnly(iso: string) {
+  return new Date(iso).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric" });
+}
+
 
 const EMPTY_DOC: JSONContent = { type: "doc", content: [{ type: "paragraph" }] };
 
@@ -490,12 +494,26 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
       {viewMode && !locked && (() => {
         const isScheduled = form.status === "scheduled";
         const isPublished = form.status === "published";
+        // post.date is the real, per-story publish date an editor set (it's
+        // what readers see on the live page). lastEditedAt is just a save
+        // audit stamp — it gets overwritten to "now" on every save, including
+        // bulk operations (e.g. the archive import touched 2,500 stories in
+        // one run), so a lot of old stories share the same lastEditedAt with
+        // no relation to when they actually ran. Only trust lastEditedAt for
+        // a specific time-of-day when its own calendar date agrees with
+        // post.date — otherwise show the real date with no fabricated time.
+        const editedSameDay = post.lastEditedAt && post.date && etDateOnly(post.lastEditedAt) === etDateOnly(`${post.date}T12:00:00`);
+        const publishedLabel = post.lastEditedAt && editedSameDay
+          ? formatPublishedTime(post.lastEditedAt)
+          : post.date
+            ? etDateOnly(`${post.date}T12:00:00`)
+            : null;
         const message = isScheduled
           ? `This story was scheduled${post.scheduledBy ? ` by ${post.scheduledBy}` : ""} for ${formatTime(post.scheduledAt ?? scheduledAt)}.`
           : viewLockHolder
             ? `${viewLockHolder.name} is currently editing this. Do you want to kick them out?`
-            : isPublished && post.lastEditedAt
-              ? `This story was published on ${formatPublishedTime(post.lastEditedAt)}. Do you want to make changes?`
+            : isPublished && publishedLabel
+              ? `This story was published on ${publishedLabel}. Do you want to make changes?`
               : "You're viewing this story. Do you want to make changes?";
         const action = isScheduled ? "Unschedule to edit" : viewLockHolder ? "Kick them out" : "Start editing";
         const onClick = isScheduled
