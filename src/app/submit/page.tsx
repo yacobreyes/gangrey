@@ -6,7 +6,7 @@ import SubmitForm from "./SubmitForm";
 
 export const metadata: Metadata = {
   title: "Gangrey | Submit",
-  description: "Submit a true story to Gangrey — essays, reported narratives, and micro-memoirs.",
+  description: "Submit flash nonfiction to Gangrey: essays, reported narratives, and micro-memoirs.",
   alternates: { canonical: "/submit" },
 };
 
