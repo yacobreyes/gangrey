@@ -10,6 +10,7 @@ import {
   type SubmissionRow, type SubmissionStatus,
 } from "@/lib/storage/sqlite";
 import { submissionEmailHtml, escapeHtml } from "@/lib/submissionEmail";
+import { createPostFromNewsletterCard } from "./actions";
 
 export async function getSubmissions(): Promise<SubmissionRow[]> {
   await requireAuth();
@@ -106,7 +107,6 @@ export async function createStoryFromSubmission(id: string): Promise<{ ok: boole
   await requireAuth();
   const sub = await getFull(id);
   if (!sub) return { ok: false, error: "Submission not found." };
-  const { createPostFromNewsletterCard } = await import("./actions");
   try {
     const { slug } = await createPostFromNewsletterCard({
       headline: sub.title,

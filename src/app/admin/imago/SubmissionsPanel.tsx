@@ -222,6 +222,7 @@ function SubmissionCard({ sub, open, onToggle, onChanged }: { sub: SubmissionRow
                 <button onClick={createStory} disabled={busy || creating} style={btn(TEXT_DARK, false, busy || creating)}>{creating ? "Creating…" : "Create story draft →"}</button>
               )}
               <button onClick={remove} disabled={busy} style={{ ...btn("#8a8a8c", false, busy), marginLeft: "auto" }}>Delete</button>
+              {err && <p style={{ flexBasis: "100%", fontFamily: FONT, fontSize: "0.78rem", color: CRIMSON, margin: "0.25rem 0 0" }}>{err}</p>}
             </div>
           )}
         </div>

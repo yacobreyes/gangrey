@@ -28,10 +28,10 @@ export default function SubmitPage() {
           We publish flash nonfiction in three forms:
         </p>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, margin: "0 0 24px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, margin: "0 0 24px" }}>
           {FORMS.map(f => (
             <div key={f.name} style={{ border: "1px solid #b8b8ba", borderRadius: 4, padding: "16px 18px" }}>
-              <div style={{ fontFamily: "var(--font-headline)", fontSize: 18, fontWeight: 700, color: "#000000", marginBottom: 8 }}>{f.name}</div>
+              <div style={{ fontFamily: "var(--font-headline)", fontSize: 17, fontWeight: 700, color: "#000000", marginBottom: 8, whiteSpace: "nowrap" }}>{f.name}</div>
               <div style={{ fontFamily: "var(--font-subhead)", fontSize: 10.5, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase", color: "#490000" }}>{f.limit}</div>
             </div>
           ))}
@@ -40,17 +40,13 @@ export default function SubmitPage() {
         <div style={{ fontFamily: "var(--font-body)", fontSize: 14.5, lineHeight: 1.6, color: "#392a22" }}>
           <p style={{ margin: "0 0 12px" }}>Paste the full text into the submission form. A short cover letter helps but isn&apos;t required.</p>
           <p style={{ margin: "0 0 12px" }}>We don&apos;t accept AI-generated writing. All work should be your own.</p>
-          <p style={{ margin: "0 0 32px" }}>Simultaneous submissions are fine, just let us know if the piece is placed elsewhere.</p>
+          <p style={{ margin: "0 0 12px" }}>Simultaneous submissions are fine, just let us know if the piece is placed elsewhere.</p>
+          <p style={{ margin: "0 0 12px" }}>Authors retain copyright to their work. For each accepted story, we provide a one-year membership and an honorarium: $45 for reported narratives and essays, $25 for micro-memoirs.</p>
+          <p style={{ margin: "0 0 32px" }}>In accepting publication, the author grants us first serial rights and the nonexclusive right to archive and promote the work.</p>
         </div>
 
         <div style={{ borderTop: "1px solid #000000", paddingTop: 28 }}>
           <SubmitForm />
-        </div>
-
-        {/* Rights & payment */}
-        <div style={{ marginTop: 40, paddingTop: 24, borderTop: "1px solid #b8b8ba", fontFamily: "var(--font-body)", fontSize: 13.5, lineHeight: 1.6, color: "#392a22", maxWidth: 620 }}>
-          <p style={{ margin: "0 0 12px" }}>Authors retain copyright to their work. For each accepted story, we provide a one-year membership and an honorarium: $45 for reported narratives and essays, $25 for micro-memoirs.</p>
-          <p style={{ margin: 0 }}>In accepting publication, the author grants us first serial rights and the nonexclusive right to archive and promote the work.</p>
         </div>
       </main>
       <MagFooter />
