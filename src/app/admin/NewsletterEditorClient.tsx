@@ -1077,7 +1077,7 @@ export default function NewsletterEditorClient({
                         <textarea value={card.deck ?? ""} onChange={e => nlUpdateCard(card.id, { deck: e.target.value })} readOnly={nlReadOnly} placeholder="Standfirst / deck (optional)" rows={1}
                           style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.2rem", lineHeight: 1.45, color: TEXT_MUTED, border: "none", outline: "none", width: "100%", maxWidth: 440, margin: "0 auto 1rem", background: "transparent", padding: 0, resize: "none", boxSizing: "border-box", display: "block", textAlign: "center", overflow: "hidden" }} />
                         {nlBylineField(card, "center")}
-                        <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} placeholder="Lead paragraph…"
+                        <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} 
                           onChange={doc => nlUpdateCard(card.id, { doc })}
                           onEditor={ed => { nlEditors.current[card.id] = ed; if (ed) { setNlActiveEditor(prev => prev && !prev.isDestroyed ? prev : ed); } else { setNlActiveEditor(prev => prev?.isDestroyed ? null : prev); } }}
                           onToolbar={tb => { nlToolbars.current[card.id] = tb; if (tb && i === 0) setNlActiveToolbar(prev => prev ?? tb); }} />
@@ -1112,7 +1112,7 @@ export default function NewsletterEditorClient({
                             + Add image
                           </button>
                         )}
-                        <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={60} placeholder="Write the story…"
+                        <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={60} 
                           onChange={doc => nlUpdateCard(card.id, { doc })}
                           onEditor={ed => { nlEditors.current[card.id] = ed; }}
                           onToolbar={tb => { nlToolbars.current[card.id] = tb; }} />
@@ -1140,7 +1140,7 @@ export default function NewsletterEditorClient({
                         </div>
                         {/* Body */}
                         <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.1rem", lineHeight: 1.72 }}>
-                          <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} placeholder="Write intimately, in fewer than 40 words…"
+                          <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} 
                             onChange={doc => nlUpdateCard(card.id, { doc })}
                             onEditor={ed => { nlEditors.current[card.id] = ed; }}
                             onToolbar={tb => { nlToolbars.current[card.id] = tb; }} />
@@ -1206,7 +1206,7 @@ export default function NewsletterEditorClient({
                               </button>
                             )}
                             <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.1rem", lineHeight: 1.72, textAlign: "justify" }}>
-                              <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} placeholder="From the archive…"
+                              <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} 
                                 onChange={doc => nlUpdateCard(card.id, { doc })}
                                 onEditor={ed => { nlEditors.current[card.id] = ed; }}
                                 onToolbar={tb => { nlToolbars.current[card.id] = tb; }} />

@@ -85,9 +85,13 @@ interface Props {
   minHeight?: number;
   placeholder?: string;
   editable?: boolean;
+  // Typing surface font. Defaults to the site face; the story editor passes the
+  // Mac system stack (Imago chrome rule), while the newsletter canvas keeps the
+  // site font so it mimics the email preview.
+  fontFamily?: string;
 }
 
-export default function RichBodyEditor({ initialContent, onChange, onEditor, onToolbar, minHeight = 320, placeholder = "Type your story", editable = true }: Props) {
+export default function RichBodyEditor({ initialContent, onChange, onEditor, onToolbar, minHeight = 320, placeholder = "Type your story", editable = true, fontFamily = FONT }: Props) {
   const [linkModal, setLinkModal] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [imageModal, setImageModal] = useState(false);
@@ -121,7 +125,7 @@ export default function RichBodyEditor({ initialContent, onChange, onEditor, onT
         style: [
           "min-height:" + minHeight + "px",
           "padding:0",
-          "font-family:" + FONT,
+          "font-family:" + fontFamily,
           "font-size:1rem",
           "line-height:1.8",
           "color:" + TEXT_DARK,
@@ -240,8 +244,8 @@ export default function RichBodyEditor({ initialContent, onChange, onEditor, onT
         .ProseMirror p.is-empty:first-child::before { content: attr(data-placeholder); color: #aaa; pointer-events: none; float: left; height: 0; }
         .ProseMirror p { margin: 0 0 1em; }
         .ProseMirror p:last-child { margin-bottom: 0; }
-        .ProseMirror h2 { font-family: ${FONT}; font-size: 1.25rem; font-weight: 700; color: ${TEXT_DARK}; margin: 1.4em 0 0.4em; }
-        .ProseMirror h3 { font-family: ${FONT}; font-size: 1.05rem; font-weight: 700; color: ${TEXT_DARK}; margin: 1.2em 0 0.3em; }
+        .ProseMirror h2 { font-family: ${fontFamily}; font-size: 1.25rem; font-weight: 700; color: ${TEXT_DARK}; margin: 1.4em 0 0.4em; }
+        .ProseMirror h3 { font-family: ${fontFamily}; font-size: 1.05rem; font-weight: 700; color: ${TEXT_DARK}; margin: 1.2em 0 0.3em; }
         .ProseMirror blockquote { border-left: 3px solid ${CRIMSON}; margin: 1em 0; padding: 0.1em 0 0.1em 1.2em; font-style: italic; color: #392a22; }
         .ProseMirror ul { list-style-type: disc; padding-left: 1.4em; margin: 0 0 1em; }
         .ProseMirror ol { list-style-type: decimal; padding-left: 1.4em; margin: 0 0 1em; }

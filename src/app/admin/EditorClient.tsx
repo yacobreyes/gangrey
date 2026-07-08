@@ -781,7 +781,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                   </div>
                 </div>
               )}
-              <RichBodyEditor editable={!readOnly} initialContent={form.body} onChange={doc => updateForm({ body: doc })} onEditor={setEditor} onToolbar={h => {
+              <RichBodyEditor editable={!readOnly} fontFamily={FONT} initialContent={form.body} onChange={doc => updateForm({ body: doc })} onEditor={setEditor} onToolbar={h => {
                 if (!h) { setToolbar(null); return; }
                 setToolbar({ ...h, openImage: () => { setBodySelectedAsset(null); setBodyUploadFile(null); setBodyUploadPreviewUrl(""); setBodyUploadAlt(""); setBodyImageTab("library"); setShowBodyImageModal(true); fetch("/api/media").then(r => r.json()).then(d => { if (Array.isArray(d)) setPhotoPickerAssets(d); }).catch(() => {}); } });
               }} />
