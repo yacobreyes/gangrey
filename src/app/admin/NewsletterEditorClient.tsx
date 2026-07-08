@@ -1093,32 +1093,53 @@ export default function NewsletterEditorClient({
                       );
                     })()}
 
-                    {/* ARCHIVE card — torn newspaper clipping reprint (matches email) */}
-                    {type === "archive" && (
-                      <div style={{ background: "#ffffff", border: `1px solid #b8b8ba`, padding: "1.75rem 1.75rem 2rem", margin: "0 0 1rem", boxShadow: "0 8px 16px rgba(0,0,0,0.5)" }}>
-                        <div style={{ borderBottom: `1px solid #000`, paddingBottom: "0.45rem", marginBottom: "1.1rem", fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.58rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "#000" }}>Gangrey · Archive · {todayLabel}</div>
-                        <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Archive title"
-                          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "2.1rem", fontWeight: 700, lineHeight: 1.03, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "0.5rem", display: "block", boxSizing: "border-box", textAlign: "left" }} />
-                        {nlBylineField(card, "left")}
-                        {card.image && (
-                          <div style={{ margin: "1rem 0 0.25rem", position: "relative" }}>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", maxHeight: 150, objectFit: "cover", display: "block" }} />
-                            <div className="nl-card-controls" style={{ position: "absolute", top: "0.4rem", right: "0.4rem", display: "flex", gap: "0.35rem" }}>
-                              <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Change</button>
-                              <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Remove</button>
+                    {/* ARCHIVE card — torn newspaper clipping reprint (matches email/reference) */}
+                    {type === "archive" && (() => {
+                      const c = i % 2;
+                      const torn = [
+                        "polygon(0% 1.6%,6% 0.5%,12% 2.1%,18% 0.8%,24% 1.7%,31% 0.4%,38% 2.3%,45% 1.0%,52% 0.6%,59% 2.0%,66% 0.9%,73% 1.8%,80% 0.5%,87% 2.2%,94% 1.0%,100% 0.8%,100% 99.2%,94% 98.6%,87% 99.4%,80% 98.5%,73% 99.3%,66% 98.4%,59% 99.4%,52% 98.7%,45% 99.3%,38% 98.4%,31% 99.2%,24% 98.6%,18% 99.4%,12% 98.6%,6% 99.3%,0% 98.8%)",
+                        "polygon(0% 1.2%,7% 0.4%,13% 2.0%,19% 0.7%,26% 1.9%,33% 0.5%,39% 2.2%,46% 0.9%,53% 0.5%,60% 2.1%,67% 0.8%,74% 1.7%,81% 0.6%,88% 2.0%,95% 0.9%,100% 1.4%,100% 98.8%,95% 99.3%,88% 98.5%,81% 99.4%,74% 98.6%,67% 99.2%,60% 98.4%,53% 99.4%,46% 98.7%,39% 99.3%,33% 98.5%,26% 99.2%,19% 98.6%,13% 99.4%,7% 98.7%,0% 99.2%)",
+                      ];
+                      const tilt = ["-1.1deg", "0.9deg"];
+                      const taperot = [["-6deg", "5deg"], ["-5deg", "6deg"]];
+                      return (
+                      <div style={{ background: "transparent", padding: "1.6rem 0.25rem", margin: "0 0 0.5rem" }}>
+                        <div style={{ position: "relative", transform: `rotate(${tilt[c]})`, filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.5))" }}>
+                          <div style={{ background: "#ffffff", clipPath: torn[c], padding: "2.1rem 1.75rem 2.5rem" }}>
+                            <div style={{ borderBottom: `1px solid #000`, paddingBottom: "0.45rem", marginBottom: "1.1rem", fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.58rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "#000" }}>Gangrey · Archive &nbsp;·&nbsp; {todayLabel}</div>
+                            <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Archive title"
+                              style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "2.1rem", fontWeight: 700, lineHeight: 1.03, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "0.5rem", display: "block", boxSizing: "border-box", textAlign: "left" }} />
+                            <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", color: TEXT_MUTED, marginBottom: "1rem" }}>{nlBylineField(card, "left")}</div>
+                            {card.image ? (
+                              <div style={{ margin: "0 0 1rem", position: "relative" }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", maxHeight: 150, objectFit: "cover", display: "block", marginBottom: "0.25rem" }} />
+                                {card.image.caption && <p style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.56rem", letterSpacing: "0.04em", textTransform: "uppercase", color: TEXT_MUTED, margin: 0 }}>{card.image.caption}</p>}
+                                <div className="nl-card-controls" style={{ position: "absolute", top: "0.4rem", right: "0.4rem", display: "flex", gap: "0.35rem" }}>
+                                  <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Change</button>
+                                  <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Remove</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ background: "#ffffff", border: `1px dashed ${BORDER}`, fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, cursor: "pointer", margin: "0 0 1rem", padding: "0.5rem 1rem", display: "block", width: "100%", textAlign: "center", boxSizing: "border-box" }}>
+                                + Add photo
+                              </button>
+                            )}
+                            <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.9rem", lineHeight: 1.62, textAlign: "justify" }}>
+                              <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} placeholder="From the archive…"
+                                onChange={doc => nlUpdateCard(card.id, { doc })}
+                                onEditor={ed => { nlEditors.current[card.id] = ed; }}
+                                onToolbar={tb => { nlToolbars.current[card.id] = tb; }} />
                             </div>
+                            {nlCardDraftRow(card, "left")}
                           </div>
-                        )}
-                        <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.95rem", lineHeight: 1.62, textAlign: "justify", marginTop: "1rem" }}>
-                          <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} placeholder="From the archive…"
-                            onChange={doc => nlUpdateCard(card.id, { doc })}
-                            onEditor={ed => { nlEditors.current[card.id] = ed; }}
-                            onToolbar={tb => { nlToolbars.current[card.id] = tb; }} />
+                          {/* Tape strips */}
+                          <div style={{ position: "absolute", top: 12, left: 40, width: 92, height: 22, background: "rgba(233,230,225,0.5)", transform: `rotate(${taperot[c][0]})`, boxShadow: "0 1px 3px rgba(0,0,0,0.18)" }} />
+                          <div style={{ position: "absolute", top: 12, right: 40, width: 92, height: 22, background: "rgba(233,230,225,0.5)", transform: `rotate(${taperot[c][1]})`, boxShadow: "0 1px 3px rgba(0,0,0,0.18)" }} />
                         </div>
-                        {nlCardDraftRow(card, "left")}
                       </div>
-                    )}
+                      );
+                    })()}
                   </>)}
                   </div>
                 </div>
