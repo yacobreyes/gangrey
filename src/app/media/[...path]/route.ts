@@ -33,7 +33,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
 
   const ext = path.extname(name).toLowerCase();
   const type = MIME[ext] ?? "application/octet-stream";
-  const headers = { "Content-Type": type, "Cache-Control": "public, max-age=31536000, immutable" };
 
   const sp = req.nextUrl.searchParams;
   const w = Number(sp.get("w")) || 0;
@@ -44,17 +43,32 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
   // photo. Baseline paints without that averaged-color pre-render.
   const progressive = sp.get("prog") !== "0";
 
+  // Content-negotiate WebP. WebP is ~25-35% smaller than JPEG at the same visual
+  // quality, so on a slow connection the photo lands sooner. We only serve it
+  // when the client advertises support via Accept (all current browsers do;
+  // Gmail's image proxy does too — older desktop mail clients that don't fall
+  // back to JPEG automatically). PNG sources stay PNG to preserve transparency.
+  const wantsWebp = (req.headers.get("accept") ?? "").includes("image/webp") && ext !== ".png";
+
+  const passHeaders = { "Content-Type": type, "Cache-Control": "public, max-age=31536000, immutable" };
+
   // No transform requested, or a non-raster format — serve the original bytes.
   if ((!w && !h && !crop) || ext === ".svg" || ext === ".gif") {
-    try { return new NextResponse(new Uint8Array(fs.readFileSync(file)), { headers }); }
+    try { return new NextResponse(new Uint8Array(fs.readFileSync(file)), { headers: passHeaders }); }
     catch { return new NextResponse("Not found", { status: 404 }); }
   }
 
-  // Cache derivatives on disk so each size/crop is processed once.
+  // The chosen output format decides both the cache filename and the response
+  // Content-Type, so WebP and JPEG/PNG derivatives cache side by side and a
+  // client always gets bytes whose header matches them.
+  const outExt = wantsWebp ? ".webp" : (ext === ".png" ? ".png" : ".jpg");
+  const headers = { "Content-Type": MIME[outExt], "Cache-Control": "public, max-age=31536000, immutable", "Vary": "Accept" };
+
+  // Cache derivatives on disk so each size/crop/format is processed once.
   const cacheDir = path.join(sqliteMediaDir(), ".cache");
   fs.mkdirSync(cacheDir, { recursive: true });
-  const key = crypto.createHash("sha1").update(`${name}|${w}|${h}|${sp.get("crop") ?? ""}|p${progressive ? 1 : 0}`).digest("hex");
-  const cached = path.join(cacheDir, `${key}${ext === ".png" ? ".png" : ".jpg"}`);
+  const key = crypto.createHash("sha1").update(`${name}|${w}|${h}|${sp.get("crop") ?? ""}|p${progressive ? 1 : 0}|${outExt}`).digest("hex");
+  const cached = path.join(cacheDir, `${key}${outExt}`);
   if (fs.existsSync(cached)) {
     return new NextResponse(new Uint8Array(fs.readFileSync(cached)), { headers });
   }
@@ -75,7 +89,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
       }
     }
     if (w || h) img = img.resize(w || null, h || null, { fit: "cover" });
-    const out = ext === ".png"
+    const out = wantsWebp
+      // effort:4 is sharp's balance point — noticeably smaller than the default
+      // without the encode-time blowup of effort:6 on a 2-vCPU box.
+      ? await img.webp({ quality: 78, effort: 4 }).toBuffer()
+      : ext === ".png"
       ? await img.png({ compressionLevel: 6 }).toBuffer()
       // libjpeg-turbo (mozjpeg:false) encodes several times faster than mozjpeg
       // for ~5% larger files — a good trade on a 2-vCPU box, since the *first*
@@ -85,7 +103,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
     return new NextResponse(new Uint8Array(out), { headers });
   } catch {
     // Fall back to the original on any processing error.
-    try { return new NextResponse(new Uint8Array(fs.readFileSync(file)), { headers }); }
+    try { return new NextResponse(new Uint8Array(fs.readFileSync(file)), { headers: passHeaders }); }
     catch { return new NextResponse("Not found", { status: 404 }); }
   }
 }

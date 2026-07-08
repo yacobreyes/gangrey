@@ -26,7 +26,12 @@ function warmImageDerivatives(src: string, crops: Record<string, { x: number; y:
   const sizes: [number, number][] = [[1600, 900], [1200, 675], [800, 450], [1200, 630], [720, 540], [640, 474], [520, 293]];
   for (const [w, h] of sizes) {
     const u = postImageUrl(image, w, h);
-    if (u) fetch(`http://localhost:3000${u}`).catch(() => {});
+    if (!u) continue;
+    // Warm both encodings: browsers/Gmail's proxy request WebP, so warm that
+    // (Accept: image/webp) alongside the JPEG fallback. Each format caches to a
+    // separate file, so the first real reader hits a warm cache either way.
+    fetch(`http://localhost:3000${u}`, { headers: { accept: "image/webp,image/*,*/*" } }).catch(() => {});
+    fetch(`http://localhost:3000${u}`, { headers: { accept: "image/jpeg,*/*" } }).catch(() => {});
   }
 }
 
