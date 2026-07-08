@@ -16,6 +16,14 @@ const FORMS = [
   { name: "Micro-Memoirs", limit: "100 words max." },
 ];
 
+// Small-caps crimson section labels for the guidelines, matching the site's
+// kicker style (About page labels, story section flags).
+const GUIDE_LABEL: React.CSSProperties = {
+  fontFamily: "var(--font-subhead)", fontSize: 11, fontWeight: 800,
+  letterSpacing: ".18em", textTransform: "uppercase", color: "#490000",
+  margin: "0 0 6px",
+};
+
 export default function SubmitPage() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#ffffff", color: "#000000" }}>
@@ -37,12 +45,22 @@ export default function SubmitPage() {
           ))}
         </div>
 
+        {/* Submission guidelines */}
+        <h2 style={{ fontFamily: "var(--font-headline)", fontSize: 22, fontWeight: 800, letterSpacing: "-.02em", color: "#000000", margin: "8px 0 18px" }}>Submission Guidelines</h2>
         <div style={{ fontFamily: "var(--font-body)", fontSize: 14.5, lineHeight: 1.6, color: "#392a22" }}>
-          <p style={{ margin: "0 0 12px" }}>Paste the full text into the submission form. A short cover letter helps but isn&apos;t required.</p>
-          <p style={{ margin: "0 0 12px" }}>We don&apos;t accept AI-generated writing. All work should be your own.</p>
-          <p style={{ margin: "0 0 12px" }}>Simultaneous submissions are fine, just let us know if the piece is placed elsewhere.</p>
-          <p style={{ margin: "0 0 12px" }}>Authors retain copyright to their work. For each accepted story, we provide a one-year membership and an honorarium: $45 for reported narratives and essays, $25 for micro-memoirs.</p>
-          <p style={{ margin: "0 0 32px" }}>In accepting publication, the author grants us first serial rights and the nonexclusive right to archive and promote the work.</p>
+          <h3 style={GUIDE_LABEL}>How to submit</h3>
+          <p style={{ margin: "0 0 18px" }}>Paste the full text into the submission form. A cover letter is welcome but not required.</p>
+
+          <h3 style={GUIDE_LABEL}>Eligibility</h3>
+          <p style={{ margin: "0 0 18px" }}>We don&apos;t accept AI-generated writing. All work should be your own.</p>
+
+          <h3 style={GUIDE_LABEL}>Simultaneous submissions</h3>
+          <p style={{ margin: "0 0 18px" }}>These are fine. Just let us know if the piece is placed elsewhere.</p>
+
+          <h3 style={GUIDE_LABEL}>Rights and compensation</h3>
+          <p style={{ margin: "0 0 10px" }}>Authors retain copyright to their work.</p>
+          <p style={{ margin: "0 0 10px" }}>In accepting publication, the author grants us first serial rights and the nonexclusive right to archive and promote the piece.</p>
+          <p style={{ margin: "0 0 32px" }}>For each accepted story, we provide a one-year membership plus an honorarium: $45 for reported narratives and essays, $25 for micro-memoirs.</p>
         </div>
 
         <div style={{ borderTop: "1px solid #000000", paddingTop: 28 }}>
