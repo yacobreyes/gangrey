@@ -71,7 +71,7 @@ export default function SubmitForm() {
           Received
         </div>
         <p style={{ fontFamily: "var(--font-body)", fontSize: 17, lineHeight: 1.55, color: "#000000", margin: 0 }}>
-          Thanks, {name.split(" ")[0] || "and welcome"}. Your piece is in. We sent a confirmation to <strong>{email}</strong>, and every submission is read by an editor. We'll reply either way.
+          Thanks, {name.split(" ")[0] || "and welcome"}. Your story is in. We sent a confirmation to <strong>{email}</strong>, and every submission is read by an editor. We'll reply either way.
         </p>
       </div>
     );
@@ -92,7 +92,7 @@ export default function SubmitForm() {
 
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
         <div style={{ flex: "2 1 260px" }}>
-          <label style={labelStyle} htmlFor="sub-title">Title of your piece</label>
+          <label style={labelStyle} htmlFor="sub-title">Title of your story</label>
           <input id="sub-title" style={inputStyle} value={title} onChange={e => setTitle(e.target.value)} required />
         </div>
         <div style={{ flex: "1 1 180px" }}>
@@ -106,23 +106,23 @@ export default function SubmitForm() {
 
       <div>
         <label style={labelStyle} htmlFor="sub-cover">Cover letter <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, color: "#8a8a8c" }}>(optional)</span></label>
-        <textarea id="sub-cover" style={{ ...inputStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} value={coverLetter} onChange={e => setCoverLetter(e.target.value)} placeholder="A short note about you and the piece. Publishing history welcome, not required." />
+        <textarea id="sub-cover" style={{ ...inputStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} value={coverLetter} onChange={e => setCoverLetter(e.target.value)} placeholder="A short note about you and the story. Publishing history welcome, not required." />
       </div>
 
       <div>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-          <label style={labelStyle} htmlFor="sub-text">Your piece</label>
+          <label style={labelStyle} htmlFor="sub-text">Your story</label>
           <span style={{ fontFamily: "var(--font-subhead)", fontSize: 12, fontWeight: overLimit ? 700 : 400, color: overLimit ? CRIMSON : wordCount ? "#392a22" : "#8a8a8c", fontVariantNumeric: "tabular-nums" }}>
             {wordCount.toLocaleString()}{limit != null ? ` / ${limit.toLocaleString()}` : ""} {limit != null ? "words" : wordCount === 1 ? "word" : "words"}
           </span>
         </div>
-        <textarea id="sub-text" style={{ ...inputStyle, minHeight: 320, resize: "vertical", fontFamily: "var(--font-body)", fontSize: 16, lineHeight: 1.7 }} value={text} onChange={e => setText(e.target.value)} required placeholder="Paste your full piece here." />
+        <textarea id="sub-text" style={{ ...inputStyle, minHeight: 320, resize: "vertical", fontFamily: "var(--font-body)", fontSize: 16, lineHeight: 1.7 }} value={text} onChange={e => setText(e.target.value)} required placeholder="Paste your full story here." />
       </div>
 
       <div>
         <button type="submit" disabled={status === "loading" || overLimit}
           style={{ alignSelf: "flex-start", background: CRIMSON, color: "#fff", border: "none", borderRadius: 2, padding: "13px 28px", fontFamily: "var(--font-subhead)", fontSize: 12, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", cursor: (status === "loading" || overLimit) ? "not-allowed" : "pointer", opacity: (status === "loading" || overLimit) ? 0.5 : 1 }}>
-          {status === "loading" ? "Submitting…" : overLimit ? `Over the ${limit!.toLocaleString()}-word limit` : "Submit your piece"}
+          {status === "loading" ? "Submitting…" : overLimit ? `Over the ${limit!.toLocaleString()}-word limit` : "Submit your story"}
         </button>
         {status === "error" && <p style={{ fontFamily: "var(--font-subhead)", fontSize: 13, color: CRIMSON, margin: "12px 0 0" }}>{msg}</p>}
       </div>

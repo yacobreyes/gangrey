@@ -41,7 +41,7 @@ export default function SubmitPage() {
               <li style={{ marginBottom: 8 }}><strong>Micro-Memoirs</strong>, a whole life in a breath. <span style={{ color: "#8a8a8c" }}>100 words max.</span></li>
             </ul>
             <p style={{ margin: "0 0 14px" }}>
-              Send us your best single piece. Paste the full text — no attachments needed. A short cover letter helps but isn&apos;t required.
+              Send us your best single story. Paste the full text — no attachments needed. A short cover letter helps but isn&apos;t required.
             </p>
             <p style={{ margin: 0 }}>
               We read everything and reply either way. Simultaneous submissions are fine; just tell us if it&apos;s placed elsewhere.

@@ -148,7 +148,7 @@ function SubmissionCard({ sub, open, onToggle, onChanged }: { sub: SubmissionRow
             </div>
           )}
 
-          <div style={{ fontFamily: FONT, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: CRIMSON, marginBottom: "0.4rem" }}>The piece</div>
+          <div style={{ fontFamily: FONT, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: CRIMSON, marginBottom: "0.4rem" }}>The story</div>
           <div style={{ fontFamily: SERIF, fontSize: "1.05rem", lineHeight: 1.72, color: "#000", whiteSpace: "pre-wrap", maxHeight: 460, overflowY: "auto", padding: "0.5rem 0.9rem", background: "#faf9f7", border: `1px solid ${BORDER}`, borderRadius: 4 }}>
             {sub.text}
           </div>

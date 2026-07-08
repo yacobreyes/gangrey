@@ -37,9 +37,9 @@ export async function POST(req: Request) {
 
   if (!name) return NextResponse.json({ error: "Add your name." }, { status: 400 });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
-  if (!title) return NextResponse.json({ error: "Give your piece a title." }, { status: 400 });
+  if (!title) return NextResponse.json({ error: "Give your story a title." }, { status: 400 });
   if (!CATEGORIES.includes(category)) return NextResponse.json({ error: "Choose a category." }, { status: 400 });
-  if (!text) return NextResponse.json({ error: "Paste your piece before submitting." }, { status: 400 });
+  if (!text) return NextResponse.json({ error: "Paste your story before submitting." }, { status: 400 });
 
   const wordCount = countWords(text);
   const limit = WORD_LIMITS[category];
@@ -75,7 +75,7 @@ export async function POST(req: Request) {
 <body style="margin:0;padding:0;background-color:#ffffff;">
   <div style="font-family:Georgia,'Times New Roman',serif;max-width:460px;margin:0 auto;padding:28px 24px;color:#000000;">
     <p style="font-size:18px;margin:0 0 16px;">Thanks for submitting to Gangrey.</p>
-    <p style="font-size:15px;line-height:1.6;color:#392a22;margin:0 0 8px;">We received <strong>&ldquo;${title.replace(/</g, "&lt;")}&rdquo;</strong> (${category}). Every piece is read by an editor. If it's a fit, we'll be in touch; if it isn't, we'll still let you know.</p>
+    <p style="font-size:15px;line-height:1.6;color:#392a22;margin:0 0 8px;">We received <strong>&ldquo;${title.replace(/</g, "&lt;")}&rdquo;</strong> (${category}). Every story is read by an editor. If it's a fit, we'll be in touch; if it isn't, we'll still let you know.</p>
     <p style="font-size:13px;line-height:1.6;color:#8a8a8c;margin:20px 0 0;">You don't need to reply to this note. Thanks for trusting us with your work.</p>
     <p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#490000;margin:24px 0 0;">Gangrey</p>
   </div>
