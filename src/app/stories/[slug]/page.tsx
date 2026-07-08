@@ -176,7 +176,7 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
       )}
 
       <article className="story-article">
-        <div className={`story-body${unlocked ? "" : " story-body--preview"}`}>
+        <div className="story-body">
           <PortableText value={bodyToRender} components={storyPtComponents} />
         </div>
         {!unlocked && <StoryPaywall />}
