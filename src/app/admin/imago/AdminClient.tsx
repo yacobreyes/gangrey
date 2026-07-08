@@ -1141,8 +1141,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
       {showNlTypeModal && (
         <div onClick={() => setShowNlTypeModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 10, padding: "1.5rem", width: "100%", maxWidth: 460, boxShadow: "0 12px 40px rgba(0,0,0,0.25)" }}>
-            <h2 style={{ fontFamily: FONT, fontSize: "1.05rem", fontWeight: 700, color: TEXT_DARK, margin: "0 0 0.3rem" }}>New newsletter</h2>
-            <p style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, margin: "0 0 1.1rem" }}>Which kind of issue is this?</p>
+            <h2 style={{ fontFamily: FONT, fontSize: "1.05rem", fontWeight: 700, color: TEXT_DARK, margin: "0 0 1.1rem" }}>Which kind of newsletter is this?</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
               <button onClick={() => { setShowNlTypeModal(false); createNewNewsletter("gangrey"); }}
                 style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", textAlign: "left", width: "100%", padding: "0.9rem 1rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", cursor: "pointer" }}>
