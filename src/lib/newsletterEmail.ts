@@ -232,7 +232,7 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): stri
     const clipIdx = archiveN % 2;
     archiveN++;
     const img = card.image?.url
-      ? `<div style="margin:0 0 16px;"><img src="${esc(card.image.url)}" alt="${esc(card.image.alt ?? "")}" style="width:100%;filter:grayscale(1) contrast(1.08);display:block;" />${card.image.caption ? `<p style="font-family:${FONT};font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:${TEXT_MUTED};margin:6px 0 0;">${esc(card.image.caption)}</p>` : ""}</div>`
+      ? `<div style="margin:0 0 16px;"><img src="${esc(card.image.url)}" alt="${esc(card.image.alt ?? "")}" style="width:100%;display:block;" />${card.image.caption ? `<p style="font-family:${FONT};font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:${TEXT_MUTED};margin:6px 0 0;">${esc(card.image.caption)}</p>` : ""}</div>`
       : "";
     return `<div style="padding:0 16px 24px;">
       <div style="margin-bottom:16px;">${kicker("FROM THE ARCHIVE", true, false)}</div>
