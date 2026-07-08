@@ -63,13 +63,14 @@ export default function SubmissionsPanel() {
         <p style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, margin: "0.25rem 0 0" }}>Stories sent in through the submission portal.</p>
       </div>
 
-      {/* Status tabs */}
-      <div style={{ display: "flex", gap: "0.25rem", borderBottom: `1px solid ${BORDER}`, margin: "1.25rem 0 0", flexWrap: "wrap" }}>
+      {/* Status tabs — scrolls horizontally instead of wrapping, so "All"
+          never drops to its own line on a narrow screen. */}
+      <div style={{ display: "flex", gap: "0.25rem", borderBottom: `1px solid ${BORDER}`, margin: "1.25rem 0 0", overflowX: "auto", whiteSpace: "nowrap" }}>
         {TABS.map(t => {
           const active = tab === t.key;
           return (
             <button key={t.key} onClick={() => { setTab(t.key); setOpenId(null); }}
-              style={{ background: "none", border: "none", borderBottom: `2px solid ${active ? CRIMSON : "transparent"}`, padding: "0.5rem 0.9rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: active ? CRIMSON : TEXT_MUTED, cursor: "pointer", whiteSpace: "nowrap" }}>
+              style={{ background: "none", border: "none", borderBottom: `2px solid ${active ? CRIMSON : "transparent"}`, padding: "0.5rem 0.9rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", color: active ? CRIMSON : TEXT_MUTED, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
               {t.label} <span style={{ color: active ? CRIMSON : "#b8b8ba", fontWeight: 600 }}>{counts[t.key] ?? 0}</span>
             </button>
           );
