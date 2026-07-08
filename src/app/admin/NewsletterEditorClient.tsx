@@ -939,8 +939,15 @@ export default function NewsletterEditorClient({
           {/* Cards — black ground (matches the email) so white article sheets
               float on it with a 16px gutter. */}
           <div style={{ background: "#000000", padding: "1rem 1rem 0" }}>
-            {nlCards.map((card, i) => {
+            {(() => { let archiveOrdinal = -1; return nlCards.map((card, i) => {
               const type = card.cardType ?? (i === 0 ? "narratives" : "essays");
+              // Torn-clipping/tape variant is keyed to a card's position among
+              // OTHER ARCHIVE cards, not its position in the whole newsletter —
+              // matching the email renderer's `archiveN` counter. Otherwise
+              // dragging any card (archive or not) into the list shifts every
+              // later archive card's overall array index, which used to flip
+              // its tear/tape variant even though nothing about that card changed.
+              if (type === "archive") archiveOrdinal++;
               const sectionLabel = type === "narratives" ? "NARRATIVES" : type === "essays" ? "ESSAYS" : type === "archive" ? "FROM THE ARCHIVE" : "MICRO-MEMOIR";
               // Essays/Narratives render as white "sheets" floating on the black
               // ground; micro-memoir & archive supply their own card chrome.
@@ -1144,7 +1151,7 @@ export default function NewsletterEditorClient({
 
                     {/* ARCHIVE card — torn newspaper clipping reprint (matches email/reference) */}
                     {type === "archive" && (() => {
-                      const c = i % 2;
+                      const c = archiveOrdinal % 2;
                       const torn = [
                         "polygon(0% 1.6%,6% 0.5%,12% 2.1%,18% 0.8%,24% 1.7%,31% 0.4%,38% 2.3%,45% 1.0%,52% 0.6%,59% 2.0%,66% 0.9%,73% 1.8%,80% 0.5%,87% 2.2%,94% 1.0%,100% 0.8%,100% 99.2%,94% 98.6%,87% 99.4%,80% 98.5%,73% 99.3%,66% 98.4%,59% 99.4%,52% 98.7%,45% 99.3%,38% 98.4%,31% 99.2%,24% 98.6%,18% 99.4%,12% 98.6%,6% 99.3%,0% 98.8%)",
                         "polygon(0% 1.2%,7% 0.4%,13% 2.0%,19% 0.7%,26% 1.9%,33% 0.5%,39% 2.2%,46% 0.9%,53% 0.5%,60% 2.1%,67% 0.8%,74% 1.7%,81% 0.6%,88% 2.0%,95% 0.9%,100% 1.4%,100% 98.8%,95% 99.3%,88% 98.5%,81% 99.4%,74% 98.6%,67% 99.2%,60% 98.4%,53% 99.4%,46% 98.7%,39% 99.3%,33% 98.5%,26% 99.2%,19% 98.6%,13% 99.4%,7% 98.7%,0% 99.2%)",
@@ -1192,7 +1199,7 @@ export default function NewsletterEditorClient({
                   </div>
                 </div>
               );
-            })}
+            }); })()}
 
             {/* Add zone after last card */}
             <div className="nl-add-zone" onClick={() => nlAddCardAfter(nlCards.length - 1)}
