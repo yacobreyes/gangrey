@@ -11,6 +11,7 @@ import ImagePickerModal from "@/components/ImagePickerModal";
 import UsersPanel from "./UsersPanel";
 import AudiencePanel from "./AudiencePanel";
 import AnalyticsPanel from "./AnalyticsPanel";
+import SubmissionsPanel from "./SubmissionsPanel";
 import { getActiveLocks, type LockHolder } from "../lockActions";
 import { listUsers } from "../userActions";
 import type { JSONContent, Editor } from "@tiptap/react";
@@ -60,7 +61,7 @@ const DEFAULT_FORM: FormState = {
   body: EMPTY_DOC, status: "draft",
 };
 
-type Panel = "dashboard" | "editor" | "about" | "media" | "comments" | "subscribers" | "users" | "members" | "archive" | "analytics";
+type Panel = "dashboard" | "editor" | "about" | "media" | "comments" | "submissions" | "subscribers" | "users" | "members" | "archive" | "analytics";
 
 export type CurrentUser = { name: string; email: string; role: "admin" | "editor" };
 
@@ -491,6 +492,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
               ["media", "Media Library", <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>],
               ["archive", "Archive", <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>],
               ["comments", "Comments", <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>],
+              ["submissions", "Submissions", <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>],
               ["analytics", "Analytics", <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>],
               // About, Subscribers, and Users are admin-only — editors don't see them.
               ...(isAdmin ? [
@@ -572,7 +574,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                   </div>
                 ) : (
                   <span style={{ fontFamily: FONT, fontSize: "1rem", fontWeight: 700, color: TEXT_DARK }}>
-                    {activePanel === "media" ? "Media Library" : activePanel === "comments" ? "Comments" : activePanel === "about" ? "About" : activePanel === "users" ? "Users" : activePanel === "members" ? "Subscribers" : activePanel === "archive" ? "Archive" : activePanel === "analytics" ? "Analytics" : ""}
+                    {activePanel === "media" ? "Media Library" : activePanel === "comments" ? "Comments" : activePanel === "submissions" ? "Submissions" : activePanel === "about" ? "About" : activePanel === "users" ? "Users" : activePanel === "members" ? "Subscribers" : activePanel === "archive" ? "Archive" : activePanel === "analytics" ? "Analytics" : ""}
                   </span>
                 )}
               </div>
@@ -611,7 +613,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                   </div>
                 ) : (
                   <span style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, color: TEXT_MUTED }}>
-                    {activePanel === "media" ? "Media Library" : activePanel === "about" ? "About" : activePanel === "comments" ? "Comments" : activePanel === "users" ? "Users" : activePanel === "members" ? "Subscribers" : activePanel === "archive" ? "Archive" : activePanel === "analytics" ? "Analytics" : ""}
+                    {activePanel === "media" ? "Media Library" : activePanel === "about" ? "About" : activePanel === "comments" ? "Comments" : activePanel === "submissions" ? "Submissions" : activePanel === "users" ? "Users" : activePanel === "members" ? "Subscribers" : activePanel === "archive" ? "Archive" : activePanel === "analytics" ? "Analytics" : ""}
                   </span>
                 )}
               </div>
@@ -802,6 +804,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
           )}
 
           {activePanel === "analytics" && <AnalyticsPanel />}
+          {activePanel === "submissions" && <SubmissionsPanel />}
 
           {/* MEMBERS & SUBSCRIBERS (admin only) — one unified audience list */}
           {activePanel === "members" && isAdmin && (
@@ -1156,7 +1159,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CRIMSON} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
                 <span>
                   <span style={{ display: "block", fontFamily: FONT, fontSize: "0.92rem", fontWeight: 700, color: TEXT_DARK }}>Gangrey Classics Newsletter</span>
-                  <span style={{ display: "block", fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, marginTop: 2 }}>Archive reprints only, dated automatically.</span>
+                  <span style={{ display: "block", fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, marginTop: 2 }}>Archive reprints.</span>
                 </span>
               </button>
             </div>

@@ -515,6 +515,53 @@ export function sqliteDeleteComment(id: string): void {
   db().prepare(`DELETE FROM documents WHERE id = ? AND type = 'comment'`).run(id);
 }
 
+// --- Submissions -------------------------------------------------------------
+
+export type SubmissionStatus = "new" | "reading" | "accepted" | "declined";
+export type SubmissionRow = {
+  _id: string;
+  name: string;
+  email: string;
+  title: string;
+  category: string;
+  coverLetter?: string;
+  text: string;
+  wordCount: number;
+  status: SubmissionStatus;
+  respondedAt?: string;
+  _createdAt: string;
+};
+
+export function sqliteAddSubmission(data: Omit<SubmissionRow, "_id" | "status" | "_createdAt">): SubmissionRow {
+  const id = `submission-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const doc: SubmissionRow = { ...data, _id: id, status: "new", _createdAt: new Date().toISOString() };
+  const { _id, ...rest } = doc;
+  db().prepare(`INSERT INTO documents (id, type, data) VALUES (?, 'submission', ?)`).run(_id, JSON.stringify(rest));
+  return doc;
+}
+
+export function sqliteAllSubmissions(): SubmissionRow[] {
+  return sqliteDocsByType<SubmissionRow>("submission")
+    .sort((a, b) => (b._createdAt ?? "").localeCompare(a._createdAt ?? ""));
+}
+
+export function sqliteGetSubmission(id: string): SubmissionRow | null {
+  const row = db().prepare(`SELECT id, data FROM documents WHERE id = ? AND type = 'submission'`).get(id);
+  return row ? { _id: row.id, ...JSON.parse(row.data) } as SubmissionRow : null;
+}
+
+export function sqliteUpdateSubmission(id: string, patch: Partial<SubmissionRow>): void {
+  const row = db().prepare(`SELECT data FROM documents WHERE id = ? AND type = 'submission'`).get(id);
+  if (!row) return;
+  const { _id: _ignore, ...clean } = patch as Partial<SubmissionRow> & { _id?: string };
+  const data = { ...JSON.parse(row.data), ...clean };
+  db().prepare(`UPDATE documents SET data = ? WHERE id = ? AND type = 'submission'`).run(JSON.stringify(data), id);
+}
+
+export function sqliteDeleteSubmission(id: string): void {
+  db().prepare(`DELETE FROM documents WHERE id = ? AND type = 'submission'`).run(id);
+}
+
 // --- Counters (likes, reads) -------------------------------------------------
 
 export function sqliteGetCount(id: string): number {
