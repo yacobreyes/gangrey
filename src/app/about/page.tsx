@@ -25,7 +25,8 @@ export default async function AboutPage() {
         .about-h1 {
           margin: 0; text-align: left;
           font-family: var(--font-headline);
-          font-size: 38px; line-height: 1; letter-spacing: -.03em; font-weight: 800;
+          /* Match ListingHeader's title scale so About sizes like every other page title. */
+          font-size: clamp(30px, 4.2vw, 40px); line-height: 1.02; letter-spacing: -.03em; font-weight: 800;
         }
         .about-body { margin-top: 34px; font-family: var(--font-body); font-size: 18.5px; line-height: 1.62; color: #000000; }
         .about-body p { margin: 0 0 20px; }
@@ -58,7 +59,6 @@ export default async function AboutPage() {
         }
         @media (max-width: 900px) {
           .about-main { padding: 20px 20px 48px; }
-          .about-h1 { font-size: clamp(30px, 9vw, 38px); }
           .about-cols { grid-template-columns: 1fr; }
           .about-col-left { padding-right: 0; border-right: 0; padding-bottom: 28px; border-bottom: 1px dotted #8a8a8c; }
           .about-col-right { padding-left: 0; padding-top: 28px; }
