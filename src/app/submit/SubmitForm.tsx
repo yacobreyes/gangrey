@@ -1,13 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-
-const WORD_LIMITS: Record<string, number> = {
-  "Essay": 1000,
-  "Reported Narrative": 400,
-  "Micro-Memoir": 100,
-};
-const CATEGORIES = Object.keys(WORD_LIMITS);
+import { WORD_LIMITS, SUBMISSION_CATEGORIES as CATEGORIES, countWords } from "@/lib/submissionValidation";
 
 const CRIMSON = "#490000";
 const LINE = "#b8b8ba";
@@ -33,10 +27,7 @@ export default function SubmitForm() {
   const [status, setStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const [msg, setMsg] = useState("");
 
-  const wordCount = useMemo(() => {
-    const t = text.trim();
-    return t ? t.split(/\s+/).length : 0;
-  }, [text]);
+  const wordCount = useMemo(() => countWords(text), [text]);
 
   const limit = category ? WORD_LIMITS[category] : null;
   const overLimit = limit != null && wordCount > limit;

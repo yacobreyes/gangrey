@@ -4,22 +4,9 @@ import { isSqliteBackend, sqliteAddSubmission, type SubmissionRow } from "@/lib/
 import { sanityMutate } from "@/lib/sanityWrite";
 import { straightenQuotes } from "@/lib/straighten";
 import { submissionEmailHtml, escapeHtml } from "@/lib/submissionEmail";
+import { validateSubmission } from "@/lib/submissionValidation";
 
 export const dynamic = "force-dynamic";
-
-// Per-category hard word limits (enforced here so the API can't be bypassed by
-// posting directly, and mirrored in the form + guidelines).
-const WORD_LIMITS: Record<string, number> = {
-  "Essay": 1000,
-  "Reported Narrative": 400,
-  "Micro-Memoir": 100,
-};
-const CATEGORIES = Object.keys(WORD_LIMITS);
-
-function countWords(s: string): number {
-  const t = s.trim();
-  return t ? t.split(/\s+/).length : 0;
-}
 
 export async function POST(req: Request) {
   let body: Record<string, string>;
@@ -36,17 +23,12 @@ export async function POST(req: Request) {
   const coverLetter = straightenQuotes((body.coverLetter ?? "").trim());
   const text = straightenQuotes((body.text ?? "").trim());
 
-  if (!name) return NextResponse.json({ error: "Add your name." }, { status: 400 });
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
-  if (!title) return NextResponse.json({ error: "Give your story a title." }, { status: 400 });
-  if (!CATEGORIES.includes(category)) return NextResponse.json({ error: "Choose a category." }, { status: 400 });
-  if (!text) return NextResponse.json({ error: "Paste your story before submitting." }, { status: 400 });
-
-  const wordCount = countWords(text);
-  const limit = WORD_LIMITS[category];
-  if (wordCount > limit) {
-    return NextResponse.json({ error: `${category}s must be ${limit.toLocaleString()} words or fewer. Yours is ${wordCount.toLocaleString()}.` }, { status: 400 });
-  }
+  // The API is the enforcement point (can't be bypassed by posting directly);
+  // the form uses the same validateSubmission() for its live word counter, so
+  // the two can never disagree on what's allowed.
+  const result = validateSubmission({ name, email, title, category, text });
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
+  const { wordCount } = result;
 
   const record = { name, email, title, category, coverLetter, text, wordCount };
   try {

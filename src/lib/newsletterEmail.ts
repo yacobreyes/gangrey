@@ -10,6 +10,12 @@
 import type { PortableTextBlock } from "@portabletext/types";
 import { straightenQuotes, straightenBlocks } from "./straighten";
 import { CRIMSON } from "./palette";
+import {
+  NL_FONT as FONT, NL_SERIF as SERIF, NL_GROUND as GROUND, NL_PAPER as PAPER,
+  NL_EARTH as EARTH, NL_RULE as RULE, NL_TAPE as TAPE,
+  NL_HEAD_SIZE_PX as HEAD_SIZE, NL_HEAD_LINE as HEAD_LINE,
+  NL_TORN_CLIP_PATHS as TORN, NL_TAPE_ROTATIONS as TAPE_ROT,
+} from "./newsletterTokens";
 
 export type NlCard = {
   headline?: string;
@@ -24,19 +30,10 @@ export type NlCard = {
   date?: string;
 };
 
-// Email + web-reader typography. Astoria is deliberately NOT used here: mail
-// clients (Gmail especially) load Astoria but render its straight apostrophe/
-// quote glyphs as curls. Georgia/system fonts draw straight quotes everywhere.
-// The brand is carried by the white wordmark image in the masthead.
-const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-const SERIF = "Georgia, 'Times New Roman', serif";
-
-// Design tokens (from the reference).
-const GROUND = "#000000";   // whole-email ground, cover, footer
-const PAPER = "#ffffff";    // article sheets, tweet card, clipping paper
-const EARTH = "#392a22";    // decks, bylines, captions, meta
-const RULE = "#b8b8ba";     // keylines, kickers-on-black, tweet borders
-const TAPE = "rgba(233,230,225,0.5)";
+// Typography/palette/torn-clip tokens are imported from ./newsletterTokens —
+// shared with the editor canvas so the two can't silently drift apart again.
+// (Astoria is deliberately NOT used in the email: mail clients, Gmail
+// especially, render its straight apostrophe/quote glyphs as curls.)
 
 // Canonical public host for email links (wordmark image, unsubscribe).
 const SITE_URL = "https://gangrey.org";
@@ -72,8 +69,6 @@ type BodyStyle = { size: number; line: number; align: "left" | "justify" };
 const SHEET_BODY: BodyStyle = { size: 18, line: 1.72, align: "left" };
 const MICRO_BODY: BodyStyle = { size: 18, line: 1.72, align: "left" };
 const CLIP_BODY: BodyStyle = { size: 18, line: 1.72, align: "justify" };
-const HEAD_SIZE = 30;
-const HEAD_LINE = 1.15;
 
 function renderBody(blocks: PortableTextBlock[], bs: BodyStyle = SHEET_BODY): string {
   const P = `font-family:${SERIF};font-size:${bs.size}px;line-height:${bs.line};color:${GROUND};text-align:${bs.align};margin:0 0 14px;`;
@@ -135,11 +130,6 @@ function initials(name?: string): string {
 // tear subtle and a long photo+body card's tear an exaggerated sawtooth (the
 // same 1-2% notch is a couple of px on a short card, a dozen+ px on a tall
 // one), which also threw off the tape strips' fixed-pixel placement.
-const TORN = [
-  "polygon(0% 8px,6% 3px,12% 10px,18% 4px,24% 8px,31% 2px,38% 11px,45% 5px,52% 3px,59% 10px,66% 4px,73% 9px,80% 3px,87% 11px,94% 5px,100% 4px,100% calc(100% - 4px),94% calc(100% - 7px),87% calc(100% - 3px),80% calc(100% - 7px),73% calc(100% - 3px),66% calc(100% - 8px),59% calc(100% - 3px),52% calc(100% - 6px),45% calc(100% - 3px),38% calc(100% - 8px),31% calc(100% - 4px),24% calc(100% - 7px),18% calc(100% - 3px),12% calc(100% - 7px),6% calc(100% - 3px),0% calc(100% - 6px))",
-  "polygon(0% 6px,7% 2px,13% 10px,19% 4px,26% 9px,33% 3px,39% 11px,46% 4px,53% 3px,60% 10px,67% 4px,74% 8px,81% 3px,88% 10px,95% 4px,100% 7px,100% calc(100% - 6px),95% calc(100% - 3px),88% calc(100% - 7px),81% calc(100% - 3px),74% calc(100% - 7px),67% calc(100% - 4px),60% calc(100% - 8px),53% calc(100% - 3px),46% calc(100% - 6px),39% calc(100% - 3px),33% calc(100% - 7px),26% calc(100% - 4px),19% calc(100% - 7px),13% calc(100% - 3px),7% calc(100% - 6px),0% calc(100% - 4px))",
-];
-const TAPE_ROT = [["-6deg", "5deg"], ["-5deg", "6deg"]];
 
 type NlOpts = { subject: string; preview: string; intro?: string; author?: string; volume?: string; issue?: string; cards: NlCard[]; baseUrl?: string; viewOnlineUrl?: string; classics?: boolean };
 
