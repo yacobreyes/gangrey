@@ -48,23 +48,29 @@ export async function respondToSubmission(
   decision: "accepted" | "declined",
   message: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  await requireAuth();
-  const sub = await getOne(id);
-  if (!sub) return { ok: false, error: "Submission not found." };
-
-  const apiKey = process.env.GANGREY_RESEND_KEY ?? process.env.RESEND_API_KEY;
-  // Replies come from (and reply-to) the submissions address so the whole
-  // conversation stays in that inbox.
-  const from = process.env.SUBMISSIONS_FROM ?? "Gangrey <submissions@gangrey.org>";
-  if (!apiKey) return { ok: false, error: "Email isn't configured, so a reply can't be sent." };
-
-  const heading = decision === "accepted" ? "Good news from Gangrey" : "About your Gangrey submission";
-  const body = (message || "").trim();
-  if (!body) return { ok: false, error: "Write a message to the author before sending." };
-
-  const html = submissionEmailHtml(`<p style="font-size:16px;line-height:1.7;color:#000000 !important;margin:0 0 8px;white-space:pre-line;">${escapeHtml(body)}</p>`);
-
+  // The whole body is wrapped so ANY failure — auth, a bad submission id, the
+  // Resend call, or the status patch after — returns a real message instead of
+  // throwing past this function, where the client only sees a generic
+  // "Something went wrong." Errors are also logged server-side (check
+  // `docker compose logs` / the systemd journal) since Resend failures often
+  // carry detail (e.g. an unverified sender domain) worth seeing in full.
   try {
+    await requireAuth();
+    const sub = await getOne(id);
+    if (!sub) return { ok: false, error: "Submission not found." };
+
+    const apiKey = process.env.GANGREY_RESEND_KEY ?? process.env.RESEND_API_KEY;
+    // Replies come from (and reply-to) the submissions address so the whole
+    // conversation stays in that inbox.
+    const from = process.env.SUBMISSIONS_FROM ?? "Gangrey <submissions@gangrey.org>";
+    if (!apiKey) return { ok: false, error: "Email isn't configured (GANGREY_RESEND_KEY / RESEND_API_KEY missing)." };
+
+    const heading = decision === "accepted" ? "Good news from Gangrey" : "About your Gangrey submission";
+    const body = (message || "").trim();
+    if (!body) return { ok: false, error: "Write a message to the author before sending." };
+
+    const html = submissionEmailHtml(`<p style="font-size:16px;line-height:1.7;color:#000000 !important;margin:0 0 8px;white-space:pre-line;">${escapeHtml(body)}</p>`);
+
     const resend = new Resend(apiKey);
     const { error } = await resend.emails.send({
       from,
@@ -73,13 +79,17 @@ export async function respondToSubmission(
       subject: `${heading}: "${sub.title}"`,
       html,
     });
-    if (error) return { ok: false, error: error.message };
+    if (error) {
+      console.error(`[respondToSubmission] Resend error for ${sub.email}:`, error);
+      return { ok: false, error: error.message || "Resend rejected the send." };
+    }
+
+    await patch(id, { status: decision, respondedAt: new Date().toISOString() });
+    return { ok: true };
   } catch (e) {
+    console.error("[respondToSubmission] failed:", e);
     return { ok: false, error: e instanceof Error ? e.message : "Couldn't send the reply." };
   }
-
-  await patch(id, { status: decision, respondedAt: new Date().toISOString() });
-  return { ok: true };
 }
 
 // Spin a submission into a publishable story draft in Imago (same machinery the
