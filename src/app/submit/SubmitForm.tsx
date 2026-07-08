@@ -71,7 +71,7 @@ export default function SubmitForm() {
           Received
         </div>
         <p style={{ fontFamily: "var(--font-body)", fontSize: 17, lineHeight: 1.55, color: "#000000", margin: 0 }}>
-          Thanks, {name.split(" ")[0] || "and welcome"}. Your story is in. We sent a confirmation to <strong>{email}</strong>, and every submission is read by an editor. We'll reply either way.
+          Thanks, {name.split(" ")[0] || "and welcome"}. Your story is in. We&apos;ve sent a confirmation to <strong>{email}</strong>. You&apos;ll hear back from us soon.
         </p>
       </div>
     );

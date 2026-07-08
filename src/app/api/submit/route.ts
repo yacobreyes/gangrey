@@ -73,9 +73,10 @@ export async function POST(req: Request) {
     try {
       const resend = new Resend(apiKey);
       const html = submissionEmailHtml(
-        `<p style="font-size:18px;margin:0 0 16px;color:#000000 !important;">Thanks for submitting to Gangrey.</p>
-         <p style="font-size:16px;line-height:1.7;color:#392a22 !important;margin:0 0 8px;">We received <strong>"${escapeHtml(title)}"</strong> (${escapeHtml(category)}). Every story is read by an editor. If it's a fit, we'll be in touch; if it isn't, we'll still let you know.</p>
-         <p style="font-size:13px;line-height:1.6;color:#8a8a8c !important;margin:20px 0 0;">You don't need to reply to this note. Thanks for trusting us with your work.</p>`
+        `<p style="font-size:21px;line-height:1.35;margin:0 0 18px;color:#000000 !important;">Thanks, ${escapeHtml(name.split(" ")[0] || "")}. Your story is in.</p>
+         <p style="font-size:16px;line-height:1.7;color:#392a22 !important;margin:0 0 8px;">We received <strong>&ldquo;${escapeHtml(title)}&rdquo;</strong> &middot; ${escapeHtml(category)}. Every story is read by an editor, and we reply either way.</p>
+         <p style="font-size:13px;line-height:1.6;color:#8a8a8c !important;margin:22px 0 0;">You don't need to reply to this note.</p>`,
+        "Submission Received"
       );
       await resend.emails.send({ from, to: [email], subject: "We received your Gangrey submission", html });
     } catch (e) {
