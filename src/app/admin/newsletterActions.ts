@@ -16,10 +16,13 @@ async function mutate(mutations: unknown[]) {
   return sanityMutate(mutations);
 }
 
-// The "View in browser" link needs the public /issues/[slug] page for this
-// newsletter — publishing creates that issue doc at a deterministic id (see
-// syncIssueForNewsletter below), so a published issue always has a slug.
-async function issueViewUrl(newsletterId: string): Promise<string | undefined> {
+// The "View in browser" link points at the public /issues/[slug] page for this
+// newsletter. Publishing creates that issue doc at a deterministic id (see
+// syncIssueForNewsletter below) with a slug derived from the subject. So the
+// link is always shown: it uses the existing issue's slug when published, and
+// otherwise the slug the issue WILL have (same slugify(subject)) so a test
+// send carries the correct forward-looking link.
+async function issueViewUrl(newsletterId: string, subject?: string): Promise<string | undefined> {
   const issueId = `issue-nl-${newsletterId}`;
   const issue = isSqliteBackend()
     ? sqliteGetDoc<{ slug?: { current?: string } }>(issueId)
@@ -28,7 +31,7 @@ async function issueViewUrl(newsletterId: string): Promise<string | undefined> {
         { id: issueId },
         { cache: "no-store" }
       );
-  const slug = issue?.slug?.current;
+  const slug = issue?.slug?.current || slugify(subject ?? "");
   if (!slug) return undefined;
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org").replace(/\/$/, "");
   return `${siteUrl}/issues/${slug}`;
@@ -448,7 +451,7 @@ export async function deliverNewsletter(id: string, audience: SendAudience = "al
     issue: nl.issue ?? "",
     classics: nl.classics,
     cards: (nl.cards ?? []) as NlCard[],
-    viewOnlineUrl: await issueViewUrl(id),
+    viewOnlineUrl: await issueViewUrl(id, nl.subject),
   });
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org").replace(/\/$/, "");
 
@@ -506,7 +509,7 @@ export async function sendTestNewsletter(id: string): Promise<{ ok: boolean; err
       issue: nl.issue ?? "",
       classics: nl.classics,
       cards: (nl.cards ?? []) as NlCard[],
-      viewOnlineUrl: await issueViewUrl(id),
+      viewOnlineUrl: await issueViewUrl(id, nl.subject),
     });
 
     const resend = new Resend(apiKey);

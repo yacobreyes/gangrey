@@ -65,8 +65,8 @@ function formatFindContentDate(date?: string) {
 }
 
 type NlImage = { assetId: string; url: string; caption?: string; alt?: string };
-type NlEditorCard = { id: string; headline: string; deck?: string; doc: JSONContent; image?: NlImage; cardType?: "narratives" | "essays" | "micro-memoir" | "archive"; byline?: string; sourceSlug?: string };
-type StoredCard = { headline?: string; deck?: string; body?: PortableTextBlock[]; image?: NlImage | null; cardType?: "narratives" | "essays" | "micro-memoir" | "archive" | "feature" | "standard" | "digest"; byline?: string; sourceSlug?: string };
+type NlEditorCard = { id: string; headline: string; deck?: string; doc: JSONContent; image?: NlImage; cardType?: "narratives" | "essays" | "micro-memoir" | "archive"; byline?: string; sourceSlug?: string; date?: string };
+type StoredCard = { headline?: string; deck?: string; body?: PortableTextBlock[]; image?: NlImage | null; cardType?: "narratives" | "essays" | "micro-memoir" | "archive" | "feature" | "standard" | "digest"; byline?: string; sourceSlug?: string; date?: string };
 
 export type InitialNewsletter = {
   subject: string;
@@ -112,6 +112,7 @@ function cardsFromStored(cards: StoredCard[], classics = false): NlEditorCard[] 
     cardType: mapStoredCardType(c.cardType),
     byline: c.byline || undefined,
     sourceSlug: c.sourceSlug || undefined,
+    date: c.date || undefined,
   }));
 }
 
@@ -161,6 +162,13 @@ export default function NewsletterEditorClient({
     setTodayLabel(new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }));
     setCoverDateLabel(new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }));
   }, []);
+  // Archive clipping running head: show the story's ORIGINAL publish date
+  // ("Month D, YYYY"), falling back to today only when a card has no date.
+  const fmtCardDate = (iso?: string) => {
+    if (!iso) return coverDateLabel;
+    const d = new Date(iso);
+    return isNaN(+d) ? coverDateLabel : d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+  };
 
   const [nlSubject, setNlSubject] = useState(initial?.subject ?? "");
   const [nlPreview, setNlPreview] = useState(initial?.preview ?? "");
@@ -365,17 +373,28 @@ export default function NewsletterEditorClient({
     const card: NlEditorCard = {
       ...newNlCard(),
       cardType,
-      headline: post.headline ?? "",
+      headline: straightenQuotes(post.headline ?? ""),
       doc: body?.length ? portableTextToTiptap(body) : EMPTY_DOC,
       image: post.image ?? undefined,
-      byline: post.byline || undefined,
+      byline: post.byline ? straightenQuotes(post.byline) : undefined,
+      // Carry the story's original publish date so the archive clipping's
+      // running head shows when the piece actually ran, not today.
+      date: post.date || undefined,
       sourceSlug: post.slug || undefined,
     };
     setNlCards(prev => { const next = [...prev]; next.splice(at, 0, card); return next; });
   }
 
   function nlUpdateCard(id: string, patch: Partial<NlEditorCard>) {
-    setNlCards(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c));
+    // Headline/deck/byline are plain inputs (not the rich-text editor, which
+    // straightens on its own), so macOS "smart punctuation" would otherwise
+    // leave curly quotes in them. Enforce straight quotes here to match the
+    // email/house style everywhere.
+    const p = { ...patch };
+    if (typeof p.headline === "string") p.headline = straightenQuotes(p.headline);
+    if (typeof p.deck === "string") p.deck = straightenQuotes(p.deck);
+    if (typeof p.byline === "string") p.byline = straightenQuotes(p.byline);
+    setNlCards(prev => prev.map(c => c.id === id ? { ...c, ...p } : c));
   }
   function nlAddCardAfter(index: number) {
     setNlCards(prev => { const next = [...prev]; next.splice(index + 1, 0, { ...newNlCard(), ...(nlClassics ? { cardType: "archive" as const } : {}) }); return next; });
@@ -477,7 +496,7 @@ export default function NewsletterEditorClient({
     intro: nlIntro,
     classics: nlClassics,
     wordCount: nlCards.flatMap(card => (card.doc.content ?? []).flatMap((n: JSONContent) => (n.content ?? []).map((c: JSONContent) => c.text ?? ""))).join(" ").trim().split(/\s+/).filter(Boolean).length,
-    cards: nlCards.map(card => ({ headline: card.headline, deck: card.deck, body: tiptapToPortableText(card.doc), image: card.image ?? null, cardType: card.cardType, byline: card.byline, sourceSlug: card.sourceSlug })),
+    cards: nlCards.map(card => ({ headline: card.headline, deck: card.deck, body: tiptapToPortableText(card.doc), image: card.image ?? null, cardType: card.cardType, byline: card.byline, sourceSlug: card.sourceSlug, date: card.date })),
   }), [newsletterId, nlStatus, nlScheduledAt, nlSubject, nlPreview, nlAuthor, nlVolume, nlIssue, nlIntro, nlClassics, nlCards]);
 
   // Cheap dirty-check signature (raw tiptap docs, no portable-text conversion)
@@ -485,7 +504,7 @@ export default function NewsletterEditorClient({
   const nlSignature = useCallback(() => JSON.stringify({
     status: nlStatus, scheduledAt: nlScheduledAt, subject: nlSubject, preview: nlPreview, author: nlAuthor,
     volume: nlVolume, issue: nlIssue, intro: nlIntro, classics: nlClassics,
-    cards: nlCards.map(c => ({ headline: c.headline, deck: c.deck, doc: c.doc, image: c.image ?? null, cardType: c.cardType, byline: c.byline, sourceSlug: c.sourceSlug })),
+    cards: nlCards.map(c => ({ headline: c.headline, deck: c.deck, doc: c.doc, image: c.image ?? null, cardType: c.cardType, byline: c.byline, sourceSlug: c.sourceSlug, date: c.date })),
   }), [nlStatus, nlScheduledAt, nlSubject, nlPreview, nlAuthor, nlVolume, nlIssue, nlIntro, nlClassics, nlCards]);
 
   const nlSave = useCallback(async (payload: ReturnType<typeof nlPayload>, signature?: string) => {
@@ -587,6 +606,7 @@ export default function NewsletterEditorClient({
       cardType: mapStoredCardType(c.cardType),
       byline: c.byline || undefined,
       sourceSlug: c.sourceSlug || undefined,
+      date: c.date || undefined,
     })));
   }
 
@@ -723,7 +743,7 @@ export default function NewsletterEditorClient({
               srcDoc={renderNewsletterHtml({
                 subject: nlSubject, preview: nlPreview, intro: nlIntro, author: nlAuthor, volume: nlVolume, issue: nlIssue, classics: nlClassics,
                 baseUrl: typeof window !== "undefined" ? window.location.origin : undefined,
-                cards: nlCards.map(c => ({ headline: c.headline, deck: c.deck, body: tiptapToPortableText(c.doc), image: c.image ? { url: c.image.url, caption: c.image.caption, alt: c.image.alt } : null, cardType: c.cardType, byline: c.byline })),
+                cards: nlCards.map(c => ({ headline: c.headline, deck: c.deck, body: tiptapToPortableText(c.doc), image: c.image ? { url: c.image.url, caption: c.image.caption, alt: c.image.alt } : null, cardType: c.cardType, byline: c.byline, date: c.date })),
               })} />
           </div>
         </div>
@@ -911,7 +931,7 @@ export default function NewsletterEditorClient({
                 <textarea
                   ref={nlIntroRef}
                   value={nlIntro}
-                  onChange={e => setNlIntro(e.target.value)}
+                  onChange={e => setNlIntro(straightenQuotes(e.target.value))}
                   readOnly={nlReadOnly}
                   placeholder="A note to readers…"
                   rows={1}
@@ -1166,7 +1186,7 @@ export default function NewsletterEditorClient({
                       <div style={{ background: "transparent", padding: "0.9rem 0.25rem 1.6rem", margin: "0 0 0.5rem" }}>
                         <div style={{ position: "relative", filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.5))" }}>
                           <div style={{ background: "#ffffff", clipPath: torn[c], padding: "2.1rem 1.75rem 2.5rem" }}>
-                            <div style={{ borderBottom: `1px solid #000`, paddingBottom: "0.45rem", marginBottom: "1.1rem", fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.58rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "#000" }}>Gangrey · Archive &nbsp;·&nbsp; {todayLabel}</div>
+                            <div style={{ borderBottom: `1px solid #000`, paddingBottom: "0.45rem", marginBottom: "1.1rem", fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.58rem", letterSpacing: "0.16em", textTransform: "uppercase", color: "#000" }}>Gangrey · Archive &nbsp;·&nbsp; {fmtCardDate(card.date)}</div>
                             <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Archive title"
                               style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.9rem", fontWeight: 700, lineHeight: 1.15, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "0.5rem", display: "block", boxSizing: "border-box", textAlign: "left" }} />
                             <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.75rem", color: TEXT_MUTED, marginBottom: "1rem" }}>{nlBylineField(card, "left")}</div>
@@ -1251,17 +1271,17 @@ export default function NewsletterEditorClient({
                 </div>
                 <div>
                   <label style={{ fontFamily: FONT, fontSize: "0.75rem", fontWeight: 600, color: TEXT_MUTED, display: "block", marginBottom: "0.3rem" }}>Guest Editor</label>
-                  <input value={nlAuthor} onChange={e => setNlAuthor(e.target.value)} readOnly={nlReadOnly} style={INPUT} />
+                  <input value={nlAuthor} onChange={e => setNlAuthor(straightenQuotes(e.target.value))} readOnly={nlReadOnly} style={INPUT} />
                 </div>
               </>
             )}
             <div>
               <label style={{ fontFamily: FONT, fontSize: "0.75rem", fontWeight: 600, color: TEXT_MUTED, display: "block", marginBottom: "0.3rem" }}>Subject line<span style={{ color: CRIMSON }}>*</span></label>
-              <input value={nlSubject} onChange={e => setNlSubject(e.target.value)} readOnly={nlReadOnly} placeholder="Add a subject line" style={INPUT} />
+              <input value={nlSubject} onChange={e => setNlSubject(straightenQuotes(e.target.value))} readOnly={nlReadOnly} placeholder="Add a subject line" style={INPUT} />
             </div>
             <div>
               <label style={{ fontFamily: FONT, fontSize: "0.75rem", fontWeight: 600, color: TEXT_MUTED, display: "block", marginBottom: "0.3rem" }}>Preview text</label>
-              <input value={nlPreview} onChange={e => setNlPreview(e.target.value)} readOnly={nlReadOnly} placeholder="Add preview text" style={INPUT} />
+              <input value={nlPreview} onChange={e => setNlPreview(straightenQuotes(e.target.value))} readOnly={nlReadOnly} placeholder="Add preview text" style={INPUT} />
             </div>
           </div>
 
