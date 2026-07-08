@@ -122,7 +122,19 @@ export const storyStyles = `
     line-height: .62;
     font-weight: 800;
     color: #490000;
-    padding: 8px 10px 0 0;
+    padding: 8px 10px 0 2px;
+  }
+  /* A paywalled preview is truncated to a couple of words — a full-height drop
+     cap on a two-word teaser reads as broken, so the preview variant renders
+     the first paragraph as normal body text. Two-class selector so it outranks
+     the mobile ::first-letter override in the media query below. */
+  .story-body.story-body--preview > p:first-of-type::first-letter {
+    float: none;
+    font-size: inherit;
+    line-height: inherit;
+    font-weight: inherit;
+    color: inherit;
+    padding: 0;
   }
   .story-body p { margin: 0 0 22px; }
   .story-body blockquote {
