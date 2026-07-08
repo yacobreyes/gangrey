@@ -101,7 +101,7 @@ export default async function AboutPage() {
           <div className="about-col-right">
             <div className="about-label">Submit</div>
             <p className="about-submit-p">We accept submissions throughout the year. Send us the full piece, a brief note, and your bio.</p>
-            <p className="about-rights">Authors retain copyright to their work. For each accepted piece, we provide a $45 honorarium and a one-year membership. In accepting publication, the author grants us first serial rights and the nonexclusive right to archive and promote the work.</p>
+            <p className="about-rights">Authors retain copyright to their work. For each accepted piece, we provide a one-year membership and an honorarium: $45 for reported narratives and essays, $25 for micro-memoirs. In accepting publication, the author grants us first serial rights and the nonexclusive right to archive and promote the work.</p>
             <a className="about-submit-btn" href="/submit">Submit your work →</a>
           </div>
         </div>

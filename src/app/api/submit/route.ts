@@ -3,6 +3,7 @@ import { Resend } from "resend";
 import { isSqliteBackend, sqliteAddSubmission, type SubmissionRow } from "@/lib/storage/sqlite";
 import { sanityMutate } from "@/lib/sanityWrite";
 import { straightenQuotes } from "@/lib/straighten";
+import { submissionEmailHtml, escapeHtml } from "@/lib/submissionEmail";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Couldn't save your submission. Try again." }, { status: 500 });
   }
 
-  // Confirmation email to the writer (best-effort — a send failure must not lose
+  // Confirmation email to the writer (best-effort: a send failure must not lose
   // the submission, which is already stored above). Sent from the submissions
   // address so replies land in the submissions inbox, not the newsletter one.
   const apiKey = process.env.GANGREY_RESEND_KEY ?? process.env.RESEND_API_KEY;
@@ -71,15 +72,11 @@ export async function POST(req: Request) {
   if (apiKey) {
     try {
       const resend = new Resend(apiKey);
-      const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="color-scheme" content="light"></head>
-<body style="margin:0;padding:0;background-color:#ffffff;">
-  <div style="font-family:Georgia,'Times New Roman',serif;max-width:460px;margin:0 auto;padding:28px 24px;color:#000000;">
-    <p style="font-size:18px;margin:0 0 16px;">Thanks for submitting to Gangrey.</p>
-    <p style="font-size:15px;line-height:1.6;color:#392a22;margin:0 0 8px;">We received <strong>&ldquo;${title.replace(/</g, "&lt;")}&rdquo;</strong> (${category}). Every story is read by an editor. If it's a fit, we'll be in touch; if it isn't, we'll still let you know.</p>
-    <p style="font-size:13px;line-height:1.6;color:#8a8a8c;margin:20px 0 0;">You don't need to reply to this note. Thanks for trusting us with your work.</p>
-    <p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#490000;margin:24px 0 0;">Gangrey</p>
-  </div>
-</body></html>`;
+      const html = submissionEmailHtml(
+        `<p style="font-size:18px;margin:0 0 16px;color:#000000 !important;">Thanks for submitting to Gangrey.</p>
+         <p style="font-size:16px;line-height:1.7;color:#392a22 !important;margin:0 0 8px;">We received <strong>"${escapeHtml(title)}"</strong> (${escapeHtml(category)}). Every story is read by an editor. If it's a fit, we'll be in touch; if it isn't, we'll still let you know.</p>
+         <p style="font-size:13px;line-height:1.6;color:#8a8a8c !important;margin:20px 0 0;">You don't need to reply to this note. Thanks for trusting us with your work.</p>`
+      );
       await resend.emails.send({ from, to: [email], subject: "We received your Gangrey submission", html });
     } catch (e) {
       console.log(`[submit] confirmation email failed: ${e instanceof Error ? e.message : e}`);

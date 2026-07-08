@@ -9,6 +9,7 @@ import {
   sqliteUpdateSubmission, sqliteDeleteSubmission,
   type SubmissionRow, type SubmissionStatus,
 } from "@/lib/storage/sqlite";
+import { submissionEmailHtml, escapeHtml } from "@/lib/submissionEmail";
 
 export async function getSubmissions(): Promise<SubmissionRow[]> {
   await requireAuth();
@@ -60,13 +61,7 @@ export async function respondToSubmission(
   const body = (message || "").trim();
   if (!body) return { ok: false, error: "Write a message to the author before sending." };
 
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="color-scheme" content="light"></head>
-<body style="margin:0;padding:0;background-color:#ffffff;">
-  <div style="font-family:Georgia,'Times New Roman',serif;max-width:460px;margin:0 auto;padding:28px 24px;color:#000000;">
-    <p style="font-size:15px;line-height:1.6;color:#000000;margin:0 0 8px;white-space:pre-line;">${escapeHtml(body)}</p>
-    <p style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#490000;margin:24px 0 0;">Gangrey</p>
-  </div>
-</body></html>`;
+  const html = submissionEmailHtml(`<p style="font-size:16px;line-height:1.7;color:#000000 !important;margin:0 0 8px;white-space:pre-line;">${escapeHtml(body)}</p>`);
 
   try {
     const resend = new Resend(apiKey);
@@ -74,7 +69,7 @@ export async function respondToSubmission(
       from,
       to: [sub.email],
       replyTo: from,
-      subject: `${heading}: “${sub.title}”`,
+      subject: `${heading}: "${sub.title}"`,
       html,
     });
     if (error) return { ok: false, error: error.message };
@@ -141,6 +136,3 @@ export async function deleteSubmission(id: string): Promise<{ ok: boolean }> {
   return { ok: true };
 }
 
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}

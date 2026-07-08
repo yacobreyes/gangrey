@@ -40,7 +40,7 @@ export default function SubmitPage() {
         <div style={{ fontFamily: "var(--font-body)", fontSize: 14.5, lineHeight: 1.6, color: "#392a22" }}>
           <p style={{ margin: "0 0 12px" }}>Paste the full text into the submission form. A short cover letter helps but isn&apos;t required.</p>
           <p style={{ margin: "0 0 12px" }}>We don&apos;t accept AI-generated writing. All work should be your own.</p>
-          <p style={{ margin: "0 0 32px" }}>We read everything and reply either way. Simultaneous submissions are fine, just let us know if the piece is placed elsewhere.</p>
+          <p style={{ margin: "0 0 32px" }}>Simultaneous submissions are fine, just let us know if the piece is placed elsewhere.</p>
         </div>
 
         <div style={{ borderTop: "1px solid #000000", paddingTop: 28 }}>

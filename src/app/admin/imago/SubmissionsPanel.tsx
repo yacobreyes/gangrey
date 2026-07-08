@@ -107,10 +107,21 @@ function SubmissionCard({ sub, open, onToggle, onChanged }: { sub: SubmissionRow
 
   async function createStory() {
     setCreating(true); setErr("");
+    // Open the tab synchronously (still inside the click gesture) so the browser
+    // doesn't block it as a pop-up once the await resolves; point it at the draft
+    // when the server action returns.
+    const w = window.open("about:blank", "_blank");
     const res = await createStoryFromSubmission(sub._id).catch(() => ({ ok: false, error: "Something went wrong." } as { ok: boolean; slug?: string; error?: string }));
     setCreating(false);
-    if (res.ok && res.slug) window.open(`/admin/imago/posts/${res.slug}`, "_blank");
-    else setErr(res.error || "Couldn't create the draft.");
+    if (res.ok && res.slug) {
+      const url = `/admin/imago/posts/${res.slug}`;
+      if (w && !w.closed) w.location.href = url;
+      else window.location.href = url;
+      onChanged();
+    } else {
+      w?.close();
+      setErr(res.error || "Couldn't create the draft.");
+    }
   }
 
   async function mark(status: "new" | "reading") {
@@ -205,9 +216,11 @@ function SubmissionCard({ sub, open, onToggle, onChanged }: { sub: SubmissionRow
               {sub.status === "reading" && (
                 <button onClick={() => mark("new")} disabled={busy} style={btn(TEXT_MUTED, false, busy)}>Back to new</button>
               )}
-              <button onClick={createStory} disabled={busy || creating} style={btn(TEXT_DARK, false, busy || creating)}>{creating ? "Creating…" : "Create story draft →"}</button>
               <button onClick={() => openCompose("accepted")} disabled={busy} style={btn("#1a7f37", true, busy)}>Accept</button>
               <button onClick={() => openCompose("declined")} disabled={busy} style={btn(CRIMSON, false, busy)}>Decline</button>
+              {sub.status === "accepted" && (
+                <button onClick={createStory} disabled={busy || creating} style={btn(TEXT_DARK, false, busy || creating)}>{creating ? "Creating…" : "Create story draft →"}</button>
+              )}
               <button onClick={remove} disabled={busy} style={{ ...btn("#8a8a8c", false, busy), marginLeft: "auto" }}>Delete</button>
             </div>
           )}
