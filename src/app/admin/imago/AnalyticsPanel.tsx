@@ -79,7 +79,7 @@ export default function AnalyticsPanel() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem", flexWrap: "wrap", gap: "0.75rem" }}>
         <div>
           <h1 style={{ fontFamily: FONT, fontSize: "1.4rem", fontWeight: 800, color: TEXT_DARK, margin: 0 }}>Analytics</h1>
-          <p style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, margin: "0.25rem 0 0" }}>Your traffic, engagement, and what&apos;s trending, all self-hosted.</p>
+          <p style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, margin: "0.25rem 0 0" }}>Your traffic, engagement, and what&apos;s trending. All self-hosted.</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
           {/* Day picker: Today / Yesterday / any date, with prev-next arrows —
