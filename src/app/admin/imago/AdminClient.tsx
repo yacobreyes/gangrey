@@ -1148,7 +1148,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CRIMSON} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2 6 12 13 22 6"/></svg>
                 <span>
                   <span style={{ display: "block", fontFamily: FONT, fontSize: "0.92rem", fontWeight: 700, color: TEXT_DARK }}>Gangrey Newsletter</span>
-                  <span style={{ display: "block", fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, marginTop: 2 }}>The regular issue — Essays, Narratives, and Micro-Memoirs.</span>
+                  <span style={{ display: "block", fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, marginTop: 2 }}>The regular issue: Essays, Narratives, and Micro-Memoirs.</span>
                 </span>
               </button>
               <button onClick={() => { setShowNlTypeModal(false); createNewNewsletter("classics"); }}
@@ -1156,7 +1156,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CRIMSON} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
                 <span>
                   <span style={{ display: "block", fontFamily: FONT, fontSize: "0.92rem", fontWeight: 700, color: TEXT_DARK }}>Gangrey Classics Newsletter</span>
-                  <span style={{ display: "block", fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, marginTop: 2 }}>Archive reprints only. Just set a guest editor and volume.</span>
+                  <span style={{ display: "block", fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, marginTop: 2 }}>Archive reprints only, dated automatically.</span>
                 </span>
               </button>
             </div>
