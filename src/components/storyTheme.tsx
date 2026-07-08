@@ -116,16 +116,13 @@ export const storyStyles = `
     color: #000000;
     font-feature-settings: "calt" 0, "liga" 0;
   }
-  /* Drop cap on the first paragraph — including archive/paywall previews.
-     (The 2px left padding keeps the glyph from clipping the margin, which was
-     the real defect in the short-preview case.) */
   .story-body > p:first-of-type::first-letter {
     float: left;
     font-size: 60px;
     line-height: .62;
     font-weight: 800;
     color: #490000;
-    padding: 8px 10px 0 2px;
+    padding: 8px 10px 0 0;
   }
   .story-body p { margin: 0 0 22px; }
   .story-body blockquote {
