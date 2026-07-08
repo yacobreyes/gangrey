@@ -46,6 +46,12 @@ export default function SubmitPage() {
         <div style={{ borderTop: "1px solid #000000", paddingTop: 28 }}>
           <SubmitForm />
         </div>
+
+        {/* Rights & payment */}
+        <div style={{ marginTop: 40, paddingTop: 24, borderTop: "1px solid #b8b8ba", fontFamily: "var(--font-body)", fontSize: 13.5, lineHeight: 1.6, color: "#392a22", maxWidth: 620 }}>
+          <p style={{ margin: "0 0 12px" }}>Authors retain copyright to their work. For each accepted story, we provide a one-year membership and an honorarium: $45 for reported narratives and essays, $25 for micro-memoirs.</p>
+          <p style={{ margin: 0 }}>In accepting publication, the author grants us first serial rights and the nonexclusive right to archive and promote the work.</p>
+        </div>
       </main>
       <MagFooter />
     </div>

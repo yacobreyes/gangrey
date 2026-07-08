@@ -56,7 +56,7 @@ export default function SubmissionsPanel() {
     <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 0 3rem" }}>
       <div style={{ margin: "0 0 0.5rem" }}>
         <h2 style={{ fontFamily: FONT, fontSize: "1.15rem", fontWeight: 700, color: TEXT_DARK, margin: 0 }}>Submissions</h2>
-        <p style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, margin: "0.25rem 0 0" }}>True stories sent in through the submission portal. Every one gets a reply.</p>
+        <p style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, margin: "0.25rem 0 0" }}>Stories sent in through the submission portal.</p>
       </div>
 
       {/* Status tabs */}
