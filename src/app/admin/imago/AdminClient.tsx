@@ -158,6 +158,10 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
 
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const createMenuRef = useRef<HTMLDivElement>(null);
+  // "Create new → Newsletter" asks which kind before routing — a Gangrey
+  // Classics issue is archive-only content, so the editor seeds/locks
+  // differently depending on the choice.
+  const [showNlTypeModal, setShowNlTypeModal] = useState(false);
 
   // Newsletter list (the dashboard mixes these into the story lists).
   // The editor itself lives at /admin/imago/newsletters/[id].
@@ -255,8 +259,8 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
   // mirroring the story editor. Route to an in-memory id so the editor opens
   // instantly; the first autosave persists the doc. (Eager server-side
   // creation added a write+redirect+fetch round-trip that showed a blank/lag.)
-  function createNewNewsletter() {
-    router.push(`/admin/imago/newsletters/newsletter-${Date.now()}?new=1`);
+  function createNewNewsletter(type: "gangrey" | "classics" = "gangrey") {
+    router.push(`/admin/imago/newsletters/newsletter-${Date.now()}?new=1${type === "classics" ? "&classics=1" : ""}`);
   }
   function openNewsletter(item: NlListItem) {
     router.push(`/admin/imago/newsletters/${item._id}`);
@@ -553,7 +557,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                     </button>
                     {showCreateMenu && (
                       <div style={{ position: "absolute", top: "calc(100% + 0.4rem)", right: 0, background: "white", border: `1px solid ${BORDER}`, borderRadius: 6, boxShadow: "0 4px 16px rgba(0,0,0,0.1)", minWidth: 150, zIndex: 100, overflow: "hidden" }}>
-                        <button onClick={() => { setShowCreateMenu(false); if (isDirty && !confirm("Discard unsaved changes?")) return; createNewNewsletter(); }} style={{ display: "flex", alignItems: "center", gap: "0.55rem", width: "100%", textAlign: "left", padding: "0.6rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: TEXT_DARK, background: "none", border: "none", cursor: "pointer" }}
+                        <button onClick={() => { setShowCreateMenu(false); if (isDirty && !confirm("Discard unsaved changes?")) return; setShowNlTypeModal(true); }} style={{ display: "flex", alignItems: "center", gap: "0.55rem", width: "100%", textAlign: "left", padding: "0.6rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: TEXT_DARK, background: "none", border: "none", cursor: "pointer" }}
                           onMouseEnter={e => { e.currentTarget.style.background = "#ffffff"; }} onMouseLeave={e => { e.currentTarget.style.background = "none"; }}>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: TEXT_MUTED }}><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2 6 12 13 22 6"/></svg>
                           Newsletter
@@ -594,7 +598,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                     </button>
                     {showCreateMenu && (
                       <div style={{ position: "absolute", top: "calc(100% + 0.4rem)", right: 0, background: "white", border: `1px solid ${BORDER}`, borderRadius: 6, boxShadow: "0 4px 16px rgba(0,0,0,0.1)", minWidth: 140, zIndex: 300, overflow: "hidden" }}>
-                        <button onClick={() => { setShowCreateMenu(false); if (isDirty && !confirm("Discard unsaved changes?")) return; createNewNewsletter(); }} style={{ display: "flex", alignItems: "center", gap: "0.55rem", width: "100%", textAlign: "left", padding: "0.6rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: TEXT_DARK, background: "none", border: "none", cursor: "pointer" }}>
+                        <button onClick={() => { setShowCreateMenu(false); if (isDirty && !confirm("Discard unsaved changes?")) return; setShowNlTypeModal(true); }} style={{ display: "flex", alignItems: "center", gap: "0.55rem", width: "100%", textAlign: "left", padding: "0.6rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: TEXT_DARK, background: "none", border: "none", cursor: "pointer" }}>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: TEXT_MUTED }}><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2 6 12 13 22 6"/></svg>
                           Newsletter
                         </button>
@@ -1129,6 +1133,35 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                 <button onClick={() => { const n = contextMenu.newsletter; setContextMenu(null); if (confirm(`Delete "${n.subject || "this newsletter"}"? This cannot be undone.`)) startTransition(async () => { await deleteNewsletterDoc(n._id); refreshNewsletters(); }); }} style={{ display: "block", width: "100%", background: "none", border: "none", textAlign: "left", padding: "0.65rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: CRIMSON, cursor: "pointer" }}>Delete</button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Newsletter type picker — Gangrey vs Gangrey Classics (archive-only reprint issue) */}
+      {showNlTypeModal && (
+        <div onClick={() => setShowNlTypeModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 10, padding: "1.5rem", width: "100%", maxWidth: 460, boxShadow: "0 12px 40px rgba(0,0,0,0.25)" }}>
+            <h2 style={{ fontFamily: FONT, fontSize: "1.05rem", fontWeight: 700, color: TEXT_DARK, margin: "0 0 0.3rem" }}>New newsletter</h2>
+            <p style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, margin: "0 0 1.1rem" }}>Which kind of issue is this?</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+              <button onClick={() => { setShowNlTypeModal(false); createNewNewsletter("gangrey"); }}
+                style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", textAlign: "left", width: "100%", padding: "0.9rem 1rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", cursor: "pointer" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CRIMSON} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2 6 12 13 22 6"/></svg>
+                <span>
+                  <span style={{ display: "block", fontFamily: FONT, fontSize: "0.92rem", fontWeight: 700, color: TEXT_DARK }}>Gangrey Newsletter</span>
+                  <span style={{ display: "block", fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, marginTop: 2 }}>The regular issue — Essays, Narratives, and Micro-Memoirs.</span>
+                </span>
+              </button>
+              <button onClick={() => { setShowNlTypeModal(false); createNewNewsletter("classics"); }}
+                style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", textAlign: "left", width: "100%", padding: "0.9rem 1rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", cursor: "pointer" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CRIMSON} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+                <span>
+                  <span style={{ display: "block", fontFamily: FONT, fontSize: "0.92rem", fontWeight: 700, color: TEXT_DARK }}>Gangrey Classics Newsletter</span>
+                  <span style={{ display: "block", fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, marginTop: 2 }}>Archive reprints only. Just set a guest editor and volume.</span>
+                </span>
+              </button>
+            </div>
+            <button onClick={() => setShowNlTypeModal(false)} style={{ display: "block", width: "100%", marginTop: "1rem", background: "none", border: "none", padding: "0.4rem", fontFamily: FONT, fontSize: "0.8rem", color: TEXT_MUTED, cursor: "pointer" }}>Cancel</button>
           </div>
         </div>
       )}

@@ -78,6 +78,7 @@ export type InitialNewsletter = {
   volume: string;
   issue: string;
   intro: string;
+  classics?: boolean;
   lastEditedBy?: string;
   lastEditedAt?: string;
 } | null;
@@ -92,12 +93,16 @@ function mapStoredCardType(t: StoredCard["cardType"]): "narratives" | "essays" |
   return "essays";
 }
 
-function cardsFromStored(cards: StoredCard[]): NlEditorCard[] {
-  if (!cards.length) return [
-    { ...newNlCard(), cardType: "narratives" },
-    { ...newNlCard(), cardType: "essays" },
-    { ...newNlCard(), cardType: "micro-memoir" },
-  ];
+function cardsFromStored(cards: StoredCard[], classics = false): NlEditorCard[] {
+  if (!cards.length) {
+    return classics
+      ? [{ ...newNlCard(), cardType: "archive" }, { ...newNlCard(), cardType: "archive" }]
+      : [
+          { ...newNlCard(), cardType: "narratives" },
+          { ...newNlCard(), cardType: "essays" },
+          { ...newNlCard(), cardType: "micro-memoir" },
+        ];
+  }
   return cards.map(c => ({
     ...newNlCard(),
     headline: c.headline ?? "",
@@ -111,8 +116,8 @@ function cardsFromStored(cards: StoredCard[]): NlEditorCard[] {
 }
 
 export default function NewsletterEditorClient({
-  newsletterId, initial, initialVersions, isNew = false,
-}: { newsletterId: string; initial: InitialNewsletter; initialVersions: NlVersion[]; isNew?: boolean }) {
+  newsletterId, initial, initialVersions, isNew = false, newIsClassics = false,
+}: { newsletterId: string; initial: InitialNewsletter; initialVersions: NlVersion[]; isNew?: boolean; newIsClassics?: boolean }) {
   const router = useRouter();
   useEffect(() => { router.prefetch("/admin/imago"); }, [router]);
   const [nlExiting, setNlExiting] = useState(false);
@@ -163,7 +168,12 @@ export default function NewsletterEditorClient({
   const [nlIntro, setNlIntro] = useState(initial?.intro ?? "");
   const [nlStatus, setNlStatus] = useState<"draft" | "published" | "scheduled">(initial?.status ?? "draft");
   const [nlScheduledAt, setNlScheduledAt] = useState(initial?.scheduledAt ?? "");
-  const [nlCards, setNlCards] = useState<NlEditorCard[]>(() => cardsFromStored(initial?.cards ?? []));
+  // Gangrey Classics issues are archive-only reprints — the card-type picker
+  // is locked to Archive for them (see the pill row below). Existing docs
+  // carry their own `classics` flag; brand-new ones take it from the
+  // "New newsletter" type-picker modal via ?classics=1.
+  const [nlClassics] = useState(initial?.classics ?? newIsClassics);
+  const [nlCards, setNlCards] = useState<NlEditorCard[]>(() => cardsFromStored(initial?.cards ?? [], nlClassics));
   const [nlVersions, setNlVersions] = useState<NlVersion[]>(initialVersions);
   const [nlVersionMenu, setNlVersionMenu] = useState<string | null>(null);
   const [nlCompare, setNlCompare] = useState<string | null>(null);
@@ -366,7 +376,7 @@ export default function NewsletterEditorClient({
     setNlCards(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c));
   }
   function nlAddCardAfter(index: number) {
-    setNlCards(prev => { const next = [...prev]; next.splice(index + 1, 0, newNlCard()); return next; });
+    setNlCards(prev => { const next = [...prev]; next.splice(index + 1, 0, { ...newNlCard(), ...(nlClassics ? { cardType: "archive" as const } : {}) }); return next; });
   }
   function nlRemoveCard(id: string) {
     setNlCards(prev => prev.length <= 1 ? prev : prev.filter(c => c.id !== id));
@@ -463,17 +473,18 @@ export default function NewsletterEditorClient({
     volume: nlVolume,
     issue: nlIssue,
     intro: nlIntro,
+    classics: nlClassics,
     wordCount: nlCards.flatMap(card => (card.doc.content ?? []).flatMap((n: JSONContent) => (n.content ?? []).map((c: JSONContent) => c.text ?? ""))).join(" ").trim().split(/\s+/).filter(Boolean).length,
     cards: nlCards.map(card => ({ headline: card.headline, deck: card.deck, body: tiptapToPortableText(card.doc), image: card.image ?? null, cardType: card.cardType, byline: card.byline, sourceSlug: card.sourceSlug })),
-  }), [newsletterId, nlStatus, nlScheduledAt, nlSubject, nlPreview, nlAuthor, nlVolume, nlIssue, nlIntro, nlCards]);
+  }), [newsletterId, nlStatus, nlScheduledAt, nlSubject, nlPreview, nlAuthor, nlVolume, nlIssue, nlIntro, nlClassics, nlCards]);
 
   // Cheap dirty-check signature (raw tiptap docs, no portable-text conversion)
   // so typing doesn't re-run the expensive conversion above on every keystroke.
   const nlSignature = useCallback(() => JSON.stringify({
     status: nlStatus, scheduledAt: nlScheduledAt, subject: nlSubject, preview: nlPreview, author: nlAuthor,
-    volume: nlVolume, issue: nlIssue, intro: nlIntro,
+    volume: nlVolume, issue: nlIssue, intro: nlIntro, classics: nlClassics,
     cards: nlCards.map(c => ({ headline: c.headline, deck: c.deck, doc: c.doc, image: c.image ?? null, cardType: c.cardType, byline: c.byline, sourceSlug: c.sourceSlug })),
-  }), [nlStatus, nlScheduledAt, nlSubject, nlPreview, nlAuthor, nlVolume, nlIssue, nlIntro, nlCards]);
+  }), [nlStatus, nlScheduledAt, nlSubject, nlPreview, nlAuthor, nlVolume, nlIssue, nlIntro, nlClassics, nlCards]);
 
   const nlSave = useCallback(async (payload: ReturnType<typeof nlPayload>, signature?: string) => {
     if (nlDeleting.current || nlLockedRef.current) return;
@@ -708,7 +719,7 @@ export default function NewsletterEditorClient({
             </div>
             <iframe title="Newsletter preview" style={{ flex: 1, border: "none", width: "100%" }}
               srcDoc={renderNewsletterHtml({
-                subject: nlSubject, preview: nlPreview, intro: nlIntro, author: nlAuthor, volume: nlVolume, issue: nlIssue,
+                subject: nlSubject, preview: nlPreview, intro: nlIntro, author: nlAuthor, volume: nlVolume, issue: nlIssue, classics: nlClassics,
                 baseUrl: typeof window !== "undefined" ? window.location.origin : undefined,
                 cards: nlCards.map(c => ({ headline: c.headline, deck: c.deck, body: tiptapToPortableText(c.doc), image: c.image ? { url: c.image.url, caption: c.image.caption, alt: c.image.alt } : null, cardType: c.cardType, byline: c.byline })),
               })} />
@@ -885,7 +896,7 @@ export default function NewsletterEditorClient({
           <div style={{ background: "#000000", padding: "1rem" }}>
             <div style={{ border: `1px solid #b8b8ba`, padding: "1.9rem 2.1rem 1.4rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.4rem" }}>
-                <span style={{ fontFamily: FONT, fontSize: "0.55rem", letterSpacing: "0.28em", textTransform: "uppercase", color: "#b8b8ba" }}>A Literary Magazine</span>
+                <span style={{ fontFamily: FONT, fontSize: "0.55rem", letterSpacing: "0.28em", textTransform: "uppercase", color: "#b8b8ba" }}>{nlClassics ? "Gangrey Classics" : "A Literary Magazine"}</span>
                 <span style={{ fontFamily: FONT, fontSize: "0.55rem", letterSpacing: "0.28em", textTransform: "uppercase", color: "#b8b8ba" }}>Gangrey.org</span>
               </div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -959,18 +970,21 @@ export default function NewsletterEditorClient({
                     </div>
                   ) : (<>
 
-                    {/* Section label — small-caps flag, non-editable. Omitted for
-                        micro-memoir, whose byline already reads "A Micro-Memoir by…". */}
-                    {type !== "micro-memoir" && (
-                      // paddingTop only matters visually for archive: essay/narrative
-                      // labels sit inset inside a white sheet that already fills from
-                      // the wrapper's top edge, so their own paddingTop is invisible
-                      // from outside. Archive has no such background — its label is
-                      // the first visible pixel — so it needs the same near-zero
-                      // offset as the others, or the hover toolbar (anchored a fixed
-                      // distance above the wrapper) ends up floating twice as far
-                      // above the clipping as it does above every other card type.
-                      <div style={{ paddingTop: sheet ? "0.75rem" : "0", fontFamily: FONT, fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.24em", color: sheet ? CRIMSON : "#b8b8ba", marginBottom: "0.5rem" }}>
+                    {/* Section label — small-caps flag, non-editable. Matches the
+                        sent email exactly: narratives/essays/micro-memoir all get
+                        a kicker; archive does NOT — its identity comes from the
+                        "Gangrey · Archive · date" running head baked into the
+                        clipping paper itself, not a separate label above it. */}
+                    {type !== "archive" && (
+                      // paddingTop only matters visually for micro-memoir: essay/
+                      // narrative labels sit inset inside a white sheet that
+                      // already fills from the wrapper's top edge, so their own
+                      // paddingTop is invisible from outside. Micro-memoir has no
+                      // such background — its label is the first visible pixel —
+                      // so it needs the same near-zero offset as the others, or
+                      // the hover toolbar (anchored a fixed distance above the
+                      // wrapper) floats further from it than from every other type.
+                      <div style={{ paddingTop: sheet ? "0.75rem" : "0", fontFamily: FONT, fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.24em", color: sheet ? CRIMSON : "#b8b8ba", marginBottom: "0.4rem" }}>
                         {sectionLabel}
                       </div>
                     )}
@@ -983,7 +997,10 @@ export default function NewsletterEditorClient({
                             style={{ width: 28, height: 28, borderRadius: 4, background: "white", border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "grab", color: TEXT_MUTED, boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                           </button>
-                          {([["narratives", "Narratives"], ["essays", "Essays"], ["micro-memoir", "Micro-Memoir"], ["archive", "Archive"]] as const).map(([t, label]) => {
+                          {(nlClassics
+                            ? ([["archive", "Archive"]] as const)
+                            : ([["narratives", "Narratives"], ["essays", "Essays"], ["micro-memoir", "Micro-Memoir"], ["archive", "Archive"]] as const)
+                          ).map(([t, label]) => {
                             const active = type === t;
                             return (
                               <button key={t} type="button" onClick={() => nlUpdateCard(card.id, { cardType: t })}

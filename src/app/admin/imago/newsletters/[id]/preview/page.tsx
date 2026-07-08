@@ -14,8 +14,8 @@ export default async function NewsletterPreviewPage({ params }: { params: Promis
 
   const { id } = await params;
   const nl = isSqliteBackend()
-    ? sqliteGetDoc<{ subject?: string; preview?: string; intro?: string; author?: string; volume?: string; issue?: string; cards?: NlCard[] }>(id)
-    : await client.fetch(`*[_id == $id][0]{ subject, preview, intro, author, volume, issue, cards }`, { id }, { cache: "no-store" });
+    ? sqliteGetDoc<{ subject?: string; preview?: string; intro?: string; author?: string; volume?: string; issue?: string; classics?: boolean; cards?: NlCard[] }>(id)
+    : await client.fetch(`*[_id == $id][0]{ subject, preview, intro, author, volume, issue, classics, cards }`, { id }, { cache: "no-store" });
   if (!nl) notFound();
 
   const html = renderNewsletterHtml({
@@ -25,6 +25,7 @@ export default async function NewsletterPreviewPage({ params }: { params: Promis
     author: nl.author ?? "",
     volume: nl.volume ?? "",
     issue: nl.issue ?? "",
+    classics: nl.classics,
     cards: (nl.cards ?? []) as NlCard[],
   });
 

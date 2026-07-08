@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import ListingHeader from "@/components/ListingHeader";
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
@@ -37,16 +38,6 @@ export default function AuthorsClient({ authors }: { authors: Author[] }) {
   return (
     <div style={{ fontFamily: "var(--font-subhead)", color: "#000000" }}>
       <style>{`
-        .au-head {
-          display: flex; align-items: flex-start; justify-content: space-between;
-          gap: 20px; flex-wrap: wrap; margin-bottom: 24px;
-        }
-        .au-title {
-          font-family: var(--font-headline);
-          font-size: clamp(44px, 7vw, 64px);
-          line-height: .98; letter-spacing: -.03em; font-weight: 800;
-          margin: 0; color: #000000;
-        }
         .au-search {
           flex: 0 0 220px; align-self: center; box-sizing: border-box;
           border: 1px solid #b8b8ba; border-radius: 2px; padding: 9px 12px;
@@ -55,7 +46,10 @@ export default function AuthorsClient({ authors }: { authors: Author[] }) {
         }
         .au-search::placeholder { color: #8a8a8c; }
         .au-search:focus { border-color: #490000; }
-        .au-filter-row { border-top: 1px solid #000000; padding-top: 14px; margin-bottom: 20px; }
+        .au-filter-row {
+          display: flex; align-items: center; justify-content: space-between;
+          flex-wrap: wrap; gap: 14px 20px; padding-top: 14px; margin-bottom: 20px;
+        }
         .au-filter-label {
           font-family: var(--font-subhead); font-weight: 800; font-size: 10px;
           letter-spacing: .2em; text-transform: uppercase; color: #490000; margin-right: 18px;
@@ -86,9 +80,31 @@ export default function AuthorsClient({ authors }: { authors: Author[] }) {
         }
       `}</style>
 
-      {/* Header row */}
-      <div className="au-head">
-        <h1 className="au-title">Authors</h1>
+      <ListingHeader title="Authors" sub="Writers featured in Gangrey." marginBottom={0} borderWidth={1} />
+
+      {/* Filter row — alphabet jump list + search, under the shared title border */}
+      <div className="au-filter-row">
+        <span>
+          <span className="au-filter-label">Filter by Last Name</span>
+          <span className="au-letters">
+            <button
+              className={`au-letter${letter === null && !query ? " active" : ""}`}
+              onClick={() => { setLetter(null); setQuery(""); }}
+            >
+              All
+            </button>
+            {ALPHABET.map(l => (
+              <button
+                key={l}
+                className={`au-letter${letter === l && !query ? " active" : ""}`}
+                disabled={!available.has(l)}
+                onClick={() => { setLetter(l); setQuery(""); }}
+              >
+                {l}
+              </button>
+            ))}
+          </span>
+        </span>
         <input
           className="au-search"
           type="search"
@@ -97,29 +113,6 @@ export default function AuthorsClient({ authors }: { authors: Author[] }) {
           onChange={e => { setQuery(e.target.value); setLetter(null); }}
           aria-label="Search authors"
         />
-      </div>
-
-      {/* Alphabet filter */}
-      <div className="au-filter-row">
-        <span className="au-filter-label">Filter by Last Name</span>
-        <span className="au-letters">
-          <button
-            className={`au-letter${letter === null && !query ? " active" : ""}`}
-            onClick={() => { setLetter(null); setQuery(""); }}
-          >
-            All
-          </button>
-          {ALPHABET.map(l => (
-            <button
-              key={l}
-              className={`au-letter${letter === l && !query ? " active" : ""}`}
-              disabled={!available.has(l)}
-              onClick={() => { setLetter(l); setQuery(""); }}
-            >
-              {l}
-            </button>
-          ))}
-        </span>
       </div>
 
       {/* Author list */}

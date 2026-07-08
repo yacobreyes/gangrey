@@ -126,6 +126,7 @@ export type NlPayload = {
   volume?: string;
   issue?: string;
   intro?: string;
+  classics?: boolean;
   wordCount?: number;
   cards?: NlCard[];
   status?: "draft" | "published" | "scheduled";
@@ -211,6 +212,7 @@ export async function saveNewsletter(payload: NlPayload): Promise<{ id: string; 
     volume: payload.volume ?? "",
     issue: payload.issue ?? "",
     intro: payload.intro ?? "",
+    classics: payload.classics ?? false,
     wordCount: payload.wordCount ?? 0,
     cards: payload.cards ?? [],
     status: payload.status ?? existing?.status ?? "draft",
@@ -403,9 +405,9 @@ export async function deliverNewsletter(id: string, audience: SendAudience = "al
   if (!id) return { ok: false, error: "missing id" };
 
   const nl = isSqliteBackend()
-    ? sqliteGetDoc<{ subject?: string; preview?: string; author?: string; volume?: string; issue?: string; intro?: string; cards?: NlCard[] }>(id)
+    ? sqliteGetDoc<{ subject?: string; preview?: string; author?: string; volume?: string; issue?: string; intro?: string; classics?: boolean; cards?: NlCard[] }>(id)
     : await client.fetch(
-        `*[_id == $id][0]{ subject, preview, author, volume, issue, intro, cards }`,
+        `*[_id == $id][0]{ subject, preview, author, volume, issue, intro, classics, cards }`,
         { id },
         { cache: "no-store" }
       );
@@ -444,6 +446,7 @@ export async function deliverNewsletter(id: string, audience: SendAudience = "al
     author: nl.author ?? "",
     volume: nl.volume ?? "",
     issue: nl.issue ?? "",
+    classics: nl.classics,
     cards: (nl.cards ?? []) as NlCard[],
     viewOnlineUrl: await issueViewUrl(id),
   });
@@ -485,9 +488,9 @@ export async function sendTestNewsletter(id: string): Promise<{ ok: boolean; err
   if (!id) return { ok: false, error: "missing id" };
 
   const nl = isSqliteBackend()
-    ? sqliteGetDoc<{ subject?: string; preview?: string; author?: string; volume?: string; issue?: string; intro?: string; cards?: NlCard[] }>(id)
+    ? sqliteGetDoc<{ subject?: string; preview?: string; author?: string; volume?: string; issue?: string; intro?: string; classics?: boolean; cards?: NlCard[] }>(id)
     : await client.fetch(
-        `*[_id == $id][0]{ subject, preview, author, volume, issue, intro, cards }`,
+        `*[_id == $id][0]{ subject, preview, author, volume, issue, intro, classics, cards }`,
         { id },
         { cache: "no-store" }
       );
@@ -500,6 +503,7 @@ export async function sendTestNewsletter(id: string): Promise<{ ok: boolean; err
     author: nl.author ?? "",
     volume: nl.volume ?? "",
     issue: nl.issue ?? "",
+    classics: nl.classics,
     cards: (nl.cards ?? []) as NlCard[],
     viewOnlineUrl: await issueViewUrl(id),
   });

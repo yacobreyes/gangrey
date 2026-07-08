@@ -11,7 +11,7 @@ export const revalidate = 60;
 type IssueDoc = { newsletterId?: string; title?: string; description?: string };
 type NewsletterDoc = {
   subject?: string; preview?: string; intro?: string;
-  author?: string; volume?: string; issue?: string; cards?: NlCard[];
+  author?: string; volume?: string; issue?: string; classics?: boolean; cards?: NlCard[];
 };
 
 async function getIssue(slug: string): Promise<IssueDoc | null> {
@@ -29,7 +29,7 @@ async function getIssue(slug: string): Promise<IssueDoc | null> {
 async function getNewsletter(id: string): Promise<NewsletterDoc | null> {
   if (isSqliteBackend()) return sqliteGetDoc<NewsletterDoc>(id);
   return client.fetch(
-    `*[_id == $id][0]{ subject, preview, intro, author, volume, issue, cards }`,
+    `*[_id == $id][0]{ subject, preview, intro, author, volume, issue, classics, cards }`,
     { id },
     { next: { revalidate: 60 } }
   );
@@ -61,6 +61,7 @@ export default async function IssuePage({ params }: { params: Promise<{ slug: st
     author: nl.author ?? "",
     volume: nl.volume ?? "",
     issue: nl.issue ?? "",
+    classics: nl.classics,
     cards: (nl.cards ?? []) as NlCard[],
   });
 

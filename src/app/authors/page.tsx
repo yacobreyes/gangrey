@@ -46,8 +46,8 @@ export default async function AuthorsPage() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#ffffff" }}>
       <style>{`
-        .authors-main { flex: 1; width: 100%; padding: 20px 76px 100px; box-sizing: border-box; }
-        @media (max-width: 900px) { .authors-main { padding: 20px 20px 80px; } }
+        .authors-main { width: 100%; max-width: 1290px; margin: 0 auto; padding: 20px 32px 60px; box-sizing: border-box; flex: 1; }
+        @media (max-width: 900px) { .authors-main { padding: 20px 20px 64px; } }
       `}</style>
       <MagHeader />
       <main className="authors-main">
