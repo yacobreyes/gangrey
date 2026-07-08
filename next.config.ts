@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["sanity", "@sanity/vision", "better-sqlite3", "sharp"],
+  serverExternalPackages: ["better-sqlite3", "sharp"],
   // STANDALONE=1 builds a self-contained Node server (for Docker/VPS installs
   // with the sqlite backend). Unset, the build stays Vercel-serverless.
   ...(process.env.STANDALONE ? { output: "standalone" as const } : {}),

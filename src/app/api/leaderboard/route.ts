@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { client } from "@/lib/sanity";
+import { sqliteDocsByType, sqliteMutate } from "@/lib/storage/sqlite";
 import { rateLimit } from "@/lib/rateLimit";
+
+type Score = { _id: string; name: string; score: number };
+
+function topScores(): Score[] {
+  return sqliteDocsByType<Score>("leaderboard")
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+    .slice(0, 10)
+    .map(({ _id, name, score }) => ({ _id, name, score }));
+}
 
 export async function GET() {
   try {
-    const scores = await client.fetch(
-      `*[_type == "leaderboard"] | order(score desc) [0..9] { _id, name, score }`,
-      {},
-      { cache: "no-store" }
-    );
-    return NextResponse.json({ scores: scores ?? [] });
+    return NextResponse.json({ scores: topScores() });
   } catch {
     return NextResponse.json({ scores: [] });
   }
@@ -29,32 +33,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid" }, { status: 400 });
   }
 
-  const token = process.env.SANITY_API_WRITE_TOKEN ?? process.env.SANITY_WRITE_TOKEN;
-  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
-  const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
-  if (!token || !projectId) return NextResponse.json({ error: "no token" }, { status: 500 });
-
   // Create a unique doc per submission
   const id = `leaderboard-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  sqliteMutate([{ createOrReplace: { _id: id, _type: "leaderboard", name, score } }]);
 
-  const res = await fetch(
-    `https://${projectId}.api.sanity.io/v2024-01-01/data/mutate/${dataset}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        mutations: [{ create: { _id: id, _type: "leaderboard", name, score } }],
-      }),
-    }
-  );
-
-  if (!res.ok) return NextResponse.json({ error: await res.text() }, { status: 500 });
-
-  // Return updated top 10
-  const scores = await client.fetch(
-    `*[_type == "leaderboard"] | order(score desc) [0..9] { _id, name, score }`,
-    {},
-    { cache: "no-store" }
-  );
-  return NextResponse.json({ scores: scores ?? [] });
+  return NextResponse.json({ scores: topScores() });
 }

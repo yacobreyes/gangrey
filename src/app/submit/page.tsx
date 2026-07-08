@@ -55,7 +55,7 @@ export default function SubmitPage() {
           <p style={{ margin: "0 0 18px" }}>We don&apos;t accept AI-generated writing. All work should be your own.</p>
 
           <h3 style={GUIDE_LABEL}>Simultaneous submissions</h3>
-          <p style={{ margin: "0 0 18px" }}>These are fine. Just let us know if the piece is placed elsewhere.</p>
+          <p style={{ margin: "0 0 18px" }}>Simultaneous submissions are welcome. Just let us know if the piece is placed elsewhere.</p>
 
           <h3 style={GUIDE_LABEL}>Rights and compensation</h3>
           <p style={{ margin: "0 0 10px" }}>Authors retain copyright to their work.</p>

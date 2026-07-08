@@ -11,8 +11,6 @@
   },
   "dependencies": {
     "@portabletext/react": "^6.2.0",
-    "@sanity/image-url": "^2.1.1",
-    "@sanity/vision": "^6.0.0",
     "@tiptap/extension-image": "^3.26.1",
     "@tiptap/extension-link": "^3.26.1",
     "@tiptap/extension-placeholder": "^3.26.1",
@@ -24,7 +22,7 @@
     "better-sqlite3": "^12.11.1",
     "next": "16.2.9",
     "next-auth": "^4.24.14",
-    "next-sanity": "^13.0.12",
+    "node-html-parser": "^9.0.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "resend": "^6.16.0",

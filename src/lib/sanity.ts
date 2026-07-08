@@ -1,4 +1,3 @@
-import { createClient } from "next-sanity";
 import { straightenQuotes, straightenBlocks } from "./straighten";
 import {
   isSqliteBackend, sqliteAllPublishedPosts, sqliteAllPostsAdmin, sqliteGetPost, sqliteGetSingleton,
@@ -8,33 +7,19 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SanityImageSource = any;
 
-const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!;
-const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
+// Sanity was fully removed (July 2026) — sqlite is the only backend. Every
+// helper in this file takes its sqlite branch unconditionally, so the legacy
+// `client.fetch(...)` fallbacks below are unreachable. This stub keeps those
+// call sites compiling, and if some missed path ever reaches one, it fails
+// LOUDLY with an explanation instead of a confusing config error.
+const removed = () => {
+  throw new Error("Sanity backend was removed — this code path should be using the sqlite store. Report which action triggered this.");
+};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const client = { fetch: async <T = any>(..._args: unknown[]): Promise<T> => removed() };
+const clientCdn = client;
 
-// The Vercel-Sanity integration sets SANITY_API_READ_TOKEN for server-side reads
-const token = process.env.SANITY_API_READ_TOKEN;
-
-export const client = createClient({
-  projectId,
-  dataset,
-  apiVersion: "2024-01-01",
-  useCdn: !token,
-  token,
-});
-
-// CDN-backed, tokenless client for large reads of published content (e.g. the
-// 2500+ archive pieces). The edge CDN is far faster than the authenticated API,
-// and archive posts are all published so no token is needed.
-const clientCdn = createClient({
-  projectId,
-  dataset,
-  apiVersion: "2024-01-01",
-  useCdn: true,
-});
-
-// Re-exported for server-side call sites — client components should import
-// from "@/lib/sanityImage" directly so they don't pull in next-sanity's
-// createClient (this file) just to build an image URL.
+// Re-exported for legacy server-side call sites.
 export { urlFor } from "./sanityImage";
 
 // Retry a Sanity read a few times with backoff. Sanity's authenticated API is

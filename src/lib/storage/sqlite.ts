@@ -15,7 +15,12 @@ import type { SanityPost } from "@/lib/sanity";
 let _db: any = null;
 
 export function isSqliteBackend(): boolean {
-  return process.env.STORAGE_BACKEND === "sqlite";
+  // SQLite is the only backend. Gangrey migrated off Sanity in July 2026; this
+  // flag is hardcoded (rather than reading STORAGE_BACKEND) so a missing env
+  // var can never silently route a write to the removed Sanity path again —
+  // that failure mode broke "Create story draft", the leaderboard, and email
+  // open tracking before the migration was finished.
+  return true;
 }
 
 function db() {

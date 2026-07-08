@@ -1,18 +1,11 @@
-import imageUrlBuilder from "@sanity/image-url";
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SanityImageSource = any;
 
-const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!;
-const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
-
-// Image URL building only needs projectId/dataset, not a full Sanity client —
-// importing from "@/lib/sanity" here would pull next-sanity's createClient
-// into every client bundle that renders an image (i.e. the public homepage).
-const builder = imageUrlBuilder({ projectId, dataset });
-
-export function urlFor(source: SanityImageSource) {
-  return builder.image(source);
+// Sanity was fully removed — images are local /media/... files served by the
+// /media route. urlFor survives only so legacy imports compile; nothing should
+// reach it anymore.
+export function urlFor(_source: SanityImageSource): never {
+  throw new Error("Sanity image builder was removed — post images are local /media URLs (use postImageUrl).");
 }
 
 // A manual crop rectangle, stored as fractions (0..1) of the source image.
@@ -34,21 +27,20 @@ export function ratioKey(width?: number, height?: number): string {
   return CROP_RATIOS.reduce((best, o) => (Math.abs(o.ratio - r) < Math.abs(best.ratio - r) ? o : best)).key;
 }
 
-// Backend-agnostic post image URL: self-hosted posts carry a plain `url`
-// (/media/... on local disk, resized + cropped by the /media route), Sanity
-// posts go through the CDN resizer. Components use this instead of guarding on
-// `image.asset` directly.
+// Post image URL: posts carry a plain `url` (/media/... on local disk, resized
+// + cropped by the /media route). Components use this instead of reading
+// `image.url` directly so resize/crop params stay in one place.
 export function postImageUrl(
   image: { asset?: SanityImageSource; url?: string; crops?: ImageCrops } | undefined | null,
   width?: number,
   height?: number,
 ): string | null {
   if (!image) return null;
-  if (image.asset) {
-    let b = builder.image(image.asset);
-    if (width) b = b.width(width);
-    if (height) b = b.height(height);
-    return b.fit("crop").auto("format").url();
+  // Legacy Sanity-era shape: some stored docs carry {asset: {_ref}} where the
+  // ref, on this backend, is the /media/... path itself. Fold it into `url`.
+  const assetRef = (image.asset as { _ref?: string } | undefined)?._ref;
+  if (!image.url && typeof assetRef === "string" && assetRef.startsWith("/")) {
+    image = { ...image, url: assetRef };
   }
   if (!image.url) return null;
   // Local image: hand the /media route a resize (and manual crop, if set for

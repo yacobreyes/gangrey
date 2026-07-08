@@ -32,80 +32,11 @@ function warmImageDerivatives(src: string, crops: Record<string, { x: number; y:
 const sq = (s: string | null | undefined) =>
   typeof s === "string" ? straightenQuotes(s) : s;
 
-function sanityConfig() {
-  const token = process.env.SANITY_API_WRITE_TOKEN ?? process.env.SANITY_WRITE_TOKEN;
-  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
-  const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
-  if (!token || !projectId) throw new Error("Missing Sanity config — add SANITY_API_WRITE_TOKEN in Vercel env vars");
-  return { token, projectId, dataset };
-}
-
+// All writes go to the local sqlite store — Sanity was fully removed. The name
+// survives from the Sanity era so the dozens of call sites below don't churn.
 async function mutate(mutations: unknown[]) {
-  const { token, projectId, dataset } = sanityConfig();
-  const res = await fetch(
-    `https://${projectId}.api.sanity.io/v2024-01-01/data/mutate/${dataset}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ mutations }),
-    }
-  );
-  if (!res.ok) throw new Error(`Sanity error: ${await res.text()}`);
-  return res.json();
-}
-
-// One-time migration: strip curly/smart quotes out of stored post content so
-// imported archive data is straight at the source — fixing it everywhere
-// (editor, published site, search) regardless of render-layer straightening.
-// Safe to run repeatedly: only documents that actually contain curly quotes are
-// patched, and re-running finds nothing to change.
-export async function straightenAllPosts(): Promise<{ scanned: number; updated: number }> {
-  await requireAuth();
-  const { token, projectId, dataset } = sanityConfig();
-  const query = `*[_type == "post"]{ _id, headline, subheadline, byline, seoHeadline, socialHeadline, socialDescription, body, image }`;
-  const res = await fetch(
-    `https://${projectId}.api.sanity.io/v2024-01-01/data/query/${dataset}?query=${encodeURIComponent(query)}`,
-    { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }
-  );
-  if (!res.ok) throw new Error(`Query failed: ${await res.text()}`);
-  const { result } = await res.json() as { result: Record<string, unknown>[] };
-
-  const CURLY = /[‘’‚‛′‵ʼʻʽ＇❛❜“”„‟″‶＂❝❞]/;
-  const hasCurly = (v: unknown): boolean => {
-    if (typeof v === "string") return CURLY.test(v);
-    if (Array.isArray(v)) return v.some(hasCurly);
-    if (v && typeof v === "object") return Object.values(v).some(hasCurly);
-    return false;
-  };
-
-  const STR_FIELDS = ["headline", "subheadline", "byline", "seoHeadline", "socialHeadline", "socialDescription"] as const;
-  const mutations: unknown[] = [];
-  for (const p of result) {
-    if (!hasCurly(p)) continue;
-    const set: Record<string, unknown> = {};
-    for (const f of STR_FIELDS) {
-      if (typeof p[f] === "string") set[f] = straightenQuotes(p[f] as string);
-    }
-    if (Array.isArray(p.body)) set.body = straightenBlocks(p.body);
-    const img = p.image as { caption?: unknown; alt?: unknown } | undefined;
-    if (img && (typeof img.caption === "string" || typeof img.alt === "string")) {
-      set.image = {
-        ...img,
-        ...(typeof img.caption === "string" ? { caption: straightenQuotes(img.caption) } : {}),
-        ...(typeof img.alt === "string" ? { alt: straightenQuotes(img.alt) } : {}),
-      };
-    }
-    if (Object.keys(set).length) mutations.push({ patch: { id: p._id as string, set } });
-  }
-
-  if (mutations.length) {
-    // Chunk to stay well under Sanity's mutation limits.
-    for (let i = 0; i < mutations.length; i += 50) {
-      await mutate(mutations.slice(i, i + 50));
-    }
-    revalidatePath("/", "layout");
-  }
-  return { scanned: result.length, updated: mutations.length };
+  sqliteMutate(mutations);
+  return { results: [] };
 }
 
 export async function uploadImage(formData: FormData) {
@@ -113,62 +44,18 @@ export async function uploadImage(formData: FormData) {
   const file = formData.get("file") as File;
   if (!file) throw new Error("No file provided");
   const buf = Buffer.from(await file.arrayBuffer());
-  if (isSqliteBackend()) {
-    const { sqliteSaveMedia } = await import("@/lib/storage/sqlite");
-    return sqliteSaveMedia(file.name, buf);
-  }
-  const { token, projectId, dataset } = sanityConfig();
-  const res = await fetch(
-    `https://${projectId}.api.sanity.io/v1/assets/images/${dataset}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": file.type, Authorization: `Bearer ${token}` },
-      body: buf,
-    }
-  );
-  if (!res.ok) {
-    const body = await res.text();
-    console.error("Sanity upload failed", res.status, body);
-    throw new Error(`Upload failed (${res.status}): ${body}`);
-  }
-  const data = await res.json();
-  return { assetId: data.document._id as string, url: data.document.url as string };
+  const { sqliteSaveMedia } = await import("@/lib/storage/sqlite");
+  return sqliteSaveMedia(file.name, buf);
 }
 
 export async function createDraft(providedSlug?: string): Promise<{ slug: string }> {
   await requireAuth();
-  const slug0 = providedSlug ?? `untitled-${Date.now()}`;
-  if (isSqliteBackend()) {
-    sqliteSavePost({
-      _id: `post-${slug0}`, slug: slug0, section: "", headline: "", subheadline: "",
-      byline: "", date: new Date().toISOString().slice(0, 10), status: "draft", access: "free",
-      body: [],
-    });
-    return { slug: slug0 };
-  }
-  const { token, projectId, dataset } = sanityConfig();
-  const slug = slug0;
-  const doc = {
-    _id: `post-${slug}`,
-    _type: "post",
-    headline: "",
-    subheadline: "",
-    slug: { _type: "slug", current: slug },
-    section: "",
-    byline: "",
-    date: new Date().toISOString().slice(0, 10),
+  const slug = providedSlug ?? `untitled-${Date.now()}`;
+  sqliteSavePost({
+    _id: `post-${slug}`, slug, section: "", headline: "", subheadline: "",
+    byline: "", date: new Date().toISOString().slice(0, 10), status: "draft", access: "free",
     body: [],
-    status: "draft",
-  };
-  const res = await fetch(
-    `https://${projectId}.api.sanity.io/v2024-01-01/data/mutate/${dataset}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ mutations: [{ createOrReplace: doc }] }),
-    }
-  );
-  if (!res.ok) throw new Error(`Sanity error: ${await res.text()}`);
+  });
   return { slug };
 }
 
