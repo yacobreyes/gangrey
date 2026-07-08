@@ -1108,8 +1108,8 @@ export default function NewsletterEditorClient({
                               style={{ fontFamily: FONT, fontSize: "0.7rem", color: TEXT_MUTED, fontStyle: "italic", border: "none", outline: "none", background: "transparent", width: "100%", padding: 0, margin: "0.4rem 0 0", boxSizing: "border-box", display: "block" }} />
                           </div>
                         ) : (
-                          <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ background: "#ffffff", border: `1px dashed ${BORDER}`, fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, cursor: "pointer", marginBottom: "0.75rem", padding: "0.6rem 1rem", borderRadius: 4, display: "block", width: "100%", textAlign: "center", boxSizing: "border-box" }}>
-                            + Add image
+                          <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ display: "block", width: "100%", margin: "0 0 1.75rem", background: "#ffffff", border: `2px dashed ${BORDER}`, color: TEXT_MUTED, fontFamily: FONT, fontSize: "0.85rem", padding: "3rem 0", cursor: "pointer", textAlign: "center", boxSizing: "border-box" }}>
+                            + Add a featured image
                           </button>
                         )}
                         <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={60} 
@@ -1156,8 +1156,8 @@ export default function NewsletterEditorClient({
                             </div>
                           </div>
                         ) : (
-                          <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ background: "#ffffff", border: `1px dashed ${BORDER}`, fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, cursor: "pointer", margin: "0.9rem 0 0", padding: "0.6rem 1rem", borderRadius: 12, display: "block", width: "100%", textAlign: "center", boxSizing: "border-box" }}>
-                            + Add photo
+                          <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ display: "block", width: "100%", margin: "0 0 1.75rem", background: "#ffffff", border: `2px dashed ${BORDER}`, color: TEXT_MUTED, fontFamily: FONT, fontSize: "0.85rem", padding: "3rem 0", cursor: "pointer", textAlign: "center", boxSizing: "border-box" }}>
+                            + Add a featured image
                           </button>
                         )}
                         {/* Footer meta */}
@@ -1201,9 +1201,9 @@ export default function NewsletterEditorClient({
                                 </div>
                               </div>
                             ) : (
-                              <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ background: "#ffffff", border: `1px dashed ${BORDER}`, fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, cursor: "pointer", margin: "0 0 1rem", padding: "0.5rem 1rem", display: "block", width: "100%", textAlign: "center", boxSizing: "border-box" }}>
-                                + Add photo
-                              </button>
+                              <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ display: "block", width: "100%", margin: "0 0 1.75rem", background: "#ffffff", border: `2px dashed ${BORDER}`, color: TEXT_MUTED, fontFamily: FONT, fontSize: "0.85rem", padding: "3rem 0", cursor: "pointer", textAlign: "center", boxSizing: "border-box" }}>
+                            + Add a featured image
+                          </button>
                             )}
                             <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.1rem", lineHeight: 1.72, textAlign: "justify" }}>
                               <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} 
