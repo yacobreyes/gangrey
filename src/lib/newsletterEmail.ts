@@ -264,7 +264,10 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): stri
             <td align="right" style="font-family:${FONT};font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:${RULE};">gangrey.org</td>
           </tr></table>
           <a href="${SITE_URL}" target="_blank" rel="noopener" style="text-decoration:none;">
-            <img src="${base}/Wordmark-White.png?v=1" alt="Gangrey" width="290" height="106" style="width:290px;height:106px;max-width:80%;display:block;margin:0 auto 20px;border:0;" />
+            ${raw.classics
+              ? `<img src="${base}/Gangrey%20Classics%20Wordmark.png" alt="Gangrey Classics" width="290" style="width:290px;max-width:80%;display:block;margin:0 auto 20px;border:0;" />`
+              : `<img src="${base}/Wordmark-White.png?v=1" alt="Gangrey" width="290" height="106" style="width:290px;height:106px;max-width:80%;display:block;margin:0 auto 20px;border:0;" />`
+            }
           </a>
           <div style="width:40px;height:2px;background:${CRIMSON};margin:0 auto 20px;"></div>
           ${subject ? `<p style="font-family:${SERIF};font-size:22px;line-height:1.3;color:#ffffff;text-align:center;margin:0 0 8px;">${esc(subject)}</p>` : ""}
@@ -272,7 +275,10 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): stri
           ${!raw.classics && author ? `<p style="font-family:${FONT};font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:${RULE};text-align:center;margin:0 0 24px;">Guest Editor · <span style="color:#ffffff;">${esc(author)}</span></p>` : `<div style="height:8px;"></div>`}
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid ${RULE};"><tr>
             <td align="left" style="padding-top:16px;font-family:${FONT};font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#ffffff;">Est. 2026</td>
-            <td align="right" style="padding-top:16px;font-family:${SERIF};font-size:11px;letter-spacing:0.06em;color:#ffffff;">${!raw.classics && volume ? `<span style="color:${RULE};">Vol.</span> ${esc(volume)}` : ""}${!raw.classics && volume && issue ? " &nbsp; " : ""}${!raw.classics && issue ? `<span style="color:${RULE};">No.</span> ${esc(issue)}` : ""}</td>
+            <td align="right" style="padding-top:16px;font-family:${SERIF};font-size:11px;letter-spacing:0.06em;color:#ffffff;">${raw.classics
+              ? `${esc(shortDate)}${issue ? ` &nbsp; <span style="color:${RULE};">No.</span> ${esc(issue)}` : ""}`
+              : `${volume ? `<span style="color:${RULE};">Vol.</span> ${esc(volume)}` : ""}${volume && issue ? " &nbsp; " : ""}${issue ? `<span style="color:${RULE};">No.</span> ${esc(issue)}` : ""}`
+            }</td>
           </tr></table>
         </div>
       </div>`

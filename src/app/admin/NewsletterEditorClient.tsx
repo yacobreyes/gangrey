@@ -150,6 +150,7 @@ export default function NewsletterEditorClient({
 
   const [isMobile, setIsMobile] = useState(false);
   const [todayLabel, setTodayLabel] = useState("");
+  const [coverDateLabel, setCoverDateLabel] = useState("");
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth <= 700);
     check();
@@ -158,6 +159,7 @@ export default function NewsletterEditorClient({
   }, []);
   useEffect(() => {
     setTodayLabel(new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }));
+    setCoverDateLabel(new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }));
   }, []);
 
   const [nlSubject, setNlSubject] = useState(initial?.subject ?? "");
@@ -900,7 +902,7 @@ export default function NewsletterEditorClient({
                 <span style={{ fontFamily: FONT, fontSize: "0.55rem", letterSpacing: "0.28em", textTransform: "uppercase", color: "#b8b8ba" }}>Gangrey.org</span>
               </div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/Wordmark-White.png?v=1" alt="Gangrey" width={290} style={{ width: 290, maxWidth: "100%", display: "block", margin: "0 auto 1.1rem" }} />
+              <img src={nlClassics ? "/Gangrey%20Classics%20Wordmark.png" : "/Wordmark-White.png?v=1"} alt="Gangrey" width={290} style={{ width: 290, maxWidth: "100%", display: "block", margin: "0 auto 1.1rem" }} />
               <div style={{ width: 40, height: 2, background: CRIMSON, margin: "0 auto 1.1rem" }} />
               {nlSubject && (
                 <p style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.35rem", lineHeight: 1.3, color: "#ffffff", textAlign: "center", margin: "0 0 0.5rem" }}>{nlSubject}</p>
@@ -921,7 +923,11 @@ export default function NewsletterEditorClient({
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: `1px solid #b8b8ba`, marginTop: "1.4rem", paddingTop: "0.9rem" }}>
                 <span style={{ fontFamily: FONT, fontSize: "0.6rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#ffffff" }}>Est. 2026</span>
-                {!nlClassics && (
+                {nlClassics ? (
+                  <span style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.75rem", color: "#ffffff" }}>
+                    {coverDateLabel}{nlIssue ? <> &nbsp; <span style={{ color: "#b8b8ba" }}>No.</span> {nlIssue}</> : ""}
+                  </span>
+                ) : (
                   <span style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.75rem", color: "#ffffff" }}>
                     {nlVolume ? <><span style={{ color: "#b8b8ba" }}>Vol.</span> {nlVolume} </> : ""}{nlIssue ? <><span style={{ color: "#b8b8ba" }}>No.</span> {nlIssue}</> : ""}
                   </span>
@@ -1217,7 +1223,14 @@ export default function NewsletterEditorClient({
         <div style={{ maxWidth: 600, margin: "2rem auto 0" }}>
           <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.85rem" }}>
             <h3 style={{ fontFamily: FONT, fontSize: "1rem", fontWeight: 700, color: TEXT_DARK, margin: 0 }}>Newsletter info</h3>
-            {!nlClassics && (
+            {nlClassics ? (
+              // Classics issues show today's date instead of a volume number (see
+              // the cover's Est./No. row above) — Guest Editor doesn't apply.
+              <div>
+                <label style={{ fontFamily: FONT, fontSize: "0.75rem", fontWeight: 600, color: TEXT_MUTED, display: "block", marginBottom: "0.3rem" }}>Issue</label>
+                <input value={nlIssue} onChange={e => setNlIssue(e.target.value)} readOnly={nlReadOnly} placeholder="1" style={INPUT} />
+              </div>
+            ) : (
               <>
                 <div style={{ display: "flex", gap: "0.75rem" }}>
                   <div style={{ flex: 1 }}>
