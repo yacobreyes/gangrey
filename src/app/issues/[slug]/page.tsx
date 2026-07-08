@@ -70,9 +70,10 @@ export default async function IssuePage({ params }: { params: Promise<{ slug: st
       <style>{`
         .issue-read-page { min-height: 100vh; display: flex; flex-direction: column; background: #ffffff; }
         .issue-read-main { flex: 1; width: 100%; padding: 20px 0 48px; background: #ffffff; }
-        /* 600px sheet centered on white, with a soft drop shadow so the narrow
-           column reads as a distinct sheet against the white background. */
-        .issue-read-main > div { max-width: 600px; margin: 0 auto; box-shadow: 0 2px 24px rgba(0,0,0,0.16); }
+        /* 600px sheet centered on white. The web variant drops the email's
+           black ground/gutters; a hairline ring + drop shadow defines the
+           sheet's edge instead. */
+        .issue-read-main > div { max-width: 600px; margin: 0 auto; box-shadow: 0 0 0 1px rgba(0,0,0,0.06), 0 4px 28px rgba(0,0,0,0.18); }
       `}</style>
       <MagHeader />
       <main className="issue-read-main">

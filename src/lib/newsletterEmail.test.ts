@@ -131,4 +131,29 @@ describe("renderNewsletterPageHtml", () => {
     const html = renderNewsletterPageHtml(baseOpts());
     expect(html).toContain("How to be a Diversity Hire");
   });
+
+  it("web reader sits on a white ground (no black gutters); the email keeps black", () => {
+    const page = renderNewsletterPageHtml(baseOpts());
+    const email = renderNewsletterHtml(baseOpts());
+    // Sheet wrapper + cards container are white on the web...
+    expect(page).toContain('max-width:600px;margin:0 auto;background:#ffffff');
+    expect(page).not.toContain('max-width:600px;margin:0 auto;background:#000000');
+    // ...but black in the sent email.
+    expect(email).toContain('max-width:600px;margin:0 auto;background:#000000');
+  });
+
+  it("web reader keeps the member callout + footer as black panels (white text stays readable)", () => {
+    const page = renderNewsletterPageHtml(baseOpts());
+    // Callout inner panel carries its own black background now that the outer
+    // ground is white.
+    expect(page).toContain('background:#000000;border:1px solid #b8b8ba');
+  });
+
+  it("micro-memoir kicker is crimson on the white web ground, grey in the email", () => {
+    const cards = [{ cardType: "micro-memoir" as const, headline: "Sonder", byline: "Yacob Reyes", body: [] }];
+    const page = renderNewsletterPageHtml(baseOpts({ cards }));
+    const email = renderNewsletterHtml(baseOpts({ cards }));
+    expect(page).toContain('text-transform:uppercase;color:#490000;margin-bottom:10px;">Micro-Memoir<');
+    expect(email).toContain('text-transform:uppercase;color:#b8b8ba;margin-bottom:10px;">Micro-Memoir<');
+  });
 });

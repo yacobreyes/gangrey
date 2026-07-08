@@ -138,7 +138,10 @@ type NlOpts = { subject: string; preview: string; intro?: string; author?: strin
 // preview, the sent email, and the editor all look identical. The only knob is
 // whether to include the wordmark cover masthead (the web reader omits it
 // because MagHeader already shows the wordmark above it).
-function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): string {
+function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean; web?: boolean }): string {
+  // The web reader sits the cards on white (the page supplies an edge shadow
+  // around the 600px column); the email keeps the black ground + 16px gutters.
+  const ground = opts.web ? "#ffffff" : GROUND;
   const intro = raw.intro ? straightenQuotes(raw.intro) : raw.intro;
   const author = raw.author ? straightenQuotes(raw.author) : raw.author;
   const subject = raw.subject ? straightenQuotes(raw.subject) : raw.subject;
@@ -169,7 +172,7 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): stri
 
   // Kicker + 40×2 crimson rule (grey on the black ground). center aligns both.
   const kicker = (name: string, onDark: boolean, center: boolean) => {
-    const color = onDark ? RULE : CRIMSON;
+    const color = onDark && !opts.web ? RULE : CRIMSON;
     const c = center ? "text-align:center;" : "";
     const rc = center ? "margin:0 auto 22px;" : "margin-bottom:22px;";
     return `<div style="font-family:${FONT};font-size:10px;font-weight:700;letter-spacing:0.24em;text-transform:uppercase;color:${color};${c}margin-bottom:10px;">${esc(name)}</div>`
@@ -290,13 +293,14 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): stri
       </div>`
     : "";
 
-  return `${cover}<div style="background:${GROUND};">${cardsHtml}</div>`;
+  return `${cover}<div style="background:${ground};">${cardsHtml}</div>`;
 }
 
 // The full newsletter sheet — content + unsubscribe footer. The cover masthead
 // (wordmark) is included only in the email; the web reader omits it because the
 // site's MagHeader already shows the wordmark (avoids a double header).
-function renderNewsletterSheet(opts: NlOpts, includeMasthead: boolean): string {
+function renderNewsletterSheet(opts: NlOpts, includeMasthead: boolean, web = false): string {
+  const ground = web ? "#ffffff" : GROUND;
   // "View in browser" — only meaningful for the emailed copy (the web reader
   // is already the browser view). Sits in a slim strip above the cover.
   const viewOnline = includeMasthead && opts.viewOnlineUrl
@@ -306,16 +310,16 @@ function renderNewsletterSheet(opts: NlOpts, includeMasthead: boolean): string {
     : "";
   // Member callout — a black panel promoting membership, shown above the
   // unsubscribe footer on every issue (free content is the hook; this is the ask).
-  const memberCallout = `<div style="background:${GROUND};padding:0 16px 16px;">
-    <div style="border:1px solid ${RULE};padding:28px 34px;text-align:center;">
+  const memberCallout = `<div style="background:${ground};padding:0 16px 16px;">
+    <div style="background:${GROUND};border:1px solid ${RULE};padding:28px 34px;text-align:center;">
       <p style="font-family:${SERIF};font-size:20px;line-height:1.3;color:#ffffff;margin:0 0 10px;">Keep reading with a membership</p>
       <p style="font-family:${SERIF};font-size:14px;line-height:1.5;color:${RULE};margin:0 auto 20px;max-width:380px;">Join to read every story in full, unlock the archive, and support narrative nonfiction.</p>
       <a href="${SITE_URL}/subscribe" target="_blank" rel="noopener" style="display:inline-block;background:${CRIMSON};color:#ffffff;text-decoration:none;padding:12px 26px;font-family:${FONT};font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;">Become a Member</a>
     </div>
   </div>`;
-  return `<div style="width:100%;max-width:600px;margin:0 auto;background:${GROUND};">
+  return `<div style="width:100%;max-width:600px;margin:0 auto;background:${ground};">
     ${viewOnline}
-    ${renderNewsletterContent(opts, { masthead: includeMasthead })}
+    ${renderNewsletterContent(opts, { masthead: includeMasthead, web })}
     ${memberCallout}
     <div style="background:${GROUND};padding:24px 34px;text-align:center;">
       <p style="font-family:${FONT};font-size:10px;line-height:1.7;letter-spacing:0.14em;text-transform:uppercase;color:${RULE};margin:0 0 10px;">You're receiving this because you subscribed to Gangrey</p>
@@ -327,7 +331,7 @@ function renderNewsletterSheet(opts: NlOpts, includeMasthead: boolean): string {
 // Web reader version — used on /issues/[slug]. No wordmark masthead (MagHeader
 // already shows it), so the on-site render isn't double-headed.
 export function renderNewsletterPageHtml(opts: NlOpts): string {
-  return renderNewsletterSheet(opts, false);
+  return renderNewsletterSheet(opts, false, true);
 }
 
 // Email version — same sheet, wrapped with the email document shell (preview

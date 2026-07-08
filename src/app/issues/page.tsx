@@ -80,7 +80,7 @@ export default async function IssuesPage() {
         .issue-desc {
           display: block;
           font-family: var(--font-body);
-          font-size: 15.5px; font-style: italic; color: #392a22; margin-top: 4px;
+          font-size: 15.5px; color: #392a22; margin-top: 4px;
           line-height: 1.4;
         }
         .issue-read {
@@ -122,7 +122,7 @@ export default async function IssuesPage() {
                 <>
                   <span className="issue-no">No. {issue.number} · {formatDate(issue.publishedAt)}</span>
                   <span>
-                    <span className="issue-title">“{issue.title}”</span>
+                    <span className="issue-title">"{issue.title}"</span>
                     {issue.description && <span className="issue-desc">{issue.description}</span>}
                   </span>
                   <span className="issue-read">Read</span>
@@ -138,7 +138,7 @@ export default async function IssuesPage() {
                 <div key={issue._id} className="issue-row">
                   <span className="issue-no">No. {issue.number} · {formatDate(issue.publishedAt)}</span>
                   <span>
-                    <span className="issue-title">“{issue.title}”</span>
+                    <span className="issue-title">"{issue.title}"</span>
                     {issue.description && <span className="issue-desc">{issue.description}</span>}
                   </span>
                   <span />
