@@ -179,7 +179,7 @@ function SubmissionCard({ sub, open, onToggle, onChanged }: { sub: SubmissionRow
             </div>
           )}
 
-          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.4rem" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.4rem" }}>
             <span style={{ fontFamily: FONT, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: CRIMSON }}>The story</span>
             <button onClick={copyStory} title="Copy the full story to paste into a Google Doc"
               style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.04em", color: copied ? "#1a7f37" : TEXT_MUTED, cursor: "pointer" }}>
