@@ -65,8 +65,8 @@ function formatFindContentDate(date?: string) {
 }
 
 type NlImage = { assetId: string; url: string; caption?: string; alt?: string };
-type NlEditorCard = { id: string; headline: string; doc: JSONContent; image?: NlImage; cardType?: "narratives" | "essays" | "micro-memoir" | "archive"; byline?: string; sourceSlug?: string };
-type StoredCard = { headline?: string; body?: PortableTextBlock[]; image?: NlImage | null; cardType?: "narratives" | "essays" | "micro-memoir" | "archive" | "feature" | "standard" | "digest"; byline?: string; sourceSlug?: string };
+type NlEditorCard = { id: string; headline: string; deck?: string; doc: JSONContent; image?: NlImage; cardType?: "narratives" | "essays" | "micro-memoir" | "archive"; byline?: string; sourceSlug?: string };
+type StoredCard = { headline?: string; deck?: string; body?: PortableTextBlock[]; image?: NlImage | null; cardType?: "narratives" | "essays" | "micro-memoir" | "archive" | "feature" | "standard" | "digest"; byline?: string; sourceSlug?: string };
 
 export type InitialNewsletter = {
   subject: string;
@@ -101,6 +101,7 @@ function cardsFromStored(cards: StoredCard[]): NlEditorCard[] {
   return cards.map(c => ({
     ...newNlCard(),
     headline: c.headline ?? "",
+    deck: c.deck || undefined,
     doc: c.body?.length ? portableTextToTiptap(c.body) : EMPTY_DOC,
     image: c.image ?? undefined,
     cardType: mapStoredCardType(c.cardType),
@@ -463,7 +464,7 @@ export default function NewsletterEditorClient({
     issue: nlIssue,
     intro: nlIntro,
     wordCount: nlCards.flatMap(card => (card.doc.content ?? []).flatMap((n: JSONContent) => (n.content ?? []).map((c: JSONContent) => c.text ?? ""))).join(" ").trim().split(/\s+/).filter(Boolean).length,
-    cards: nlCards.map(card => ({ headline: card.headline, body: tiptapToPortableText(card.doc), image: card.image ?? null, cardType: card.cardType, byline: card.byline, sourceSlug: card.sourceSlug })),
+    cards: nlCards.map(card => ({ headline: card.headline, deck: card.deck, body: tiptapToPortableText(card.doc), image: card.image ?? null, cardType: card.cardType, byline: card.byline, sourceSlug: card.sourceSlug })),
   }), [newsletterId, nlStatus, nlScheduledAt, nlSubject, nlPreview, nlAuthor, nlVolume, nlIssue, nlIntro, nlCards]);
 
   // Cheap dirty-check signature (raw tiptap docs, no portable-text conversion)
@@ -471,7 +472,7 @@ export default function NewsletterEditorClient({
   const nlSignature = useCallback(() => JSON.stringify({
     status: nlStatus, scheduledAt: nlScheduledAt, subject: nlSubject, preview: nlPreview, author: nlAuthor,
     volume: nlVolume, issue: nlIssue, intro: nlIntro,
-    cards: nlCards.map(c => ({ headline: c.headline, doc: c.doc, image: c.image ?? null, cardType: c.cardType, byline: c.byline, sourceSlug: c.sourceSlug })),
+    cards: nlCards.map(c => ({ headline: c.headline, deck: c.deck, doc: c.doc, image: c.image ?? null, cardType: c.cardType, byline: c.byline, sourceSlug: c.sourceSlug })),
   }), [nlStatus, nlScheduledAt, nlSubject, nlPreview, nlAuthor, nlVolume, nlIssue, nlIntro, nlCards]);
 
   const nlSave = useCallback(async (payload: ReturnType<typeof nlPayload>, signature?: string) => {
@@ -567,6 +568,7 @@ export default function NewsletterEditorClient({
     setNlCards((srcCards.length ? srcCards : [{}]).map(c => ({
       ...newNlCard(),
       headline: c.headline ?? "",
+      deck: c.deck || undefined,
       doc: c.body?.length ? portableTextToTiptap(c.body) : EMPTY_DOC,
       image: c.image ?? undefined,
       cardType: mapStoredCardType(c.cardType),
@@ -708,7 +710,7 @@ export default function NewsletterEditorClient({
               srcDoc={renderNewsletterHtml({
                 subject: nlSubject, preview: nlPreview, intro: nlIntro, author: nlAuthor, volume: nlVolume, issue: nlIssue,
                 baseUrl: typeof window !== "undefined" ? window.location.origin : undefined,
-                cards: nlCards.map(c => ({ headline: c.headline, body: tiptapToPortableText(c.doc), image: c.image ? { url: c.image.url, caption: c.image.caption, alt: c.image.alt } : null, cardType: c.cardType, byline: c.byline })),
+                cards: nlCards.map(c => ({ headline: c.headline, deck: c.deck, body: tiptapToPortableText(c.doc), image: c.image ? { url: c.image.url, caption: c.image.caption, alt: c.image.alt } : null, cardType: c.cardType, byline: c.byline })),
               })} />
           </div>
         </div>
@@ -872,6 +874,13 @@ export default function NewsletterEditorClient({
         {/* Magazine page — 600px to match the email's inbox-safe width */}
         <div style={{ maxWidth: 600, margin: "0 auto", background: "#ffffff", boxShadow: "0 4px 32px rgba(0,0,0,0.18)" }}>
 
+          {/* View in browser — shown in the sent email once published; inert
+              here since the issue page doesn't exist until publish, but shown
+              so the preview matches what subscribers actually see. */}
+          <div style={{ background: "#000000", padding: "0.6rem 1rem 0", textAlign: "center" }}>
+            <span style={{ fontFamily: FONT, fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#b8b8ba" }}>View in browser</span>
+          </div>
+
           {/* Cover masthead — black panel, keyline border, white wordmark (matches the email) */}
           <div style={{ background: "#000000", padding: "1rem" }}>
             <div style={{ border: `1px solid #b8b8ba`, padding: "1.9rem 2.1rem 1.4rem" }}>
@@ -882,6 +891,9 @@ export default function NewsletterEditorClient({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/Wordmark-White.png?v=1" alt="Gangrey" width={290} style={{ width: 290, maxWidth: "100%", display: "block", margin: "0 auto 1.1rem" }} />
               <div style={{ width: 40, height: 2, background: CRIMSON, margin: "0 auto 1.1rem" }} />
+              {nlSubject && (
+                <p style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.35rem", lineHeight: 1.3, color: "#ffffff", textAlign: "center", margin: "0 0 0.5rem" }}>{nlSubject}</p>
+              )}
               <div style={{ maxWidth: 440, margin: "0 auto" }}>
                 <textarea
                   ref={nlIntroRef}
@@ -1009,7 +1021,9 @@ export default function NewsletterEditorClient({
                           </button>
                         )}
                         <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Feature headline"
-                          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.9rem", fontWeight: 700, lineHeight: 1.15, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "1rem", display: "block", boxSizing: "border-box", textAlign: "center" }} />
+                          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.9rem", fontWeight: 700, lineHeight: 1.15, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "0.6rem", display: "block", boxSizing: "border-box", textAlign: "center" }} />
+                        <textarea value={card.deck ?? ""} onChange={e => nlUpdateCard(card.id, { deck: e.target.value })} readOnly={nlReadOnly} placeholder="Standfirst / deck (optional)" rows={1}
+                          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.2rem", lineHeight: 1.45, color: TEXT_MUTED, border: "none", outline: "none", width: "100%", maxWidth: 440, margin: "0 auto 1rem", background: "transparent", padding: 0, resize: "none", boxSizing: "border-box", display: "block", textAlign: "center", overflow: "hidden" }} />
                         {nlBylineField(card, "center")}
                         <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} placeholder="Lead paragraph…"
                           onChange={doc => nlUpdateCard(card.id, { doc })}
@@ -1026,6 +1040,8 @@ export default function NewsletterEditorClient({
                           <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Essay title"
                             style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.9rem", fontWeight: 700, lineHeight: 1.15, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, boxSizing: "border-box", display: "block" }} />
                         </div>
+                        <textarea value={card.deck ?? ""} onChange={e => nlUpdateCard(card.id, { deck: e.target.value })} readOnly={nlReadOnly} placeholder="Standfirst / deck (optional)" rows={1}
+                          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.2rem", lineHeight: 1.45, color: TEXT_MUTED, border: "none", outline: "none", width: "100%", margin: "0 0 0.85rem", background: "transparent", padding: 0, resize: "none", boxSizing: "border-box", display: "block", overflow: "hidden" }} />
                         {nlBylineField(card, "left")}
                         {card.image ? (
                           <div style={{ margin: "0 0 0.85rem", position: "relative" }}>
@@ -1159,6 +1175,15 @@ export default function NewsletterEditorClient({
               <div className="nl-add-line" style={{ flex: 1, height: 1, background: "#ddd" }} />
               <span className="nl-add-label" style={{ fontFamily: FONT, fontSize: "0.7rem", color: TEXT_MUTED, whiteSpace: "nowrap", padding: "0 0.3rem" }}>+ Add section</span>
               <div className="nl-add-line" style={{ flex: 1, height: 1, background: "#ddd" }} />
+            </div>
+          </div>
+
+          {/* Member callout — matches the email exactly; shown on every sent issue */}
+          <div style={{ background: "#000000", padding: "0 1rem 1rem" }}>
+            <div style={{ border: `1px solid #b8b8ba`, padding: "1.75rem 2.1rem", textAlign: "center" }}>
+              <p style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.25rem", lineHeight: 1.3, color: "#ffffff", margin: "0 0 0.6rem" }}>Keep reading with a membership</p>
+              <p style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.88rem", lineHeight: 1.5, color: "#b8b8ba", margin: "0 auto 1.25rem", maxWidth: 340 }}>Join to read every story in full, unlock the archive, and support narrative nonfiction.</p>
+              <span style={{ display: "inline-block", background: CRIMSON, color: "#ffffff", padding: "0.75rem 1.6rem", fontFamily: FONT, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase" }}>Become a Member</span>
             </div>
           </div>
 
