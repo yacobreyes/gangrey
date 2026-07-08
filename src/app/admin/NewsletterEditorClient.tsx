@@ -872,41 +872,48 @@ export default function NewsletterEditorClient({
         {/* Magazine page — 600px to match the email's inbox-safe width */}
         <div style={{ maxWidth: 600, margin: "0 auto", background: "#ffffff", boxShadow: "0 4px 32px rgba(0,0,0,0.18)" }}>
 
-          {/* Masthead */}
-          <div style={{ background: "#ffffff", padding: "1.5rem 0", textAlign: "center", borderBottom: `1px solid #b8b8ba` }}>
-            <img src="/Wordmark.png?v=7" alt="Gangrey" width={300} height={110} style={{ width: 300, height: 110, maxWidth: "100%", display: "block", margin: "0 auto" }} />
-          </div>
-          {/* Dateline strip — white, ruled top and bottom */}
-          {/* Dateline + intro in one crimson band */}
-          <div style={{ background: CRIMSON, padding: "0.6rem 2.5rem 1.5rem", textAlign: "center" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.1rem" }}>
-              <span style={{ fontFamily: FONT, fontSize: "0.6rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#ffffff" }}>{todayLabel}</span>
-              <span style={{ fontFamily: FONT, fontSize: "0.6rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "#ffffff" }}>
-                {nlVolume ? `Vol. ${nlVolume}` : ""}{nlVolume && nlIssue ? "  ·  " : ""}{nlIssue ? `No. ${nlIssue}` : ""}
-              </span>
-            </div>
-            <div style={{ maxWidth: 440, margin: "0 auto" }}>
-              <textarea
-                ref={nlIntroRef}
-                value={nlIntro}
-                onChange={e => setNlIntro(e.target.value)}
-                readOnly={nlReadOnly}
-                placeholder="A note to readers…"
-                rows={1}
-                style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1rem", lineHeight: 1.6, color: "#ffffff", border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, resize: "none", boxSizing: "border-box", display: "block", textAlign: "center", overflow: "hidden" }}
-              />
-              {nlAuthor && (
-                <p style={{ fontFamily: CANVAS_BYLINE, fontSize: "0.72rem", fontWeight: 700, color: "#ffffff", margin: "0.6rem 0 0", letterSpacing: "0.08em", textTransform: "uppercase" }}>By {nlAuthor}</p>
-              )}
+          {/* Cover masthead — black panel, keyline border, white wordmark (matches the email) */}
+          <div style={{ background: "#000000", padding: "1rem" }}>
+            <div style={{ border: `1px solid #b8b8ba`, padding: "1.9rem 2.1rem 1.4rem" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.4rem" }}>
+                <span style={{ fontFamily: FONT, fontSize: "0.55rem", letterSpacing: "0.28em", textTransform: "uppercase", color: "#b8b8ba" }}>A Literary Magazine</span>
+                <span style={{ fontFamily: FONT, fontSize: "0.55rem", letterSpacing: "0.28em", textTransform: "uppercase", color: "#b8b8ba" }}>Gangrey.org</span>
+              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/Wordmark-White.png?v=1" alt="Gangrey" width={290} style={{ width: 290, maxWidth: "100%", display: "block", margin: "0 auto 1.1rem" }} />
+              <div style={{ width: 40, height: 2, background: CRIMSON, margin: "0 auto 1.1rem" }} />
+              <div style={{ maxWidth: 440, margin: "0 auto" }}>
+                <textarea
+                  ref={nlIntroRef}
+                  value={nlIntro}
+                  onChange={e => setNlIntro(e.target.value)}
+                  readOnly={nlReadOnly}
+                  placeholder="A note to readers…"
+                  rows={1}
+                  style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.95rem", lineHeight: 1.6, color: "#b8b8ba", border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, resize: "none", boxSizing: "border-box", display: "block", textAlign: "center", overflow: "hidden" }}
+                />
+                {nlAuthor && (
+                  <p style={{ fontFamily: FONT, fontSize: "0.62rem", fontWeight: 400, color: "#b8b8ba", margin: "0.9rem 0 0", letterSpacing: "0.22em", textTransform: "uppercase", textAlign: "center" }}>Guest Editor · <span style={{ color: "#ffffff" }}>{nlAuthor}</span></p>
+                )}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: `1px solid #b8b8ba`, marginTop: "1.4rem", paddingTop: "0.9rem" }}>
+                <span style={{ fontFamily: FONT, fontSize: "0.6rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#ffffff" }}>Est. 2026</span>
+                <span style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.75rem", color: "#ffffff" }}>
+                  {nlVolume ? <><span style={{ color: "#b8b8ba" }}>Vol.</span> {nlVolume} </> : ""}{nlIssue ? <><span style={{ color: "#b8b8ba" }}>No.</span> {nlIssue}</> : ""}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Cards — warm greige body behind them (matches the email) so white
-              cards read as panels on a colored ground, not white-on-white. */}
-          <div style={{ background: "#ece6dd", padding: "0 2.5rem 2.5rem" }}>
+          {/* Cards — black ground (matches the email) so white article sheets
+              float on it with a 16px gutter. */}
+          <div style={{ background: "#000000", padding: "1rem 1rem 0" }}>
             {nlCards.map((card, i) => {
               const type = card.cardType ?? (i === 0 ? "narratives" : "essays");
               const sectionLabel = type === "narratives" ? "NARRATIVES" : type === "essays" ? "ESSAYS" : type === "archive" ? "FROM THE ARCHIVE" : "MICRO-MEMOIR";
+              // Essays/Narratives render as white "sheets" floating on the black
+              // ground; micro-memoir & archive supply their own card chrome.
+              const sheet = type === "essays" || type === "narratives";
               const isDragging = nlMovingId === card.id;
               // While any card is being dragged, collapse all others to a slim handle row
               // so the cursor only needs to travel a short distance to swap order.
@@ -917,14 +924,14 @@ export default function NewsletterEditorClient({
                   <div className="nl-add-zone" onClick={() => nlAddCardAfter(i - 1)}
                     style={{ display: "flex", alignItems: "center", gap: "0.6rem", height: 24, cursor: "pointer" }}>
                     <div className="nl-add-line" style={{ flex: 1, height: 1, background: "#ddd" }} />
-                    <span className="nl-add-label" style={{ fontFamily: FONT, fontSize: "0.7rem", color: TEXT_MUTED, whiteSpace: "nowrap", padding: "0 0.3rem" }}>+ Add section</span>
+                    <span className="nl-add-label" style={{ fontFamily: FONT, fontSize: "0.7rem", color: "#b8b8ba", whiteSpace: "nowrap", padding: "0 0.3rem" }}>+ Add section</span>
                     <div className="nl-add-line" style={{ flex: 1, height: 1, background: "#ddd" }} />
                   </div>
 
                   <div className="nl-card" draggable={false}
                     ref={el => { nlCardRefs.current[card.id] = el; }}
                     onFocusCapture={() => { const ed = nlEditors.current[card.id]; setNlActiveEditor(ed && !ed.isDestroyed ? ed : null); setNlActiveToolbar(nlToolbars.current[card.id] ?? null); }}
-                    style={{ position: "relative", pointerEvents: isDragging ? "none" : undefined, cursor: nlMovingId && !isDragging ? "pointer" : undefined }}>
+                    style={{ position: "relative", pointerEvents: isDragging ? "none" : undefined, cursor: nlMovingId && !isDragging ? "pointer" : undefined, ...(sheet && !isDragging && !collapsed ? { background: "#ffffff", padding: "0.5rem 2rem 1.5rem", marginBottom: "1rem" } : {}) }}>
 
                   {/* Placeholder drop-slot — the dragged card itself, shown as a slim
                       dashed gap so the rest of the list stays compact while moving. */}
@@ -943,7 +950,7 @@ export default function NewsletterEditorClient({
                     {/* Section label — small-caps flag, non-editable. Omitted for
                         micro-memoir, whose byline already reads "A Micro-Memoir by…". */}
                     {type !== "micro-memoir" && (
-                      <div style={{ paddingTop: "1.25rem", fontFamily: FONT, fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.18em", color: CRIMSON, marginBottom: "0.4rem" }}>
+                      <div style={{ paddingTop: sheet ? "0.75rem" : "1.25rem", fontFamily: FONT, fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.24em", color: sheet ? CRIMSON : "#b8b8ba", marginBottom: "0.4rem" }}>
                         {sectionLabel}
                       </div>
                     )}
@@ -977,7 +984,7 @@ export default function NewsletterEditorClient({
                     {type === "narratives" && (
                       <div style={{ paddingTop: "1rem", paddingBottom: "2rem" }}>
                         {card.image ? (
-                          <div style={{ margin: "0 -2.5rem 1.75rem", position: "relative" }}>
+                          <div style={{ margin: "0 -2rem 1.75rem", position: "relative" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={sized(card.image.url, 1040)} alt={card.image.alt ?? ""} style={{ width: "100%", maxHeight: 400, objectFit: "cover", display: "block" }} />
                             <input value={card.image.caption ?? ""} onChange={e => nlUpdateCard(card.id, { image: { ...card.image!, caption: straightenQuotes(e.target.value) } })}
@@ -994,7 +1001,7 @@ export default function NewsletterEditorClient({
                           </button>
                         )}
                         <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Feature headline"
-                          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.9rem", fontWeight: 700, lineHeight: 1.15, color: CRIMSON, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "1rem", display: "block", boxSizing: "border-box", textAlign: "center" }} />
+                          style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "2.1rem", fontWeight: 700, lineHeight: 1.06, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "1rem", display: "block", boxSizing: "border-box", textAlign: "center" }} />
                         {nlBylineField(card, "center")}
                         <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} placeholder="Lead paragraph…"
                           onChange={doc => nlUpdateCard(card.id, { doc })}
@@ -1009,13 +1016,13 @@ export default function NewsletterEditorClient({
                       <div style={{ paddingTop: "1rem", paddingBottom: "1.75rem" }}>
                         <div style={{ borderTop: `2px solid ${CRIMSON}`, paddingTop: "0.85rem", marginBottom: "0.85rem" }}>
                           <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Essay title"
-                            style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.5rem", fontWeight: 400, lineHeight: 1.25, color: CRIMSON, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, boxSizing: "border-box", display: "block" }} />
+                            style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.8rem", fontWeight: 700, lineHeight: 1.1, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, boxSizing: "border-box", display: "block" }} />
                         </div>
                         {nlBylineField(card, "left")}
                         {card.image ? (
-                          <div style={{ marginBottom: "0.85rem", position: "relative" }}>
+                          <div style={{ margin: "0 -2rem 0.85rem", position: "relative" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", maxHeight: 240, objectFit: "cover", display: "block" }} />
+                            <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", maxHeight: 300, objectFit: "cover", display: "block" }} />
                             <div className="nl-card-controls" style={{ position: "absolute", top: "0.4rem", right: "0.4rem", display: "flex", gap: "0.35rem" }}>
                               <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Change</button>
                               <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Remove</button>
@@ -1039,7 +1046,7 @@ export default function NewsletterEditorClient({
 
                     {/* MICRO-MEMOIR card — literary magazine style */}
                     {type === "micro-memoir" && (
-                      <div style={{ background: "#ffffff", padding: "2rem 2rem 2.5rem", borderTop: `1px solid #b8b8ba`, borderBottom: `1px solid #b8b8ba`, margin: "0 -2.5rem" }}>
+                      <div style={{ background: "#ffffff", padding: "1.75rem 1.75rem 2rem", border: `1px solid #b8b8ba`, borderRadius: 16, boxShadow: "0 2px 12px rgba(0,0,0,0.4)", margin: "0 0 1rem" }}>
                         <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Title"
                           style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.7rem", fontStyle: "normal", fontWeight: 400, lineHeight: 1.2, letterSpacing: "0.02em", color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "0.35rem", display: "block", boxSizing: "border-box", textAlign: "center" }} />
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.35rem", flexWrap: "wrap", margin: "0 0 1.5rem" }}>
@@ -1071,7 +1078,7 @@ export default function NewsletterEditorClient({
                     {/* ARCHIVE card — a framed "from the archive" reprint on warm
                         parchment, italic serif headline, to feel like a classic. */}
                     {type === "archive" && (
-                      <div style={{ background: "#ffffff", border: `1px solid #b8b8ba`, borderTop: `3px solid ${CRIMSON}`, padding: "1.5rem 2rem 2rem", margin: "0 -1rem" }}>
+                      <div style={{ background: "#ffffff", border: `1px solid #b8b8ba`, padding: "1.75rem 1.75rem 2rem", margin: "0 0 1rem", transform: "rotate(-0.7deg)", boxShadow: "0 8px 16px rgba(0,0,0,0.5)" }}>
                         {card.image && (
                           <div style={{ margin: "0 0 1.25rem", position: "relative" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
