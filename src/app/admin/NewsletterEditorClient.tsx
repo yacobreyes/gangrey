@@ -915,15 +915,17 @@ export default function NewsletterEditorClient({
                   rows={1}
                   style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.95rem", lineHeight: 1.6, color: "#b8b8ba", border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, resize: "none", boxSizing: "border-box", display: "block", textAlign: "center", overflow: "hidden" }}
                 />
-                {nlAuthor && (
+                {!nlClassics && nlAuthor && (
                   <p style={{ fontFamily: FONT, fontSize: "0.62rem", fontWeight: 400, color: "#b8b8ba", margin: "0.9rem 0 0", letterSpacing: "0.22em", textTransform: "uppercase", textAlign: "center" }}>Guest Editor · <span style={{ color: "#ffffff" }}>{nlAuthor}</span></p>
                 )}
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: `1px solid #b8b8ba`, marginTop: "1.4rem", paddingTop: "0.9rem" }}>
                 <span style={{ fontFamily: FONT, fontSize: "0.6rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#ffffff" }}>Est. 2026</span>
-                <span style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.75rem", color: "#ffffff" }}>
-                  {nlVolume ? <><span style={{ color: "#b8b8ba" }}>Vol.</span> {nlVolume} </> : ""}{nlIssue ? <><span style={{ color: "#b8b8ba" }}>No.</span> {nlIssue}</> : ""}
-                </span>
+                {!nlClassics && (
+                  <span style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.75rem", color: "#ffffff" }}>
+                    {nlVolume ? <><span style={{ color: "#b8b8ba" }}>Vol.</span> {nlVolume} </> : ""}{nlIssue ? <><span style={{ color: "#b8b8ba" }}>No.</span> {nlIssue}</> : ""}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -1215,20 +1217,24 @@ export default function NewsletterEditorClient({
         <div style={{ maxWidth: 600, margin: "2rem auto 0" }}>
           <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.85rem" }}>
             <h3 style={{ fontFamily: FONT, fontSize: "1rem", fontWeight: 700, color: TEXT_DARK, margin: 0 }}>Newsletter info</h3>
-            <div style={{ display: "flex", gap: "0.75rem" }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontFamily: FONT, fontSize: "0.75rem", fontWeight: 600, color: TEXT_MUTED, display: "block", marginBottom: "0.3rem" }}>Volume</label>
-                <input value={nlVolume} onChange={e => setNlVolume(e.target.value)} readOnly={nlReadOnly} placeholder="1" style={INPUT} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontFamily: FONT, fontSize: "0.75rem", fontWeight: 600, color: TEXT_MUTED, display: "block", marginBottom: "0.3rem" }}>Issue</label>
-                <input value={nlIssue} onChange={e => setNlIssue(e.target.value)} readOnly={nlReadOnly} placeholder="1" style={INPUT} />
-              </div>
-            </div>
-            <div>
-              <label style={{ fontFamily: FONT, fontSize: "0.75rem", fontWeight: 600, color: TEXT_MUTED, display: "block", marginBottom: "0.3rem" }}>Author</label>
-              <input value={nlAuthor} onChange={e => setNlAuthor(e.target.value)} readOnly={nlReadOnly} style={INPUT} />
-            </div>
+            {!nlClassics && (
+              <>
+                <div style={{ display: "flex", gap: "0.75rem" }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontFamily: FONT, fontSize: "0.75rem", fontWeight: 600, color: TEXT_MUTED, display: "block", marginBottom: "0.3rem" }}>Volume</label>
+                    <input value={nlVolume} onChange={e => setNlVolume(e.target.value)} readOnly={nlReadOnly} placeholder="1" style={INPUT} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontFamily: FONT, fontSize: "0.75rem", fontWeight: 600, color: TEXT_MUTED, display: "block", marginBottom: "0.3rem" }}>Issue</label>
+                    <input value={nlIssue} onChange={e => setNlIssue(e.target.value)} readOnly={nlReadOnly} placeholder="1" style={INPUT} />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontFamily: FONT, fontSize: "0.75rem", fontWeight: 600, color: TEXT_MUTED, display: "block", marginBottom: "0.3rem" }}>Guest Editor</label>
+                  <input value={nlAuthor} onChange={e => setNlAuthor(e.target.value)} readOnly={nlReadOnly} style={INPUT} />
+                </div>
+              </>
+            )}
             <div>
               <label style={{ fontFamily: FONT, fontSize: "0.75rem", fontWeight: 600, color: TEXT_MUTED, display: "block", marginBottom: "0.3rem" }}>Subject line<span style={{ color: CRIMSON }}>*</span></label>
               <input value={nlSubject} onChange={e => setNlSubject(e.target.value)} readOnly={nlReadOnly} placeholder="Add a subject line" style={INPUT} />
