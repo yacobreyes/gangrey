@@ -50,13 +50,45 @@ echo "==> Swapping to the new image…"
 docker compose up -d
 
 echo "==> Waiting for the app to answer…"
+live=0
 for i in $(seq 1 30); do
   if curl -fsS -o /dev/null http://localhost:3000; then
-    echo "==> Live. Deploy complete."
-    exit 0
+    live=1
+    break
   fi
   sleep 2
 done
 
-echo "WARNING: app did not return 200 within 60s — check: docker compose logs --tail=40 imago"
-exit 1
+if [ "$live" -ne 1 ]; then
+  echo "WARNING: app did not return 200 within 60s — check: docker compose logs --tail=40 imago"
+  exit 1
+fi
+
+# --- Pre-generate every image derivative (both WebP and JPEG) -----------------
+# The /media route encodes each size/format on first request and caches it to
+# the /data volume. Without this pass the FIRST visitor after a deploy pays for
+# a cold sharp encode of every image on the page — the "why is it still slow"
+# problem. Warming both formats here means real traffic only ever hits the warm
+# disk cache. Idempotent and safe to re-run; the cache survives deploys, so this
+# only fills gaps (new stories, new sizes) after the first full run.
+CRON_SECRET="$(grep -E '^CRON_SECRET=' .env.selfhost 2>/dev/null | head -1 | cut -d= -f2-)"
+if [ -n "${CRON_SECRET:-}" ]; then
+  echo "==> Warming image cache (WebP + JPEG) — this can take a few minutes on first run…"
+  offset=0
+  while :; do
+    resp="$(curl -fsS -X POST -H "Authorization: Bearer ${CRON_SECRET}" \
+      "http://localhost:3000/api/admin/warm-images?offset=${offset}&limit=200" || true)"
+    [ -z "$resp" ] && { echo "    (warm request failed — skipping; images will warm on first view)"; break; }
+    echo "    $resp"
+    case "$resp" in
+      *'"done":true'*) echo "==> Image cache warm."; break ;;
+    esac
+    offset="$(printf '%s' "$resp" | sed -n 's/.*"nextOffset":\([0-9]*\).*/\1/p')"
+    [ -z "$offset" ] && break
+  done
+else
+  echo "==> Skipping image warm (CRON_SECRET not found in .env.selfhost)."
+fi
+
+echo "==> Live. Deploy complete."
+exit 0

@@ -31,11 +31,21 @@ const SIZES: [number, number][] = [
   [520, 293],
 ];
 
+// Browsers (and Gmail's image proxy) request WebP via Accept; everything else
+// falls back to JPEG. Each format caches to its own file, so we warm BOTH or a
+// real visitor still eats a cold encode for whichever one we skipped.
+const ACCEPTS: [string, string][] = [
+  ["webp", "image/webp,image/avif,image/*,*/*"],
+  ["jpeg", "image/jpeg,*/*"],
+];
+
 async function warmOne(base: string, image: { url?: string; crops?: unknown }): Promise<void> {
   for (const [w, h] of SIZES) {
     const u = postImageUrl(image as never, w, h);
     if (!u) continue;
-    try { await fetch(`${base}${u}`, { cache: "no-store" }); } catch { /* ignore */ }
+    for (const [, accept] of ACCEPTS) {
+      try { await fetch(`${base}${u}`, { cache: "no-store", headers: { accept } }); } catch { /* ignore */ }
+    }
   }
 }
 
