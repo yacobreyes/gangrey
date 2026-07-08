@@ -984,7 +984,7 @@ export default function NewsletterEditorClient({
                     {type === "narratives" && (
                       <div style={{ paddingTop: "1rem", paddingBottom: "2rem" }}>
                         {card.image ? (
-                          <div style={{ margin: "0 -2rem 1.75rem", position: "relative" }}>
+                          <div style={{ margin: "0 0 1.75rem", position: "relative" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={sized(card.image.url, 1040)} alt={card.image.alt ?? ""} style={{ width: "100%", maxHeight: 400, objectFit: "cover", display: "block" }} />
                             <input value={card.image.caption ?? ""} onChange={e => nlUpdateCard(card.id, { image: { ...card.image!, caption: straightenQuotes(e.target.value) } })}
@@ -1020,7 +1020,7 @@ export default function NewsletterEditorClient({
                         </div>
                         {nlBylineField(card, "left")}
                         {card.image ? (
-                          <div style={{ margin: "0 -2rem 0.85rem", position: "relative" }}>
+                          <div style={{ margin: "0 0 0.85rem", position: "relative" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", maxHeight: 300, objectFit: "cover", display: "block" }} />
                             <div className="nl-card-controls" style={{ position: "absolute", top: "0.4rem", right: "0.4rem", display: "flex", gap: "0.35rem" }}>
@@ -1155,10 +1155,12 @@ export default function NewsletterEditorClient({
             </div>
           </div>
 
-          {/* Footer */}
-          <div style={{ background: CRIMSON, padding: "1.25rem 2.5rem", textAlign: "center" }}>
-            <p style={{ fontFamily: FONT, fontSize: "0.62rem", color: "white", letterSpacing: "0.2em", textTransform: "uppercase", margin: "0 0 0.4rem" }}>You're receiving this because you subscribed to Gangrey</p>
-            <p style={{ fontFamily: FONT, fontSize: "0.62rem", color: "white", letterSpacing: "0.18em", textTransform: "uppercase", margin: 0, fontWeight: 600 }}>Unsubscribe</p>
+          {/* Footer — black keyline panel (matches email/reference) */}
+          <div style={{ background: "#000000", padding: 16 }}>
+            <div style={{ border: `1px solid #b8b8ba`, padding: "18px 34px", textAlign: "center" }}>
+              <p style={{ fontFamily: FONT, fontSize: "0.62rem", lineHeight: 1.7, color: "#b8b8ba", letterSpacing: "0.14em", textTransform: "uppercase", margin: "0 0 0.6rem" }}>You&apos;re receiving this because you subscribed to Gangrey</p>
+              <span style={{ fontFamily: FONT, fontSize: "0.62rem", fontWeight: 700, color: "#ffffff", letterSpacing: "0.18em", textTransform: "uppercase", borderBottom: `1px solid ${CRIMSON}`, paddingBottom: 2 }}>Unsubscribe</span>
+            </div>
           </div>
         </div>
 
