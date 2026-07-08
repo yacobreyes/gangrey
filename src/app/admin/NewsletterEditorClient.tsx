@@ -896,7 +896,7 @@ export default function NewsletterEditorClient({
           <div style={{ background: "#000000", padding: "1rem" }}>
             <div style={{ border: `1px solid #b8b8ba`, padding: "1.9rem 2.1rem 1.4rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.4rem" }}>
-                <span style={{ fontFamily: FONT, fontSize: "0.55rem", letterSpacing: "0.28em", textTransform: "uppercase", color: "#b8b8ba" }}>{nlClassics ? "Gangrey Classics" : "A Literary Magazine"}</span>
+                <span style={{ fontFamily: FONT, fontSize: "0.55rem", letterSpacing: "0.28em", textTransform: "uppercase", color: "#b8b8ba" }}>A Literary Magazine</span>
                 <span style={{ fontFamily: FONT, fontSize: "0.55rem", letterSpacing: "0.28em", textTransform: "uppercase", color: "#b8b8ba" }}>Gangrey.org</span>
               </div>
               {/* eslint-disable-next-line @next/next/no-img-element */}

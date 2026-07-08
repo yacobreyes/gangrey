@@ -260,7 +260,7 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean }): stri
     ? `<div style="background:${GROUND};padding:16px;">
         <div style="border:1px solid ${RULE};padding:26px 34px 24px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;"><tr>
-            <td align="left" style="font-family:${FONT};font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:${RULE};">${raw.classics ? "Gangrey Classics" : "A Literary Magazine"}</td>
+            <td align="left" style="font-family:${FONT};font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:${RULE};">A Literary Magazine</td>
             <td align="right" style="font-family:${FONT};font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:${RULE};">gangrey.org</td>
           </tr></table>
           <a href="${SITE_URL}" target="_blank" rel="noopener" style="text-decoration:none;">
