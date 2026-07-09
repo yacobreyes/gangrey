@@ -2,7 +2,18 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Bundled Page</title>
+  <title>Susana's Recording</title>
+  <meta property="og:title" content="Susana's Recording">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://gangrey.org/recording">
+  <meta property="og:site_name" content="Gangrey">
+  <meta property="og:image" content="https://gangrey.org/recording-og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Susana's Recording">
+  <meta name="twitter:image" content="https://gangrey.org/recording-og.png">
+  <meta name="robots" content="noindex, nofollow">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #100d0b; display: flex; align-items: center; justify-content: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
@@ -144,6 +155,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // preserve ordering (React before ReactDOM before Babel before text/babel).
     const doc = new DOMParser().parseFromString(template, 'text/html');
     document.documentElement.replaceWith(doc.documentElement);
+    document.title = "Susana's Recording";
     const dead = Array.from(document.scripts);
     for (const old of dead) {
       const s = document.createElement('script');
