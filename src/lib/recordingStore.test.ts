@@ -188,6 +188,13 @@ describe("recordingStore", () => {
     expect(() => JSON.parse(extractTemplateRaw(html))).not.toThrow();
   });
 
+  it("hides the dialogue timecodes but keeps tc data for audio scheduling", () => {
+    listRecordingLines(); // triggers the auto-upgrade
+    const template = JSON.parse(extractTemplateRaw(liveHtml())) as string;
+    expect(template).not.toContain("{{ b.tc }}");
+    expect(template).toContain("tc:'00:52'"); // beat data intact
+  });
+
   it("the unmodified live copy still JSON-parses (sanity on the seed itself)", () => {
     expect(() => JSON.parse(extractTemplateRaw(liveHtml()))).not.toThrow();
   });

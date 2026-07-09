@@ -241,10 +241,20 @@ export function stripClipFades(template: string): string {
   });
 }
 
+// Removes the faint mono timecode ("00:52") shown beside each speaker name in
+// the reading view. The tc values stay on the beats — the player derives its
+// audio scheduling from them — this only drops the visual.
+export function patchHideTimecodes(template: string): string {
+  return template.replace(
+    "<span style=\"font:500 11px/1 'IBM Plex Mono';letter-spacing:.12em;color:rgba(233,225,210,.3)\">{{ b.tc }}</span>",
+    "",
+  );
+}
+
 // Every template upgrade, applied in order; recordingFilePath runs this on
 // the live copy so existing installs pick new patches up without losing edits.
 export function applyTemplateUpgrades(template: string): string {
-  return stripClipFades(patchIntroEndStyle(patchPlayerFade(template)));
+  return patchHideTimecodes(stripClipFades(patchIntroEndStyle(patchPlayerFade(template))));
 }
 
 // --- sms send sound (file-level upgrade) ---------------------------------------
