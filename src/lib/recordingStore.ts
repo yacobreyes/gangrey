@@ -264,10 +264,53 @@ export function patchDisableLocalOverrides(template: string): string {
   );
 }
 
+// Load glitch (root cause): the title card is position:fixed inset:0 with an
+// OPAQUE background, but it fades in via `softin .6s` from opacity 0 — so for
+// the first ~0.6s the whole card is translucent and everything behind it
+// shows through: the numbered evidence/dossier column on the left, the nav
+// bar, etc. Drop the fade on the OUTER card so its opaque background paints on
+// frame 1 and masks everything; the inner kicker/date/hairline keep their own
+// staggered entrance animations, so the reveal still looks cinematic.
+export function patchKillTitleFlash(template: string): string {
+  return template.replace(
+    "background:radial-gradient(125% 95% at 50% 42%, #18130e, #0b0908);animation:softin .6s ease both\">",
+    "background:radial-gradient(125% 95% at 50% 42%, #18130e, #0b0908)\">",
+  );
+}
+
+// The bottom nav bar (BACK / advance hint / RESTART) is fixed at z-45 and
+// always rendered; it has no business on the title screen. Gate it behind
+// `started` (already exposed to the view) so it only appears once reading.
+export function patchGateNavBar(template: string): string {
+  if (template.includes('value="{{ started }}"')) return template; // already gated
+  const head = '<div style="position:fixed;bottom:16px;left:0;right:0;z-index:45;display:flex;align-items:center;justify-content:center;pointer-events:none">';
+  const tail = 'RESTART</button>\n      </div>\n    </div>';
+  if (!template.includes(head) || !template.includes(tail)) return template;
+  return template
+    .replace(head, `<sc-if value="{{ started }}">${head}`)
+    .replace(tail, `${tail}</sc-if>`);
+}
+
+// Editorial disclaimer under the date on the title card, above the begin
+// prompt. Anchored on the date text, which survives the style patch.
+const DISCLAIMER = "Warning: This report contains details of sexual assault.";
+export function patchTitleDisclaimer(template: string): string {
+  if (template.includes(DISCLAIMER)) return template;
+  const anchor = "August 8, 2018</h1>";
+  if (!template.includes(anchor)) return template;
+  const el =
+    "<div style=\"margin-top:30px;max-width:46ch;font:500 12px/1.7 'IBM Plex Mono';" +
+    "letter-spacing:.05em;color:rgba(233,225,210,.42);animation:softin 1s 1.7s both\">" +
+    `${DISCLAIMER}</div>`;
+  return template.replace(anchor, `${anchor}${el}`);
+}
+
 // Every template upgrade, applied in order; recordingFilePath runs this on
 // the live copy so existing installs pick new patches up without losing edits.
 export function applyTemplateUpgrades(template: string): string {
-  return patchDisableLocalOverrides(patchHideTimecodes(stripClipFades(patchIntroEndStyle(patchPlayerFade(template)))));
+  return patchTitleDisclaimer(patchGateNavBar(patchKillTitleFlash(
+    patchDisableLocalOverrides(patchHideTimecodes(stripClipFades(patchIntroEndStyle(patchPlayerFade(template))))),
+  )));
 }
 
 // --- sms send sound (file-level upgrade) ---------------------------------------

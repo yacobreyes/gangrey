@@ -208,6 +208,33 @@ describe("recordingStore", () => {
     expect(template).toContain("localStorage.removeItem(this.OVKEY)");
   });
 
+  it("title card: opaque background paints instantly (no softin fade → no flash of the content behind)", () => {
+    listRecordingLines(); // triggers the auto-upgrade
+    const template = JSON.parse(extractTemplateRaw(liveHtml())) as string;
+    // The outer title card no longer fades from opacity 0...
+    expect(template).not.toContain("#18130e, #0b0908);animation:softin .6s ease both");
+    // ...but the inner entrance animations remain.
+    expect(template).toContain("@keyframes dateIn");
+  });
+
+  it("nav bar (BACK/RESTART) is gated behind `started` so it can't flash on the title screen", () => {
+    listRecordingLines();
+    const template = JSON.parse(extractTemplateRaw(liveHtml())) as string;
+    expect(template).toContain('<sc-if value="{{ started }}"><div style="position:fixed;bottom:16px');
+    expect(template).toContain("RESTART</button>\n      </div>\n    </div></sc-if>");
+  });
+
+  it("adds the sexual-assault disclaimer under the date, once", () => {
+    listRecordingLines();
+    const template = JSON.parse(extractTemplateRaw(liveHtml())) as string;
+    expect(template).toContain("Warning: This report contains details of sexual assault.");
+    // Idempotent — a second upgrade pass doesn't duplicate it.
+    listRecordingLines();
+    const again = JSON.parse(extractTemplateRaw(liveHtml())) as string;
+    expect(again.split("Warning: This report contains details of sexual assault.").length - 1).toBe(1);
+    expect(() => JSON.parse(extractTemplateRaw(liveHtml()))).not.toThrow();
+  });
+
   it("the unmodified live copy still JSON-parses (sanity on the seed itself)", () => {
     expect(() => JSON.parse(extractTemplateRaw(liveHtml()))).not.toThrow();
   });
