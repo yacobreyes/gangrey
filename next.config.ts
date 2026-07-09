@@ -27,11 +27,10 @@ const nextConfig: NextConfig = {
   },
   // Keep the secret page out of search results.
   async headers() {
+    const noindex = [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
     return [
-      {
-        source: "/recording:path*",
-        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
-      },
+      { source: "/recording", headers: noindex },
+      { source: "/recording.html", headers: noindex },
     ];
   },
   // Canonical host is the bare gangrey.org — 301 any www.gangrey.org request to
