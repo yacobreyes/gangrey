@@ -227,12 +227,24 @@ describe("recordingStore", () => {
   it("adds the sexual-assault disclaimer under the date, once", () => {
     listRecordingLines();
     const template = JSON.parse(extractTemplateRaw(liveHtml())) as string;
-    expect(template).toContain("Warning: This report contains details of sexual assault.");
+    expect(template).toContain("Warning: This report contains references to sexual assault.");
     // Idempotent — a second upgrade pass doesn't duplicate it.
     listRecordingLines();
     const again = JSON.parse(extractTemplateRaw(liveHtml())) as string;
-    expect(again.split("Warning: This report contains details of sexual assault.").length - 1).toBe(1);
+    expect(again.split("Warning: This report contains references to sexual assault.").length - 1).toBe(1);
     expect(() => JSON.parse(extractTemplateRaw(liveHtml()))).not.toThrow();
+  });
+
+  it("migrates an earlier disclaimer wording in place (no duplicate warning)", () => {
+    // Simulate a live copy already carrying the previous "details of" wording.
+    const html = liveHtml();
+    const anchor = "August 8, 2018</h1>";
+    const oldEl = `${anchor}<div>Warning: This report contains details of sexual assault.</div>`;
+    fs.writeFileSync(path.join(tmp, "recording.html"), html.replace(anchor, oldEl));
+    listRecordingLines(); // triggers the upgrade
+    const upgraded = JSON.parse(extractTemplateRaw(liveHtml())) as string;
+    expect(upgraded).not.toContain("details of sexual assault");
+    expect(upgraded.split("references to sexual assault").length - 1).toBe(1);
   });
 
   it("applies the bus-stop caption copy fix", () => {

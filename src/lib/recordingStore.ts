@@ -293,9 +293,15 @@ export function patchGateNavBar(template: string): string {
 
 // Editorial disclaimer under the date on the title card, above the begin
 // prompt. Anchored on the date text, which survives the style patch.
-const DISCLAIMER = "Warning: This report contains details of sexual assault.";
+const DISCLAIMER = "Warning: This report contains references to sexual assault.";
+// Earlier wordings that a live copy may already carry — migrated in place to
+// the current text so re-running the upgrade never leaves two warnings.
+const DISCLAIMER_PRIOR = ["Warning: This report contains details of sexual assault."];
 export function patchTitleDisclaimer(template: string): string {
   if (template.includes(DISCLAIMER)) return template;
+  for (const old of DISCLAIMER_PRIOR) {
+    if (template.includes(old)) return template.split(old).join(DISCLAIMER);
+  }
   const anchor = "August 8, 2018</h1>";
   if (!template.includes(anchor)) return template;
   const el =
