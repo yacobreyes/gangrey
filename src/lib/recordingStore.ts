@@ -45,7 +45,7 @@ export function recordingFilePath(): string {
   try {
     const html = fs.readFileSync(live, "utf-8");
     const parts = splitTemplate(html);
-    const patched = patchPlayerFade(parts.template);
+    const patched = applyTemplateUpgrades(parts.template);
     if (patched !== parts.template) {
       fs.writeFileSync(live, joinTemplate({ ...parts, template: patched }));
     }
@@ -57,8 +57,80 @@ export function recordingFilePath(): string {
 // fo (fade-out seconds) on a beat, ramped through a Web Audio gain node (an
 // <audio> volume ramp is ignored on iOS). Pure text transform on the template
 // source, applied idempotently — the marker comment guards re-application.
+// The fade engine body, versioned. v1 wrote gain.value directly on a 40ms
+// interval — audibly stair-stepped ("zipper noise") on phones, where timers
+// throttle. v2 writes targets via setTargetAtTime so Web Audio ramps natively
+// between ticks, which is smooth regardless of timer cadence.
+const FADE_V1 =
+  "/* fade-patch */\n" +
+  "    this._fi = (fi != null ? +fi : 0) || 0;\n" +
+  "    this._fo = (fo != null ? +fo : 0) || 0;\n" +
+  "    this._t0 = start || 0;\n" +
+  "    if(!this._gainCtx && (this._fi > 0 || this._fo > 0) && (window.AudioContext || window.webkitAudioContext)){\n" +
+  "      try {\n" +
+  "        this._gainCtx = new (window.AudioContext || window.webkitAudioContext)();\n" +
+  "        this._gainNode = this._gainCtx.createGain();\n" +
+  "        this._gainCtx.createMediaElementSource(audio).connect(this._gainNode);\n" +
+  "        this._gainNode.connect(this._gainCtx.destination);\n" +
+  "      } catch(e){ this._gainCtx = null; this._gainNode = null; }\n" +
+  "    }\n" +
+  "    if(this._gainCtx && this._gainCtx.state === 'suspended'){ try{ this._gainCtx.resume(); }catch(e){} }\n" +
+  "    if(this._fadeTimer){ clearInterval(this._fadeTimer); this._fadeTimer = null; }\n" +
+  "    const setVol = (v) => { if(this._gainNode) this._gainNode.gain.value = v; else { try{ audio.volume = v; }catch(e){} } };\n" +
+  "    if(this._fi > 0 || this._fo > 0){\n" +
+  "      setVol(this._fi > 0 ? 0 : 1);\n" +
+  "      this._fadeTimer = setInterval(() => {\n" +
+  "        const ct = audio.currentTime; let v = 1;\n" +
+  "        if(this._fi > 0 && ct < this._t0 + this._fi) v = Math.min(v, Math.max(0, (ct - this._t0) / this._fi));\n" +
+  "        if(this._fo > 0 && this._endTime != null && ct > this._endTime - this._fo) v = Math.min(v, Math.max(0, (this._endTime - ct) / this._fo));\n" +
+  "        setVol(Math.max(0, Math.min(1, v)));\n" +
+  "        if(audio.paused){ clearInterval(this._fadeTimer); this._fadeTimer = null; setVol(1); }\n" +
+  "      }, 40);\n" +
+  "    } else { setVol(1); }";
+
+const FADE_V2 =
+  "/* fade-patch v2 */\n" +
+  "    this._fi = (fi != null ? +fi : 0) || 0;\n" +
+  "    this._fo = (fo != null ? +fo : 0) || 0;\n" +
+  "    this._t0 = start || 0;\n" +
+  "    if(!this._gainCtx && (this._fi > 0 || this._fo > 0) && (window.AudioContext || window.webkitAudioContext)){\n" +
+  "      try {\n" +
+  "        this._gainCtx = new (window.AudioContext || window.webkitAudioContext)();\n" +
+  "        this._gainNode = this._gainCtx.createGain();\n" +
+  "        this._gainCtx.createMediaElementSource(audio).connect(this._gainNode);\n" +
+  "        this._gainNode.connect(this._gainCtx.destination);\n" +
+  "      } catch(e){ this._gainCtx = null; this._gainNode = null; }\n" +
+  "    }\n" +
+  "    if(this._gainCtx && this._gainCtx.state === 'suspended'){ try{ this._gainCtx.resume(); }catch(e){} }\n" +
+  "    if(this._fadeTimer){ clearInterval(this._fadeTimer); this._fadeTimer = null; }\n" +
+  "    const g = this._gainNode, gctx = this._gainCtx;\n" +
+  "    const setVol = (v, snap) => {\n" +
+  "      if(g && gctx){\n" +
+  "        try {\n" +
+  "          if(snap){ g.gain.cancelScheduledValues(gctx.currentTime); g.gain.setValueAtTime(v, gctx.currentTime); }\n" +
+  "          // Exponential approach toward the target: Web Audio interpolates\n" +
+  "          // natively between ticks, so throttled mobile timers can't step it.\n" +
+  "          else g.gain.setTargetAtTime(v, gctx.currentTime, 0.05);\n" +
+  "        } catch(e){ g.gain.value = v; }\n" +
+  "      } else { try{ audio.volume = v; }catch(e){} }\n" +
+  "    };\n" +
+  "    if(this._fi > 0 || this._fo > 0){\n" +
+  "      setVol(this._fi > 0 ? 0.0001 : 1, true);\n" +
+  "      this._fadeTimer = setInterval(() => {\n" +
+  "        const ct = audio.currentTime; let v = 1;\n" +
+  "        if(this._fi > 0 && ct < this._t0 + this._fi) v = Math.min(v, Math.max(0.0001, (ct - this._t0) / this._fi));\n" +
+  "        if(this._fo > 0 && this._endTime != null && ct > this._endTime - this._fo) v = Math.min(v, Math.max(0.0001, (this._endTime - ct) / this._fo));\n" +
+  "        setVol(Math.max(0.0001, Math.min(1, v)));\n" +
+  "        if(audio.paused){ clearInterval(this._fadeTimer); this._fadeTimer = null; setVol(1, true); }\n" +
+  "      }, 60);\n" +
+  "    } else { setVol(1, true); }";
+
 export function patchPlayerFade(template: string): string {
-  if (template.includes("/* fade-patch */")) return template;
+  if (template.includes("/* fade-patch v2 */")) return template;
+  // Migrate a live copy that already carries the v1 engine.
+  if (template.includes("/* fade-patch */")) {
+    return template.includes(FADE_V1) ? template.replace(FADE_V1, FADE_V2) : template;
+  }
   let t = template;
   const swaps: [string, string][] = [
     // effClip carries the beat's fades through to the play call (audio
@@ -86,31 +158,7 @@ export function patchPlayerFade(template: string): string {
     ["playClip(i, src, start, end){", "playClip(i, src, start, end, fi, fo){"],
     [
       "this._endTime = (end != null ? +end : null);",
-      "this._endTime = (end != null ? +end : null);\n    /* fade-patch */\n" +
-      "    this._fi = (fi != null ? +fi : 0) || 0;\n" +
-      "    this._fo = (fo != null ? +fo : 0) || 0;\n" +
-      "    this._t0 = start || 0;\n" +
-      "    if(!this._gainCtx && (this._fi > 0 || this._fo > 0) && (window.AudioContext || window.webkitAudioContext)){\n" +
-      "      try {\n" +
-      "        this._gainCtx = new (window.AudioContext || window.webkitAudioContext)();\n" +
-      "        this._gainNode = this._gainCtx.createGain();\n" +
-      "        this._gainCtx.createMediaElementSource(audio).connect(this._gainNode);\n" +
-      "        this._gainNode.connect(this._gainCtx.destination);\n" +
-      "      } catch(e){ this._gainCtx = null; this._gainNode = null; }\n" +
-      "    }\n" +
-      "    if(this._gainCtx && this._gainCtx.state === 'suspended'){ try{ this._gainCtx.resume(); }catch(e){} }\n" +
-      "    if(this._fadeTimer){ clearInterval(this._fadeTimer); this._fadeTimer = null; }\n" +
-      "    const setVol = (v) => { if(this._gainNode) this._gainNode.gain.value = v; else { try{ audio.volume = v; }catch(e){} } };\n" +
-      "    if(this._fi > 0 || this._fo > 0){\n" +
-      "      setVol(this._fi > 0 ? 0 : 1);\n" +
-      "      this._fadeTimer = setInterval(() => {\n" +
-      "        const ct = audio.currentTime; let v = 1;\n" +
-      "        if(this._fi > 0 && ct < this._t0 + this._fi) v = Math.min(v, Math.max(0, (ct - this._t0) / this._fi));\n" +
-      "        if(this._fo > 0 && this._endTime != null && ct > this._endTime - this._fo) v = Math.min(v, Math.max(0, (this._endTime - ct) / this._fo));\n" +
-      "        setVol(Math.max(0, Math.min(1, v)));\n" +
-      "        if(audio.paused){ clearInterval(this._fadeTimer); this._fadeTimer = null; setVol(1); }\n" +
-      "      }, 40);\n" +
-      "    } else { setVol(1); }",
+      `this._endTime = (end != null ? +end : null);\n    ${FADE_V2}`,
     ],
   ];
   for (const [from, to] of swaps) {
@@ -118,6 +166,69 @@ export function patchPlayerFade(template: string): string {
     t = t.replace(from, to);
   }
   return t;
+}
+
+// Cosmetic upgrade for the title and end screens: staggered cinematic reveal
+// (kicker tracks in behind a pulsing REC dot, the date rises out of a blur,
+// the hairline draws itself) and a matching blur-rise + tracking settle on
+// the closing title/byline. Same idempotent all-or-nothing contract as the
+// fade patch.
+export function patchIntroEndStyle(template: string): string {
+  if (template.includes("@keyframes trackin")) return template;
+  let t = template;
+  const swaps: [string, string][] = [
+    [
+      "@keyframes bandGlow{0%,100%{box-shadow:0 0 0 rgba(143,32,32,0)}50%{box-shadow:0 8px 30px rgba(143,32,32,.35)}}",
+      "@keyframes bandGlow{0%,100%{box-shadow:0 0 0 rgba(143,32,32,0)}50%{box-shadow:0 8px 30px rgba(143,32,32,.35)}}\n" +
+      "    @keyframes trackin{from{opacity:0;letter-spacing:.7em;filter:blur(3px)}to{opacity:1;letter-spacing:.34em;filter:blur(0)}}\n" +
+      "    @keyframes dateIn{from{opacity:0;transform:translateY(30px) scale(.965);filter:blur(10px)}to{opacity:1;transform:none;filter:blur(0)}}\n" +
+      "    @keyframes lineDraw{from{width:0;opacity:0}to{width:50px;opacity:1}}\n" +
+      "    @keyframes endTitle{from{opacity:0;transform:translateY(34px) scale(.97);filter:blur(12px)}to{opacity:1;transform:none;filter:blur(0)}}\n" +
+      "    @keyframes subTrack{from{opacity:0;letter-spacing:.6em}to{opacity:1;letter-spacing:.32em}}",
+    ],
+    // Title screen: pulsing REC dot + kicker tracking in together.
+    [
+      "<div style=\"font:600 11px/1 'IBM Plex Mono';letter-spacing:.34em;color:#b2492f;margin-bottom:30px\">RECONSTRUCTED</div>",
+      "<div style=\"display:flex;align-items:center;justify-content:center;gap:11px;margin-bottom:30px;animation:trackin 1.1s .15s cubic-bezier(.2,.7,.2,1) both\">" +
+      "<span style=\"width:7px;height:7px;border-radius:50%;background:#c23b2e;box-shadow:0 0 12px rgba(194,59,46,.8);animation:recpulse 1.6s 1.3s infinite\"></span>" +
+      "<span style=\"font:600 11px/1 'IBM Plex Mono';color:#b2492f\">RECONSTRUCTED</span></div>",
+    ],
+    // The date rises out of a blur with a faint glow.
+    [
+      "<h1 style=\"margin:0;font-weight:300;font-size:clamp(46px,8.5vw,116px);line-height:.98;letter-spacing:-.01em\">August 8, 2018</h1>",
+      "<h1 style=\"margin:0;font-weight:300;font-size:clamp(46px,8.5vw,116px);line-height:.98;letter-spacing:-.01em;text-shadow:0 2px 60px rgba(233,225,210,.14);animation:dateIn 1.3s .5s cubic-bezier(.2,.7,.2,1) both\">August 8, 2018</h1>",
+    ],
+    // The hairline draws itself, now with soft gradient ends.
+    [
+      "<div style=\"width:50px;height:1px;background:rgba(233,225,210,.28);margin:38px auto 0\"></div>",
+      "<div style=\"width:50px;height:1px;background:linear-gradient(90deg,transparent,rgba(233,225,210,.6),transparent);margin:38px auto 0;animation:lineDraw .8s 1.5s ease both\"></div>",
+    ],
+    // The prompt holds back until the sequence settles, then breathes.
+    [
+      "<div style=\"margin-top:44px;font:600 11px/1 'IBM Plex Mono';letter-spacing:.24em;color:rgba(233,225,210,.6);animation:blink 2s infinite\">CLICK OR PRESS → TO BEGIN</div>",
+      "<div style=\"margin-top:44px;font:600 11px/1 'IBM Plex Mono';letter-spacing:.24em;color:rgba(233,225,210,.6);animation:softin .9s 2.1s both, blink 2s 3s infinite\">CLICK OR PRESS → TO BEGIN</div>",
+    ],
+    // End screen: title gets the same blur-rise + glow; byline tracks in.
+    [
+      "animation:endRise 1.1s .15s cubic-bezier(.2,.7,.2,1) both\">",
+      "text-shadow:0 2px 70px rgba(233,225,210,.16);animation:endTitle 1.4s .15s cubic-bezier(.2,.7,.2,1) both\">",
+    ],
+    [
+      "animation:endFade 1.2s 1.05s both\">",
+      "animation:subTrack 1.4s 1.2s cubic-bezier(.2,.7,.2,1) both\">",
+    ],
+  ];
+  for (const [from, to] of swaps) {
+    if (!t.includes(from)) return template; // markup changed — skip whole patch rather than half-apply
+    t = t.replace(from, to);
+  }
+  return t;
+}
+
+// Every template upgrade, applied in order; recordingFilePath runs this on
+// the live copy so existing installs pick new patches up without losing edits.
+export function applyTemplateUpgrades(template: string): string {
+  return patchIntroEndStyle(patchPlayerFade(template));
 }
 
 export function resetRecordingToBundled(): void {
@@ -285,7 +396,7 @@ export function saveRecordingClipTiming(
   if (fadeOut !== null && (!Number.isFinite(fadeOut) || fadeOut < 0)) throw new Error("Fade out must be a non-negative number of seconds.");
   if (fadeOut !== null && fadeOut > 0 && end === null) throw new Error("Fade out needs an End time to fade into.");
   const parts = splitTemplate(readFileText());
-  parts.template = patchPlayerFade(parts.template);
+  parts.template = applyTemplateUpgrades(parts.template);
   let i = 0;
   let hit = false;
   parts.template = parts.template.replace(CLIP_RE, (whole, src: string) => {

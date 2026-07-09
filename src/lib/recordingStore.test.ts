@@ -16,7 +16,7 @@ process.env.DATA_DIR = tmp;
 const {
   listRecordingLines, saveRecordingLine, findReplaceRecording,
   resetRecordingToBundled, recordingFilePath,
-  listRecordingClips, saveRecordingClipTiming, getRecordingAsset, patchPlayerFade,
+  listRecordingClips, saveRecordingClipTiming, getRecordingAsset, patchPlayerFade, patchIntroEndStyle,
 } = await import("./recordingStore");
 
 beforeEach(() => {
@@ -151,11 +151,24 @@ describe("recordingStore", () => {
     const target = clips.find(c => c.end !== null)!;
     saveRecordingClipTiming(target.index, target.start, target.end, 0.3, null);
     const template = JSON.parse(extractTemplateRaw(liveHtml())) as string;
-    expect(template).toContain("/* fade-patch */");
+    expect(template).toContain("/* fade-patch v2 */");
+    expect(template).toContain("setTargetAtTime"); // smooth ramp, not stepped gain writes
     expect(template).toContain("playClip(i, src, start, end, fi, fo){");
     expect(template).toContain("eff.fi, eff.fo");
     // Idempotent: re-applying changes nothing.
     expect(patchPlayerFade(template)).toBe(template);
+  });
+
+  it("intro/end style patch applies with the fade patch and is idempotent", () => {
+    listRecordingLines(); // triggers the auto-upgrade on the live copy
+    const template = JSON.parse(extractTemplateRaw(liveHtml())) as string;
+    expect(template).toContain("@keyframes trackin");
+    expect(template).toContain("animation:dateIn");
+    expect(template).toContain("animation:endTitle");
+    expect(template).toContain("animation:subTrack");
+    // Original single-shot animations are gone from the markup.
+    expect(template).not.toContain('animation:endRise 1.1s .15s');
+    expect(patchIntroEndStyle(template)).toBe(template);
   });
 
   it("extracts an embedded audio asset as playable bytes", () => {
