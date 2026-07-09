@@ -235,6 +235,13 @@ describe("recordingStore", () => {
     expect(() => JSON.parse(extractTemplateRaw(liveHtml()))).not.toThrow();
   });
 
+  it("applies the bus-stop caption copy fix", () => {
+    listRecordingLines(); // triggers the auto-upgrade
+    const template = JSON.parse(extractTemplateRaw(liveHtml())) as string;
+    expect(template).toContain("Susana revisited the bus stop in Miami, Florida, on June 22, 2026.");
+    expect(template).not.toContain("Susana and I revisited the bus stop");
+  });
+
   it("the unmodified live copy still JSON-parses (sanity on the seed itself)", () => {
     expect(() => JSON.parse(extractTemplateRaw(liveHtml()))).not.toThrow();
   });

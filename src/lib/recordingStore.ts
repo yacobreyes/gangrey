@@ -305,12 +305,27 @@ export function patchTitleDisclaimer(template: string): string {
   return template.replace(anchor, `${anchor}${el}`);
 }
 
+// Copy fixes to captions/text, applied on read since the in-page editor is
+// gone. Each entry is [old, new]; a missing `old` is simply skipped (already
+// applied or superseded).
+const COPY_FIXES: [string, string][] = [
+  [
+    "Susana and I revisited the bus stop in Miami, Florida, on June 22, 2026.",
+    "Susana revisited the bus stop in Miami, Florida, on June 22, 2026.",
+  ],
+];
+export function patchCopyFixes(template: string): string {
+  let t = template;
+  for (const [from, to] of COPY_FIXES) if (t.includes(from)) t = t.split(from).join(to);
+  return t;
+}
+
 // Every template upgrade, applied in order; recordingFilePath runs this on
 // the live copy so existing installs pick new patches up without losing edits.
 export function applyTemplateUpgrades(template: string): string {
-  return patchTitleDisclaimer(patchGateNavBar(patchKillTitleFlash(
+  return patchCopyFixes(patchTitleDisclaimer(patchGateNavBar(patchKillTitleFlash(
     patchDisableLocalOverrides(patchHideTimecodes(stripClipFades(patchIntroEndStyle(patchPlayerFade(template))))),
-  )));
+  ))));
 }
 
 // --- sms send sound (file-level upgrade) ---------------------------------------
