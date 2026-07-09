@@ -127,34 +127,28 @@ describe("recordingStore", () => {
     expect(() => JSON.parse(extractTemplateRaw(liveHtml()))).not.toThrow();
   });
 
-  it("saves and clears fade timings", () => {
-    const clips = listRecordingClips();
-    const target = clips.find(c => c.end !== null)!;
-    saveRecordingClipTiming(target.index, target.start, target.end, 0.3, 0.5);
-    let after = listRecordingClips()[target.index];
-    expect(after.fadeIn).toBe(0.3);
-    expect(after.fadeOut).toBe(0.5);
-    saveRecordingClipTiming(target.index, target.start, target.end, null, null);
-    after = listRecordingClips()[target.index];
-    expect(after.fadeIn).toBeNull();
-    expect(after.fadeOut).toBeNull();
+  it("strips previously saved fade params from every clip on upgrade", () => {
+    // Simulate a live copy carrying fades saved before the feature was removed.
+    const html = liveHtml();
+    const withFades = html.replace(
+      "clip:'assets/clip-we-can-do-it-tonight.mp3',ce:0.7,",
+      "clip:'assets/clip-we-can-do-it-tonight.mp3',ce:0.7,fi:0.3,fo:0.5,",
+    );
+    expect(withFades).not.toBe(html);
+    fs.writeFileSync(path.join(tmp, "recording.html"), withFades);
+    listRecordingLines(); // triggers the auto-upgrade
+    const upgraded = liveHtml();
+    expect(upgraded).not.toMatch(/,f[io]:[0-9.]+/);
+    // The trim params survive the strip.
+    const clip = listRecordingClips().find(c => c.end === 0.7);
+    expect(clip).toBeTruthy();
   });
 
-  it("rejects a fade-out with no end time", () => {
-    const clips = listRecordingClips();
-    const open = clips.find(c => c.end === null)!;
-    expect(() => saveRecordingClipTiming(open.index, open.start, null, null, 1)).toThrow(/End/);
-  });
-
-  it("player fade patch applies once, idempotently, and saving a fade installs it", () => {
-    const clips = listRecordingClips();
-    const target = clips.find(c => c.end !== null)!;
-    saveRecordingClipTiming(target.index, target.start, target.end, 0.3, null);
+  it("player fade patch applies idempotently (engine stays, inert without fi/fo)", () => {
+    listRecordingLines(); // triggers the auto-upgrade
     const template = JSON.parse(extractTemplateRaw(liveHtml())) as string;
     expect(template).toContain("/* fade-patch v2 */");
-    expect(template).toContain("setTargetAtTime"); // smooth ramp, not stepped gain writes
     expect(template).toContain("playClip(i, src, start, end, fi, fo){");
-    expect(template).toContain("eff.fi, eff.fo");
     // Idempotent: re-applying changes nothing.
     expect(patchPlayerFade(template)).toBe(template);
   });
@@ -176,6 +170,22 @@ describe("recordingStore", () => {
     expect(asset?.mime).toBe("audio/mpeg");
     expect(asset!.data.length).toBeGreaterThan(10_000);
     expect(getRecordingAsset("assets/nope.mp3")).toBeNull();
+  });
+
+  it("sms send sound is injected as a bundle asset and attached to the text beat", () => {
+    listRecordingLines(); // triggers the file-level auto-upgrade
+    const asset = getRecordingAsset("assets/sms-send.mp3");
+    expect(asset?.mime).toBe("audio/mpeg");
+    expect(asset!.data.length).toBeGreaterThan(10_000);
+    // The clip is on the sms beat and shows up in the timing editor.
+    const clips = listRecordingClips();
+    const sms = clips.find(c => c.file === "assets/sms-send.mp3");
+    expect(sms?.snippet).toContain("rape me");
+    // Idempotent: a second read doesn't double-inject.
+    listRecordingLines();
+    const html = liveHtml();
+    expect(html.split('"id":"assets/sms-send.mp3"').length - 1).toBe(1);
+    expect(() => JSON.parse(extractTemplateRaw(html))).not.toThrow();
   });
 
   it("the unmodified live copy still JSON-parses (sanity on the seed itself)", () => {

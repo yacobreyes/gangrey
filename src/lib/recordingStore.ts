@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { SMS_SEND_B64 } from "./recording-assets/smsSendB64";
 
 // Storage + edit layer for the standalone /recording page (a self-contained
 // HTML bundle). The live copy lives on the DATA_DIR volume so edits made in
@@ -43,12 +44,13 @@ export function recordingFilePath(): string {
     }
   }
   try {
-    const html = fs.readFileSync(live, "utf-8");
+    let html = fs.readFileSync(live, "utf-8");
+    const before = html;
+    html = patchSmsSendSound(html);
     const parts = splitTemplate(html);
     const patched = applyTemplateUpgrades(parts.template);
-    if (patched !== parts.template) {
-      fs.writeFileSync(live, joinTemplate({ ...parts, template: patched }));
-    }
+    if (patched !== parts.template) html = joinTemplate({ ...parts, template: patched });
+    if (html !== before) fs.writeFileSync(live, html);
   } catch { /* serve as-is if the upgrade can't apply */ }
   return live;
 }
@@ -225,10 +227,57 @@ export function patchIntroEndStyle(template: string): string {
   return t;
 }
 
+// Fades are gone from the editor — they sounded bad over phone speakers no
+// matter how the ramp was scheduled. Strip any fi/fo params previously saved
+// onto clips so nothing on the page fades. (The patched player's fade engine
+// stays in place but is inert with no fi/fo on any beat.)
+export function stripClipFades(template: string): string {
+  return template.replace(CLIP_RE, (whole, src: string, params: string) => {
+    if (!/,f[io]:/.test(params)) return whole;
+    const kept = parseClipParams(params);
+    const cs = kept.start !== null && kept.start > 0 ? `,cs:${kept.start}` : "";
+    const ce = kept.end !== null ? `,ce:${kept.end}` : "";
+    return `clip:'${src}'${cs}${ce}`;
+  });
+}
+
 // Every template upgrade, applied in order; recordingFilePath runs this on
 // the live copy so existing installs pick new patches up without losing edits.
 export function applyTemplateUpgrades(template: string): string {
-  return patchIntroEndStyle(patchPlayerFade(template));
+  return stripClipFades(patchIntroEndStyle(patchPlayerFade(template)));
+}
+
+// --- sms send sound (file-level upgrade) ---------------------------------------
+
+const SMS_SEND_ID = "assets/sms-send.mp3";
+const SMS_SEND_UUID = "5e40c0de-51a3-4b0e-9a90-6d5a2e70b001";
+
+// Injects the iPhone "message sent" whoosh into the bundle and attaches it to
+// the text-message beat, so the sms bubble lands with its sound. Unlike the
+// template patches this touches the asset manifest too, so it operates on the
+// whole file. Idempotent (guarded on the asset id); skips cleanly if any
+// anchor is missing rather than half-applying.
+export function patchSmsSendSound(html: string): string {
+  if (html.includes(`"id":"${SMS_SEND_ID}"`)) return html;
+  const manifestOpen = '<script type="__bundler/manifest">';
+  const idAnchor = '{"id":"assets/clip-we-can-do-it-tonight.mp3","uuid":"13cfacfb-fb29-43fc-8f28-57d0b201b443"}';
+  const mi = html.indexOf(manifestOpen);
+  if (mi < 0 || !html.includes(idAnchor)) return html;
+  // 1. Asset bytes into the manifest map (right after its opening "{").
+  const brace = html.indexOf("{", mi + manifestOpen.length);
+  if (brace < 0) return html;
+  let out =
+    html.slice(0, brace + 1) +
+    `"${SMS_SEND_UUID}":{"mime":"audio/mpeg","compressed":false,"data":"${SMS_SEND_B64}"},` +
+    html.slice(brace + 1);
+  // 2. Register the id → uuid mapping alongside the other audio assets.
+  out = out.replace(idAnchor, `${idAnchor},{"id":"${SMS_SEND_ID}","uuid":"${SMS_SEND_UUID}"}`);
+  // 3. Attach the clip to the sms beat in the template.
+  const parts = splitTemplate(out);
+  const beat = "{k:'sms',t:";
+  if (!parts.template.includes(beat)) return html;
+  parts.template = parts.template.replace(beat, `{k:'sms',clip:'${SMS_SEND_ID}',t:`);
+  return joinTemplate(parts);
 }
 
 export function resetRecordingToBundled(): void {
@@ -347,21 +396,20 @@ export type RecordingClip = {
   file: string;        // e.g. "assets/clip-we-can-do-it-tonight.mp3"
   start: number | null; // cs — seconds into the file playback begins (null = 0)
   end: number | null;   // ce — seconds where playback stops (null = play to end)
-  fadeIn: number | null;  // fi — seconds of fade-in from the start point
-  fadeOut: number | null; // fo — seconds of fade-out into the end point
   snippet: string;      // nearby transcript text, for identifying the clip
 };
 
-// A clip's trim/fade params sit immediately after its src in the same object
-// literal: clip:'assets/x.mp3',cs:1.5,ce:2.8,fi:0.3,fo:0.5 — all optional.
+// A clip's trim params sit immediately after its src in the same object
+// literal: clip:'assets/x.mp3',cs:1.5,ce:2.8 — all optional. fi/fo (fades)
+// are matched too so rewrites and the fade-removal cleanup can strip them.
 const CLIP_RE = /clip:'((?:\\.|[^'\\])*)'((?:,(?:cs|ce|fi|fo):[0-9.]+)*)/g;
 
-function parseClipParams(params: string): { start: number | null; end: number | null; fadeIn: number | null; fadeOut: number | null } {
+function parseClipParams(params: string): { start: number | null; end: number | null } {
   const n = (k: string) => {
     const m = new RegExp(`,${k}:([0-9.]+)`).exec(params);
     return m ? Number(m[1]) : null;
   };
-  return { start: n("cs"), end: n("ce"), fadeIn: n("fi"), fadeOut: n("fo") };
+  return { start: n("cs"), end: n("ce") };
 }
 
 export function listRecordingClips(): RecordingClip[] {
@@ -385,16 +433,10 @@ export function listRecordingClips(): RecordingClip[] {
   return out;
 }
 
-export function saveRecordingClipTiming(
-  index: number, start: number | null, end: number | null,
-  fadeIn: number | null = null, fadeOut: number | null = null,
-): void {
+export function saveRecordingClipTiming(index: number, start: number | null, end: number | null): void {
   if (start !== null && (!Number.isFinite(start) || start < 0)) throw new Error("Start must be a non-negative number of seconds.");
   if (end !== null && (!Number.isFinite(end) || end <= 0)) throw new Error("End must be a positive number of seconds.");
   if (start !== null && end !== null && end <= start) throw new Error("End must be after start.");
-  if (fadeIn !== null && (!Number.isFinite(fadeIn) || fadeIn < 0)) throw new Error("Fade in must be a non-negative number of seconds.");
-  if (fadeOut !== null && (!Number.isFinite(fadeOut) || fadeOut < 0)) throw new Error("Fade out must be a non-negative number of seconds.");
-  if (fadeOut !== null && fadeOut > 0 && end === null) throw new Error("Fade out needs an End time to fade into.");
   const parts = splitTemplate(readFileText());
   parts.template = applyTemplateUpgrades(parts.template);
   let i = 0;
@@ -404,9 +446,7 @@ export function saveRecordingClipTiming(
     hit = true;
     const cs = start !== null && start > 0 ? `,cs:${start}` : "";
     const ce = end !== null ? `,ce:${end}` : "";
-    const fi = fadeIn !== null && fadeIn > 0 ? `,fi:${fadeIn}` : "";
-    const fo = fadeOut !== null && fadeOut > 0 ? `,fo:${fadeOut}` : "";
-    return `clip:'${src}'${cs}${ce}${fi}${fo}`;
+    return `clip:'${src}'${cs}${ce}`;
   });
   if (!hit) throw new Error(`Clip ${index} not found — the page may have changed; reload the editor.`);
   fs.writeFileSync(livePath(), joinTemplate(parts));
