@@ -195,6 +195,19 @@ describe("recordingStore", () => {
     expect(template).toContain("tc:'00:52'"); // beat data intact
   });
 
+  it("saved clip timings flow through to the served page (no localStorage masking)", () => {
+    const clips = listRecordingClips();
+    const target = clips.find(c => c.start === 1.35)!;
+    saveRecordingClipTiming(target.index, 1.1, 2.2);
+    const template = JSON.parse(extractTemplateRaw(liveHtml())) as string;
+    // The edit is in the served bytes...
+    expect(template).toContain("clip:'assets/clip-we-can-do-it-tonight.mp3',cs:1.1,ce:2.2");
+    // ...and the player no longer loads per-browser localStorage overrides
+    // that would mask it (it clears the stale key instead).
+    expect(template).not.toContain("ov = JSON.parse(localStorage.getItem(this.OVKEY)");
+    expect(template).toContain("localStorage.removeItem(this.OVKEY)");
+  });
+
   it("the unmodified live copy still JSON-parses (sanity on the seed itself)", () => {
     expect(() => JSON.parse(extractTemplateRaw(liveHtml()))).not.toThrow();
   });

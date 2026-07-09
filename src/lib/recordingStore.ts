@@ -251,10 +251,23 @@ export function patchHideTimecodes(template: string): string {
   );
 }
 
+// The page ships its own in-page audio editor that persists per-browser
+// overrides to localStorage — and the player PREFERS those over the beat's
+// baked-in cs/ce. Once /admin/recording became the source of truth, stale
+// local overrides silently masked centrally saved timing edits on any device
+// that had ever touched the in-page editor. Stop loading them and clear the
+// stale key so every visitor hears the saved timings.
+export function patchDisableLocalOverrides(template: string): string {
+  return template.replace(
+    "try { ov = JSON.parse(localStorage.getItem(this.OVKEY) || '{}') || {}; } catch(e){ ov = {}; }",
+    "try { localStorage.removeItem(this.OVKEY); } catch(e){} /* central timings win */",
+  );
+}
+
 // Every template upgrade, applied in order; recordingFilePath runs this on
 // the live copy so existing installs pick new patches up without losing edits.
 export function applyTemplateUpgrades(template: string): string {
-  return patchHideTimecodes(stripClipFades(patchIntroEndStyle(patchPlayerFade(template))));
+  return patchDisableLocalOverrides(patchHideTimecodes(stripClipFades(patchIntroEndStyle(patchPlayerFade(template)))));
 }
 
 // --- sms send sound (file-level upgrade) ---------------------------------------
