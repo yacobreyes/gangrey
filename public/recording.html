@@ -19,23 +19,14 @@
   </noscript>
 </head>
 <body>
-  <div id="__bundler_thumbnail">
-  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
-    <rect width="1200" height="800" fill="#100d0b"></rect>
-    <circle cx="600" cy="360" r="120" fill="none" stroke="#8f2020" stroke-width="10"></circle>
-    <polygon points="565,300 565,420 665,360" fill="#e9e1d2"></polygon>
-    <rect x="480" y="520" width="80" height="10" fill="#8f2020"></rect>
-    <rect x="560" y="520" width="80" height="10" fill="#e9e1d2"></rect>
-    <rect x="640" y="520" width="80" height="10" fill="#2f4a72"></rect>
-  </svg>
-</div>
-  <div id="__bundler_loading">Unpacking...</div>
+  <div id="__bundler_thumbnail"></div>
+  <div id="__bundler_loading" style="display:none">Unpacking...</div>
 
   <script>
     
 document.addEventListener('DOMContentLoaded', async function() {
   const loading = document.getElementById('__bundler_loading');
-  function setStatus(msg) { if (loading) loading.textContent = msg; }
+  function setStatus(msg) { if (loading) { loading.textContent = msg; if (/^Error/.test(msg)) loading.style.display = 'block'; } }
 
   const FONT_MIME = /^(font[/]|application[/](x-)?font-|application[/]vnd\.ms-fontobject)/i;
   const MIME_TOKEN = /^[\w.+-]+[/][\w.+-]+$/;
