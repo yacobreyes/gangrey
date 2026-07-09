@@ -16,6 +16,7 @@ process.env.DATA_DIR = tmp;
 const {
   listRecordingLines, saveRecordingLine, findReplaceRecording,
   resetRecordingToBundled, recordingFilePath,
+  listRecordingClips, saveRecordingClipTiming,
 } = await import("./recordingStore");
 
 beforeEach(() => {
@@ -85,6 +86,44 @@ describe("recordingStore", () => {
     saveRecordingLine(lines[0].index, "scribbled over");
     resetRecordingToBundled();
     expect(listRecordingLines()[0].text).toBe(lines[0].text);
+  });
+
+  it("lists audio clips with their trim timings", () => {
+    const clips = listRecordingClips();
+    expect(clips.length).toBeGreaterThan(3);
+    const juan = clips.find(c => c.file.includes("we-can-do-it-tonight") && c.start !== null);
+    expect(juan?.start).toBe(1.35);
+    const susana = clips.find(c => c.file.includes("we-can-do-it-tonight") && c.end === 0.7);
+    expect(susana).toBeTruthy();
+  });
+
+  it("saves new clip timings and reads them back", () => {
+    const clips = listRecordingClips();
+    const target = clips.find(c => c.start === 1.35)!;
+    saveRecordingClipTiming(target.index, 1.2, 2.28);
+    const after = listRecordingClips();
+    expect(after[target.index].start).toBe(1.2);
+    expect(after[target.index].end).toBe(2.28);
+    // Others untouched, order stable.
+    for (const c of after) if (c.index !== target.index) {
+      expect(c.start).toBe(clips[c.index].start);
+      expect(c.end).toBe(clips[c.index].end);
+    }
+    // Blank = full clip: clears both params entirely.
+    saveRecordingClipTiming(target.index, null, null);
+    const cleared = listRecordingClips()[target.index];
+    expect(cleared.start).toBeNull();
+    expect(cleared.end).toBeNull();
+  });
+
+  it("rejects nonsense timings", () => {
+    expect(() => saveRecordingClipTiming(0, -1, null)).toThrow();
+    expect(() => saveRecordingClipTiming(0, 2, 1)).toThrow();
+  });
+
+  it("clip-timing rewrite keeps the template valid JSON", () => {
+    saveRecordingClipTiming(0, 0.5, 3);
+    expect(() => JSON.parse(extractTemplateRaw(liveHtml()))).not.toThrow();
   });
 
   it("the unmodified live copy still JSON-parses (sanity on the seed itself)", () => {

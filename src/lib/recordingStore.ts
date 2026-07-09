@@ -151,6 +151,65 @@ export function saveRecordingLine(index: number, newText: string): void {
   fs.writeFileSync(livePath(), joinTemplate(parts));
 }
 
+// --- audio clip timings --------------------------------------------------------
+
+export type RecordingClip = {
+  index: number;       // ordinal of the clip:'…' occurrence in the template
+  file: string;        // e.g. "assets/clip-we-can-do-it-tonight.mp3"
+  start: number | null; // cs — seconds into the file playback begins (null = 0)
+  end: number | null;   // ce — seconds where playback stops (null = play to end)
+  snippet: string;      // nearby transcript text, for identifying the clip
+};
+
+// A clip's trim params sit immediately after its src in the same object
+// literal: clip:'assets/x.mp3',cs:1.5,ce:2.8 — cs/ce optional, either order.
+const CLIP_RE = /clip:'((?:\\.|[^'\\])*)'((?:,(?:cs|ce):[0-9.]+)*)/g;
+
+function parseClipParams(params: string): { start: number | null; end: number | null } {
+  const cs = /,cs:([0-9.]+)/.exec(params);
+  const ce = /,ce:([0-9.]+)/.exec(params);
+  return { start: cs ? Number(cs[1]) : null, end: ce ? Number(ce[1]) : null };
+}
+
+export function listRecordingClips(): RecordingClip[] {
+  const { template } = splitTemplate(readFileText());
+  const out: RecordingClip[] = [];
+  let m: RegExpExecArray | null;
+  let index = 0;
+  CLIP_RE.lastIndex = 0;
+  while ((m = CLIP_RE.exec(template))) {
+    // Identify the clip by the first transcript text that follows it.
+    const window = template.slice(m.index, m.index + 400);
+    const t = /t:'((?:\\.|[^'\\])*)'/.exec(window);
+    const text = t ? jsDecode(t[1]) : "";
+    out.push({
+      index: index++,
+      file: jsDecode(m[1]),
+      ...parseClipParams(m[2]),
+      snippet: text.length > 80 ? `${text.slice(0, 80)}…` : text,
+    });
+  }
+  return out;
+}
+
+export function saveRecordingClipTiming(index: number, start: number | null, end: number | null): void {
+  if (start !== null && (!Number.isFinite(start) || start < 0)) throw new Error("Start must be a non-negative number of seconds.");
+  if (end !== null && (!Number.isFinite(end) || end <= 0)) throw new Error("End must be a positive number of seconds.");
+  if (start !== null && end !== null && end <= start) throw new Error("End must be after start.");
+  const parts = splitTemplate(readFileText());
+  let i = 0;
+  let hit = false;
+  parts.template = parts.template.replace(CLIP_RE, (whole, src: string) => {
+    if (i++ !== index) return whole;
+    hit = true;
+    const cs = start !== null && start > 0 ? `,cs:${start}` : "";
+    const ce = end !== null ? `,ce:${end}` : "";
+    return `clip:'${src}'${cs}${ce}`;
+  });
+  if (!hit) throw new Error(`Clip ${index} not found — the page may have changed; reload the editor.`);
+  fs.writeFileSync(livePath(), joinTemplate(parts));
+}
+
 // --- generic find & replace ---------------------------------------------------
 
 // Replaces every occurrence of `find`, both as plain markup text and as

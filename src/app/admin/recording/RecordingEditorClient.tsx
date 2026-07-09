@@ -1,27 +1,52 @@
 "use client";
 
 import { useState } from "react";
-import type { RecordingLine } from "@/lib/recordingStore";
-import { updateRecordingLine, recordingFindReplace, recordingReset, getRecordingLines } from "../recordingActions";
+import type { RecordingLine, RecordingClip } from "@/lib/recordingStore";
+import { updateRecordingLine, recordingFindReplace, recordingReset, getRecordingLines, getRecordingClips, updateRecordingClipTiming } from "../recordingActions";
 
 const FONT = "'Helvetica Neue', Helvetica, Arial, sans-serif";
 const CRIMSON = "#490000";
 const BORDER = "#d8d3c8";
 const MUTED = "#6f6a60";
 
-export default function RecordingEditorClient({ initialLines, loadError }: {
+export default function RecordingEditorClient({ initialLines, initialClips, loadError }: {
   initialLines: RecordingLine[];
+  initialClips: RecordingClip[];
   loadError: string | null;
 }) {
   const [lines, setLines] = useState(initialLines);
+  const [clips, setClips] = useState(initialClips);
   const [drafts, setDrafts] = useState<Record<number, string>>({});
-  const [busy, setBusy] = useState<number | "fr" | "reset" | null>(null);
+  const [clipDrafts, setClipDrafts] = useState<Record<number, { start: string; end: string }>>({});
+  const [busy, setBusy] = useState<number | string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [find, setFind] = useState("");
   const [repl, setRepl] = useState("");
 
   async function refresh() {
-    try { setLines(await getRecordingLines()); setDrafts({}); } catch { /* keep current */ }
+    try {
+      const [ls, cs] = await Promise.all([getRecordingLines(), getRecordingClips()]);
+      setLines(ls); setClips(cs); setDrafts({}); setClipDrafts({});
+    } catch { /* keep current */ }
+  }
+
+  async function saveClip(index: number) {
+    const d = clipDrafts[index];
+    if (!d) return;
+    const start = d.start.trim() === "" ? null : Number(d.start);
+    const end = d.end.trim() === "" ? null : Number(d.end);
+    if ((start !== null && !Number.isFinite(start)) || (end !== null && !Number.isFinite(end))) {
+      setMsg("Timings must be numbers (seconds, decimals ok) — leave blank for full clip.");
+      return;
+    }
+    setBusy(`clip${index}`); setMsg(null);
+    const r = await updateRecordingClipTiming(index, start, end);
+    setBusy(null);
+    if (r.ok) {
+      setClips(cs => cs.map(c => (c.index === index ? { ...c, start: start !== null && start > 0 ? start : null, end } : c)));
+      setClipDrafts(cd => { const n = { ...cd }; delete n[index]; return n; });
+      setMsg("Timing saved. Refresh /recording and replay the clip to hear it.");
+    } else setMsg(r.error ?? "Save failed.");
   }
 
   async function saveLine(index: number) {
@@ -98,6 +123,53 @@ export default function RecordingEditorClient({ initialLines, loadError }: {
             </button>
           </div>
         </section>
+
+        <div style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: MUTED, marginBottom: "0.7rem" }}>
+          Audio clip timing ({clips.length})
+        </div>
+        <p style={{ color: MUTED, fontSize: "0.8rem", margin: "0 0 0.8rem", lineHeight: 1.5 }}>
+          Start/End are seconds into the audio file (decimals fine, e.g. 1.35). Leave blank to play from the beginning / to the end.
+        </p>
+        <div style={{ display: "grid", gap: "0.8rem", marginBottom: "2rem" }}>
+          {clips.map(c => {
+            const d = clipDrafts[c.index] ?? { start: c.start?.toString() ?? "", end: c.end?.toString() ?? "" };
+            const dirty = d.start !== (c.start?.toString() ?? "") || d.end !== (c.end?.toString() ?? "");
+            const setD = (patch: Partial<{ start: string; end: string }>) =>
+              setClipDrafts(cd => ({ ...cd, [c.index]: { ...d, ...patch } }));
+            return (
+              <div key={c.index} style={{ background: "#fff", border: `1px solid ${BORDER}`, padding: "0.8rem 0.9rem" }}>
+                <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#111", marginBottom: "0.15rem" }}>
+                  {c.file.replace(/^assets\//, "")}
+                </div>
+                {c.snippet && <div style={{ fontSize: "0.8rem", color: MUTED, fontStyle: "italic", marginBottom: "0.55rem" }}>&ldquo;{c.snippet}&rdquo;</div>}
+                <div style={{ display: "flex", gap: "0.7rem", alignItems: "center", flexWrap: "wrap" }}>
+                  <label style={{ fontSize: "0.75rem", color: MUTED }}>
+                    Start{" "}
+                    <input value={d.start} onChange={e => setD({ start: e.target.value })} inputMode="decimal" placeholder="0"
+                      style={{ ...input, width: "5.5rem", display: "inline-block" }} />
+                  </label>
+                  <label style={{ fontSize: "0.75rem", color: MUTED }}>
+                    End{" "}
+                    <input value={d.end} onChange={e => setD({ end: e.target.value })} inputMode="decimal" placeholder="(end)"
+                      style={{ ...input, width: "5.5rem", display: "inline-block" }} />
+                  </label>
+                  {dirty && (
+                    <>
+                      <button onClick={() => saveClip(c.index)} disabled={busy !== null}
+                        style={{ background: CRIMSON, color: "#fff", border: "none", fontFamily: FONT, fontSize: "0.8rem", padding: "0.4rem 1rem", cursor: "pointer" }}>
+                        {busy === `clip${c.index}` ? "Saving…" : "Save"}
+                      </button>
+                      <button onClick={() => setClipDrafts(cd => { const n = { ...cd }; delete n[c.index]; return n; })}
+                        style={{ background: "none", border: `1px solid ${BORDER}`, color: MUTED, fontFamily: FONT, fontSize: "0.8rem", padding: "0.4rem 1rem", cursor: "pointer" }}>
+                        Discard
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
         <div style={{ fontSize: "0.72rem", fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: MUTED, marginBottom: "0.7rem" }}>
           Transcript lines ({lines.length})

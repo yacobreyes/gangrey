@@ -4,9 +4,12 @@ import { requireAuth } from "@/lib/adminAuth";
 import {
   listRecordingLines,
   saveRecordingLine,
+  listRecordingClips,
+  saveRecordingClipTiming,
   findReplaceRecording,
   resetRecordingToBundled,
   type RecordingLine,
+  type RecordingClip,
 } from "@/lib/recordingStore";
 
 export async function getRecordingLines(): Promise<RecordingLine[]> {
@@ -18,6 +21,21 @@ export async function updateRecordingLine(index: number, text: string): Promise<
   await requireAuth();
   try {
     saveRecordingLine(index, text);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Save failed" };
+  }
+}
+
+export async function getRecordingClips(): Promise<RecordingClip[]> {
+  await requireAuth();
+  return listRecordingClips();
+}
+
+export async function updateRecordingClipTiming(index: number, start: number | null, end: number | null): Promise<{ ok: boolean; error?: string }> {
+  await requireAuth();
+  try {
+    saveRecordingClipTiming(index, start, end);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Save failed" };
