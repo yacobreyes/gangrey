@@ -94,8 +94,7 @@ export default async function AboutPage() {
             <div className="about-label">Masthead</div>
             <p className="about-masthead">
               Patron Saint · Ben Montgomery<br />
-              Editor-in-Chief · Yacob Reyes<br />
-              Managing Editor · Sara Lindsay
+              Editor-in-Chief · Yacob Reyes
             </p>
           </div>
           <div className="about-col-right">
