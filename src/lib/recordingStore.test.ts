@@ -254,6 +254,16 @@ describe("recordingStore", () => {
     expect(template).not.toContain("Susana and I revisited the bus stop");
   });
 
+  it("replaces the end-card tricolor band with stars", () => {
+    listRecordingLines(); // triggers the auto-upgrade
+    const template = JSON.parse(extractTemplateRaw(liveHtml())) as string;
+    expect(template).toContain("@keyframes starIn");
+    expect(template).toContain("animation:starIn");
+    expect(template).toContain("★");
+    // The tricolor bars are gone.
+    expect(template).not.toContain("background:#2f4a72;transform-origin:left;animation:bandIn");
+  });
+
   it("the unmodified live copy still JSON-parses (sanity on the seed itself)", () => {
     expect(() => JSON.parse(extractTemplateRaw(liveHtml()))).not.toThrow();
   });

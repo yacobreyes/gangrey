@@ -326,12 +326,36 @@ export function patchCopyFixes(template: string): string {
   return t;
 }
 
+// End card: the red/cream/blue band reads as the French tricolor. Swap it for
+// a row of three crimson stars (fitting "The Most American Woman") that pop in
+// on the same stagger. Adds the starIn keyframe next to bandGlow.
+const END_BAND =
+  '<div style="display:flex;justify-content:center;gap:0;margin:42px auto 0;width:min(340px,72vw);height:7px;border-radius:1px;overflow:hidden;animation:bandGlow 4s 1.4s ease-in-out infinite">\n' +
+  '                    <span style="flex:1;background:#8f2020;transform-origin:left;animation:bandIn .55s .55s cubic-bezier(.2,.7,.2,1) both"></span>\n' +
+  '                    <span style="flex:1;background:#e9e1d2;transform-origin:left;animation:bandIn .55s .72s cubic-bezier(.2,.7,.2,1) both"></span>\n' +
+  '                    <span style="flex:1;background:#2f4a72;transform-origin:left;animation:bandIn .55s .89s cubic-bezier(.2,.7,.2,1) both"></span>\n' +
+  '                  </div>';
+const END_STARS =
+  '<div style="display:flex;justify-content:center;gap:20px;margin:40px auto 0;color:#8f2020;font-size:15px;line-height:1">' +
+  '<span style="display:inline-block;animation:starIn .5s .55s cubic-bezier(.2,.7,.2,1) both">★</span>' +
+  '<span style="display:inline-block;animation:starIn .5s .72s cubic-bezier(.2,.7,.2,1) both">★</span>' +
+  '<span style="display:inline-block;animation:starIn .5s .89s cubic-bezier(.2,.7,.2,1) both">★</span>' +
+  '</div>';
+export function patchEndStars(template: string): string {
+  if (template.includes("@keyframes starIn")) return template; // already applied
+  const bandKf = "@keyframes bandGlow{0%,100%{box-shadow:0 0 0 rgba(143,32,32,0)}50%{box-shadow:0 8px 30px rgba(143,32,32,.35)}}";
+  if (!template.includes(END_BAND) || !template.includes(bandKf)) return template;
+  return template
+    .replace(END_BAND, END_STARS)
+    .replace(bandKf, `${bandKf}\n    @keyframes starIn{from{opacity:0;transform:scale(.4) translateY(6px)}to{opacity:1;transform:none}}`);
+}
+
 // Every template upgrade, applied in order; recordingFilePath runs this on
 // the live copy so existing installs pick new patches up without losing edits.
 export function applyTemplateUpgrades(template: string): string {
-  return patchCopyFixes(patchTitleDisclaimer(patchGateNavBar(patchKillTitleFlash(
+  return patchEndStars(patchCopyFixes(patchTitleDisclaimer(patchGateNavBar(patchKillTitleFlash(
     patchDisableLocalOverrides(patchHideTimecodes(stripClipFades(patchIntroEndStyle(patchPlayerFade(template))))),
-  ))));
+  )))));
 }
 
 // --- sms send sound (file-level upgrade) ---------------------------------------
