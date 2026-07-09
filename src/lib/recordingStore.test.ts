@@ -16,7 +16,7 @@ process.env.DATA_DIR = tmp;
 const {
   listRecordingLines, saveRecordingLine, findReplaceRecording,
   resetRecordingToBundled, recordingFilePath,
-  listRecordingClips, saveRecordingClipTiming,
+  listRecordingClips, saveRecordingClipTiming, getRecordingAsset, patchPlayerFade,
 } = await import("./recordingStore");
 
 beforeEach(() => {
@@ -76,6 +76,7 @@ describe("recordingStore", () => {
   });
 
   it("find & replace returns 0 and writes nothing on a miss", () => {
+    listRecordingLines(); // first read applies the player auto-upgrade; settle it before snapshotting
     const before = liveHtml();
     expect(findReplaceRecording("text that is definitely not on the page", "x")).toBe(0);
     expect(liveHtml()).toBe(before);
@@ -124,6 +125,44 @@ describe("recordingStore", () => {
   it("clip-timing rewrite keeps the template valid JSON", () => {
     saveRecordingClipTiming(0, 0.5, 3);
     expect(() => JSON.parse(extractTemplateRaw(liveHtml()))).not.toThrow();
+  });
+
+  it("saves and clears fade timings", () => {
+    const clips = listRecordingClips();
+    const target = clips.find(c => c.end !== null)!;
+    saveRecordingClipTiming(target.index, target.start, target.end, 0.3, 0.5);
+    let after = listRecordingClips()[target.index];
+    expect(after.fadeIn).toBe(0.3);
+    expect(after.fadeOut).toBe(0.5);
+    saveRecordingClipTiming(target.index, target.start, target.end, null, null);
+    after = listRecordingClips()[target.index];
+    expect(after.fadeIn).toBeNull();
+    expect(after.fadeOut).toBeNull();
+  });
+
+  it("rejects a fade-out with no end time", () => {
+    const clips = listRecordingClips();
+    const open = clips.find(c => c.end === null)!;
+    expect(() => saveRecordingClipTiming(open.index, open.start, null, null, 1)).toThrow(/End/);
+  });
+
+  it("player fade patch applies once, idempotently, and saving a fade installs it", () => {
+    const clips = listRecordingClips();
+    const target = clips.find(c => c.end !== null)!;
+    saveRecordingClipTiming(target.index, target.start, target.end, 0.3, null);
+    const template = JSON.parse(extractTemplateRaw(liveHtml())) as string;
+    expect(template).toContain("/* fade-patch */");
+    expect(template).toContain("playClip(i, src, start, end, fi, fo){");
+    expect(template).toContain("eff.fi, eff.fo");
+    // Idempotent: re-applying changes nothing.
+    expect(patchPlayerFade(template)).toBe(template);
+  });
+
+  it("extracts an embedded audio asset as playable bytes", () => {
+    const asset = getRecordingAsset("assets/clip-we-can-do-it-tonight.mp3");
+    expect(asset?.mime).toBe("audio/mpeg");
+    expect(asset!.data.length).toBeGreaterThan(10_000);
+    expect(getRecordingAsset("assets/nope.mp3")).toBeNull();
   });
 
   it("the unmodified live copy still JSON-parses (sanity on the seed itself)", () => {

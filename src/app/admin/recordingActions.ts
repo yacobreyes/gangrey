@@ -32,10 +32,13 @@ export async function getRecordingClips(): Promise<RecordingClip[]> {
   return listRecordingClips();
 }
 
-export async function updateRecordingClipTiming(index: number, start: number | null, end: number | null): Promise<{ ok: boolean; error?: string }> {
+export async function updateRecordingClipTiming(
+  index: number, start: number | null, end: number | null,
+  fadeIn: number | null = null, fadeOut: number | null = null,
+): Promise<{ ok: boolean; error?: string }> {
   await requireAuth();
   try {
-    saveRecordingClipTiming(index, start, end);
+    saveRecordingClipTiming(index, start, end, fadeIn, fadeOut);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Save failed" };

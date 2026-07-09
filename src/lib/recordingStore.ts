@@ -28,7 +28,10 @@ function seedPath(): string {
 }
 
 // Returns the path of the copy /recording should serve, seeding the live
-// copy from the bundled one on first use.
+// copy from the bundled one on first use. Also upgrades the live copy's
+// player code in place when a newer patch exists (see patchPlayerFade) —
+// the live copy may carry old player code from before a feature was added,
+// and re-seeding would throw away the user's edits.
 export function recordingFilePath(): string {
   const live = livePath();
   if (!fs.existsSync(live)) {
@@ -39,7 +42,82 @@ export function recordingFilePath(): string {
       return seedPath(); // read-only fallback: serve the bundled copy
     }
   }
+  try {
+    const html = fs.readFileSync(live, "utf-8");
+    const parts = splitTemplate(html);
+    const patched = patchPlayerFade(parts.template);
+    if (patched !== parts.template) {
+      fs.writeFileSync(live, joinTemplate({ ...parts, template: patched }));
+    }
+  } catch { /* serve as-is if the upgrade can't apply */ }
   return live;
+}
+
+// Teaches the bundle's audio player per-clip fades: fi (fade-in seconds) and
+// fo (fade-out seconds) on a beat, ramped through a Web Audio gain node (an
+// <audio> volume ramp is ignored on iOS). Pure text transform on the template
+// source, applied idempotently — the marker comment guards re-application.
+export function patchPlayerFade(template: string): string {
+  if (template.includes("/* fade-patch */")) return template;
+  let t = template;
+  const swaps: [string, string][] = [
+    // effClip carries the beat's fades through to the play call (audio
+    // overrides keep their own start/end; fades always come from the beat).
+    [
+      "return { clip: b.clip || '', start:defStart, end:defEnd };",
+      "return { clip: b.clip || '', start:defStart, end:defEnd, fi:(b.fi!=null?+b.fi:0), fo:(b.fo!=null?+b.fo:0) };",
+    ],
+    [
+      "end: (ov.end != null ? +ov.end : defEnd)",
+      "end: (ov.end != null ? +ov.end : defEnd), fi:(b.fi!=null?+b.fi:0), fo:(b.fo!=null?+b.fo:0)",
+    ],
+    [
+      "if(eff.clip){ this.playClip(s.step, eff.clip, eff.start, eff.end); }",
+      "if(eff.clip){ this.playClip(s.step, eff.clip, eff.start, eff.end, eff.fi, eff.fo); }",
+    ],
+    [
+      "if(this._curKey !== key){ this.playClip(step, eff.clip, eff.start, eff.end); }",
+      "if(this._curKey !== key){ this.playClip(step, eff.clip, eff.start, eff.end, eff.fi, eff.fo); }",
+    ],
+    [
+      "this.playClip(i, eff.clip, eff.start, eff.end);",
+      "this.playClip(i, eff.clip, eff.start, eff.end, eff.fi, eff.fo);",
+    ],
+    ["playClip(i, src, start, end){", "playClip(i, src, start, end, fi, fo){"],
+    [
+      "this._endTime = (end != null ? +end : null);",
+      "this._endTime = (end != null ? +end : null);\n    /* fade-patch */\n" +
+      "    this._fi = (fi != null ? +fi : 0) || 0;\n" +
+      "    this._fo = (fo != null ? +fo : 0) || 0;\n" +
+      "    this._t0 = start || 0;\n" +
+      "    if(!this._gainCtx && (this._fi > 0 || this._fo > 0) && (window.AudioContext || window.webkitAudioContext)){\n" +
+      "      try {\n" +
+      "        this._gainCtx = new (window.AudioContext || window.webkitAudioContext)();\n" +
+      "        this._gainNode = this._gainCtx.createGain();\n" +
+      "        this._gainCtx.createMediaElementSource(audio).connect(this._gainNode);\n" +
+      "        this._gainNode.connect(this._gainCtx.destination);\n" +
+      "      } catch(e){ this._gainCtx = null; this._gainNode = null; }\n" +
+      "    }\n" +
+      "    if(this._gainCtx && this._gainCtx.state === 'suspended'){ try{ this._gainCtx.resume(); }catch(e){} }\n" +
+      "    if(this._fadeTimer){ clearInterval(this._fadeTimer); this._fadeTimer = null; }\n" +
+      "    const setVol = (v) => { if(this._gainNode) this._gainNode.gain.value = v; else { try{ audio.volume = v; }catch(e){} } };\n" +
+      "    if(this._fi > 0 || this._fo > 0){\n" +
+      "      setVol(this._fi > 0 ? 0 : 1);\n" +
+      "      this._fadeTimer = setInterval(() => {\n" +
+      "        const ct = audio.currentTime; let v = 1;\n" +
+      "        if(this._fi > 0 && ct < this._t0 + this._fi) v = Math.min(v, Math.max(0, (ct - this._t0) / this._fi));\n" +
+      "        if(this._fo > 0 && this._endTime != null && ct > this._endTime - this._fo) v = Math.min(v, Math.max(0, (this._endTime - ct) / this._fo));\n" +
+      "        setVol(Math.max(0, Math.min(1, v)));\n" +
+      "        if(audio.paused){ clearInterval(this._fadeTimer); this._fadeTimer = null; setVol(1); }\n" +
+      "      }, 40);\n" +
+      "    } else { setVol(1); }",
+    ],
+  ];
+  for (const [from, to] of swaps) {
+    if (!t.includes(from)) return template; // player code changed — skip whole patch rather than half-apply
+    t = t.replace(from, to);
+  }
+  return t;
 }
 
 export function resetRecordingToBundled(): void {
@@ -158,17 +236,21 @@ export type RecordingClip = {
   file: string;        // e.g. "assets/clip-we-can-do-it-tonight.mp3"
   start: number | null; // cs — seconds into the file playback begins (null = 0)
   end: number | null;   // ce — seconds where playback stops (null = play to end)
+  fadeIn: number | null;  // fi — seconds of fade-in from the start point
+  fadeOut: number | null; // fo — seconds of fade-out into the end point
   snippet: string;      // nearby transcript text, for identifying the clip
 };
 
-// A clip's trim params sit immediately after its src in the same object
-// literal: clip:'assets/x.mp3',cs:1.5,ce:2.8 — cs/ce optional, either order.
-const CLIP_RE = /clip:'((?:\\.|[^'\\])*)'((?:,(?:cs|ce):[0-9.]+)*)/g;
+// A clip's trim/fade params sit immediately after its src in the same object
+// literal: clip:'assets/x.mp3',cs:1.5,ce:2.8,fi:0.3,fo:0.5 — all optional.
+const CLIP_RE = /clip:'((?:\\.|[^'\\])*)'((?:,(?:cs|ce|fi|fo):[0-9.]+)*)/g;
 
-function parseClipParams(params: string): { start: number | null; end: number | null } {
-  const cs = /,cs:([0-9.]+)/.exec(params);
-  const ce = /,ce:([0-9.]+)/.exec(params);
-  return { start: cs ? Number(cs[1]) : null, end: ce ? Number(ce[1]) : null };
+function parseClipParams(params: string): { start: number | null; end: number | null; fadeIn: number | null; fadeOut: number | null } {
+  const n = (k: string) => {
+    const m = new RegExp(`,${k}:([0-9.]+)`).exec(params);
+    return m ? Number(m[1]) : null;
+  };
+  return { start: n("cs"), end: n("ce"), fadeIn: n("fi"), fadeOut: n("fo") };
 }
 
 export function listRecordingClips(): RecordingClip[] {
@@ -192,11 +274,18 @@ export function listRecordingClips(): RecordingClip[] {
   return out;
 }
 
-export function saveRecordingClipTiming(index: number, start: number | null, end: number | null): void {
+export function saveRecordingClipTiming(
+  index: number, start: number | null, end: number | null,
+  fadeIn: number | null = null, fadeOut: number | null = null,
+): void {
   if (start !== null && (!Number.isFinite(start) || start < 0)) throw new Error("Start must be a non-negative number of seconds.");
   if (end !== null && (!Number.isFinite(end) || end <= 0)) throw new Error("End must be a positive number of seconds.");
   if (start !== null && end !== null && end <= start) throw new Error("End must be after start.");
+  if (fadeIn !== null && (!Number.isFinite(fadeIn) || fadeIn < 0)) throw new Error("Fade in must be a non-negative number of seconds.");
+  if (fadeOut !== null && (!Number.isFinite(fadeOut) || fadeOut < 0)) throw new Error("Fade out must be a non-negative number of seconds.");
+  if (fadeOut !== null && fadeOut > 0 && end === null) throw new Error("Fade out needs an End time to fade into.");
   const parts = splitTemplate(readFileText());
+  parts.template = patchPlayerFade(parts.template);
   let i = 0;
   let hit = false;
   parts.template = parts.template.replace(CLIP_RE, (whole, src: string) => {
@@ -204,10 +293,41 @@ export function saveRecordingClipTiming(index: number, start: number | null, end
     hit = true;
     const cs = start !== null && start > 0 ? `,cs:${start}` : "";
     const ce = end !== null ? `,ce:${end}` : "";
-    return `clip:'${src}'${cs}${ce}`;
+    const fi = fadeIn !== null && fadeIn > 0 ? `,fi:${fadeIn}` : "";
+    const fo = fadeOut !== null && fadeOut > 0 ? `,fo:${fadeOut}` : "";
+    return `clip:'${src}'${cs}${ce}${fi}${fo}`;
   });
   if (!hit) throw new Error(`Clip ${index} not found — the page may have changed; reload the editor.`);
   fs.writeFileSync(livePath(), joinTemplate(parts));
+}
+
+// --- embedded asset extraction (for in-editor audio preview) -------------------
+
+// The bundle embeds every asset as base64 in two JSON blobs: a manifest
+// mapping id → uuid, and a resources map of uuid → {mime, data}. Pull one
+// asset's bytes out so the admin editor can play the audio being trimmed.
+export function getRecordingAsset(id: string): { mime: string; data: Buffer } | null {
+  const html = readFileText();
+  const idKey = `"id":${JSON.stringify(id)},"uuid":"`;
+  const i = html.indexOf(idKey);
+  if (i < 0) return null;
+  const uuid = html.slice(i + idKey.length, html.indexOf('"', i + idKey.length));
+  const resKey = `"${uuid}":{"mime":"`;
+  const j = html.indexOf(resKey);
+  if (j < 0) return null;
+  const mime = html.slice(j + resKey.length, html.indexOf('"', j + resKey.length));
+  const dataKey = '"data":"';
+  const k = html.indexOf(dataKey, j);
+  if (k < 0) return null;
+  const b64 = html.slice(k + dataKey.length, html.indexOf('"', k + dataKey.length));
+  const gz = html.slice(j, k).includes('"compressed":true');
+  try {
+    const raw = Buffer.from(b64, "base64");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return { mime, data: gz ? require("zlib").gunzipSync(raw) : raw };
+  } catch {
+    return null;
+  }
 }
 
 // --- generic find & replace ---------------------------------------------------
