@@ -19,6 +19,19 @@ const nextConfig: NextConfig = {
       { source: "/narratives", destination: "/?tab=Narratives" },
       { source: "/micro-memoirs", destination: "/?tab=Micro-Memoirs" },
       { source: "/essays", destination: "/?tab=Essays" },
+      // Secret standalone page: serve the self-contained HTML bundle verbatim
+      // at /recording with no site chrome (no masthead/footer — it's a static
+      // file in /public, not a Next page).
+      { source: "/recording", destination: "/recording.html" },
+    ];
+  },
+  // Keep the secret page out of search results.
+  async headers() {
+    return [
+      {
+        source: "/recording:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
     ];
   },
   // Canonical host is the bare gangrey.org — 301 any www.gangrey.org request to
