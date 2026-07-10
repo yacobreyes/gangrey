@@ -27,12 +27,26 @@ struct ImagoApp: App {
 
 struct ContentView: View {
     var body: some View {
+        // Full-bleed: the web view extends under the status bar and home
+        // indicator, and WKWebView's automatic content insets keep the page
+        // content out from under them — so the page's OWN background shows
+        // there, with no colored strips from the native shell.
         ImagoWebView()
-            .ignoresSafeArea(edges: .bottom)
-            // Imago's own header handles the top; keep the status bar readable
-            // on the site's white chrome.
-            .background(Color(red: 0.956, green: 0.945, blue: 0.918))
+            .ignoresSafeArea()
+            .background(Color.white)
     }
+}
+
+// Hosts allowed to load inside the app's web view. gangrey.org is the app;
+// the Google domains are required for Imago's Google sign-in — if those open
+// in Safari instead, the session cookie lands in Safari and the app never
+// logs in.
+private func isInAppHost(_ host: String) -> Bool {
+    if host == APP_HOST || host.hasSuffix("." + APP_HOST) { return true }
+    for allowed in ["google.com", "gstatic.com", "googleapis.com", "googleusercontent.com"] {
+        if host == allowed || host.hasSuffix("." + allowed) { return true }
+    }
+    return false
 }
 
 struct ImagoWebView: UIViewRepresentable {
@@ -48,8 +62,10 @@ struct ImagoWebView: UIViewRepresentable {
         webView.uiDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = true
         webView.scrollView.contentInsetAdjustmentBehavior = .automatic
-        // Identify as the app (handy if we ever want app-only tweaks server-side).
-        webView.customUserAgent = (webView.value(forKey: "userAgent") as? String ?? "") + " ImagoApp/1.0"
+        // Present as mobile Safari. Google's OAuth page rejects user agents it
+        // classifies as embedded webviews ("disallowed_useragent"); the stock
+        // WKWebView UA lacks the Version/Safari tokens and can trip that.
+        webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"
 
         let refresh = UIRefreshControl()
         refresh.addTarget(context.coordinator, action: #selector(Coordinator.reload(_:)), for: .valueChanged)
