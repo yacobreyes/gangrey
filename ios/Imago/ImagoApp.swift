@@ -74,17 +74,17 @@ struct ImagoWebView: UIViewRepresentable {
         // WKWebView UA lacks the Version/Safari tokens and can trip that.
         webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"
 
+        // Overscroll (rubber-band) past the top reveals this color. Pin it to
+        // white so pulling down shows the same white as Imago's header band —
+        // one continuous surface — instead of the page's #f5f8fa body. Bounce
+        // and pull-to-refresh stay on.
         webView.backgroundColor = .white
         webView.scrollView.backgroundColor = .white
         webView.underPageBackgroundColor = .white
 
-        // Pin the top: no rubber-band above the header. The scroll delegate
-        // clamps any negative offset back to 0, so the header can't be pulled
-        // down. Normal scrolling and bottom bounce are untouched. (This
-        // replaces pull-to-refresh, which depends on the top overscroll we're
-        // now blocking — swipe-back and reopening the app both reload anyway.)
-        webView.scrollView.bounces = true
-        webView.scrollView.delegate = context.coordinator
+        let refresh = UIRefreshControl()
+        refresh.addTarget(context.coordinator, action: #selector(Coordinator.reload(_:)), for: .valueChanged)
+        webView.scrollView.refreshControl = refresh
 
         context.coordinator.webView = webView
         webView.load(URLRequest(url: HOME_URL))
@@ -93,15 +93,19 @@ struct ImagoWebView: UIViewRepresentable {
 
     func updateUIView(_ uiView: WKWebView, context: Context) {}
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, UIScrollViewDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         weak var webView: WKWebView?
 
-        // Clamp the top: never let content pull below its natural top edge, so
-        // the header stays pinned (no overscroll bounce above it).
-        func scrollViewDidScroll(_ scrollView: UIScrollView) {
-            if scrollView.contentOffset.y < 0 {
-                scrollView.contentOffset.y = 0
-            }
+        @objc func reload(_ sender: UIRefreshControl) {
+            webView?.reload()
+        }
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            webView.scrollView.refreshControl?.endRefreshing()
+        }
+
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            webView.scrollView.refreshControl?.endRefreshing()
         }
 
         // WKWebView drops JavaScript alert()/confirm()/prompt() unless the
