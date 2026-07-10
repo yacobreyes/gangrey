@@ -43,7 +43,10 @@ struct ContentView: View {
 // logs in.
 private func isInAppHost(_ host: String) -> Bool {
     if host == APP_HOST || host.hasSuffix("." + APP_HOST) { return true }
-    for allowed in ["google.com", "gstatic.com", "googleapis.com", "googleusercontent.com"] {
+    // youtube.com: Google's sign-in bounces through accounts.youtube.com to
+    // sync its session across properties — kick that hop to Safari and the
+    // whole login strands there.
+    for allowed in ["google.com", "gstatic.com", "googleapis.com", "googleusercontent.com", "youtube.com"] {
         if host == allowed || host.hasSuffix("." + allowed) { return true }
     }
     return false
