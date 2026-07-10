@@ -180,6 +180,30 @@ export function sqliteSetArchiveFree(id: string, on: boolean): void {
   db().prepare(`UPDATE posts SET archive_free = ? WHERE id = ?`).run(on ? 1 : 0, id);
 }
 
+// Correct an imported archive post's publish date and/or byline (the Wayback
+// harvest fixes). Only writes the fields provided, so passing a date without a
+// byline leaves the byline untouched. Also stamps updated_at.
+export function sqliteSetDateByline(id: string, date?: string, byline?: string): void {
+  const sets: string[] = [];
+  const vals: (string | null)[] = [];
+  if (date !== undefined) { sets.push("date = ?"); vals.push(date); }
+  if (byline !== undefined) { sets.push("byline = ?"); vals.push(byline); }
+  if (!sets.length) return;
+  sets.push("updated_at = ?"); vals.push(new Date().toISOString());
+  db().prepare(`UPDATE posts SET ${sets.join(", ")} WHERE id = ?`).run(...vals, id);
+}
+
+// Every archive post id + its current date/byline, for the fixes apply pass.
+export function sqliteArchivePostsForFixes(): { id: string; slug: string; headline: string; date: string; byline: string }[] {
+  const rows = db().prepare(
+    `SELECT id, slug, headline, date, byline FROM posts WHERE section = 'Archive'`
+  ).all() as Record<string, unknown>[];
+  return rows.map(r => ({
+    id: String(r.id), slug: String(r.slug ?? ""), headline: String(r.headline ?? ""),
+    date: String(r.date ?? ""), byline: String(r.byline ?? ""),
+  }));
+}
+
 // Current slug for a post id (null if none) — used to detect slug renames.
 export function sqliteSlugForId(id: string): string | null {
   const row = db().prepare(`SELECT slug FROM posts WHERE id = ?`).get(id);
