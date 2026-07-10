@@ -49,7 +49,14 @@ export default async function GangreyPage() {
       `}</style>
       <MagHeader />
       <main className="gr-wrap">
-        <ListingHeader title="Archive" sub="Writing once featured on the original Gangrey blog." marginBottom={28} />
+        <ListingHeader title="Archive" sub="Writing once featured on the original Gangrey blog." marginBottom={12} />
+        {/* Time machine: the full static mirror of the old gangrey.com,
+            rebuilt from the Wayback Machine and served at /delorean. */}
+        <p style={{ margin: "0 0 28px" }}>
+          <a href="/delorean/" style={{ display: "inline-block", fontFamily: "var(--font-subhead)", fontSize: 12, fontWeight: 800, letterSpacing: ".18em", textTransform: "uppercase", color: "#490000", border: "1px solid #490000", padding: "8px 14px", textDecoration: "none" }}>
+            Browse the original site (2005–2016) →
+          </a>
+        </p>
         {deduped.length === 0
           ? <p style={{ fontFamily: "var(--font-headline)", fontSize: 22, fontStyle: "italic", color: "#000000" }}>No stories yet.</p>
           : <GangreyArchive posts={deduped} />

@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<!--[if IE 6]>
+<html id="ie6" lang="en-US">
+<![endif]-->
+<!--[if IE 7]>
+<html id="ie7" lang="en-US">
+<![endif]-->
+<!--[if IE 8]>
+<html id="ie8" lang="en-US">
+<![endif]-->
+<!--[if !(IE 6) & !(IE 7) & !(IE 8)]><!-->
+<html lang="en-US">
+<!--<![endif]-->
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width" />
+<title>Gangrey.com | Prolonging the slow death of newspapers</title>
+<link rel="profile" href="http://gmpg.org/xfn/11" />
+<link rel="stylesheet" type="text/css" media="all" href="http://gangrey.com/wp-content/themes/twentyeleven/style.css" />
+<link rel="pingback" href="http://gangrey.com/xmlrpc.php" />
+<!--[if lt IE 9]>
+<script src="http://gangrey.com/wp-content/themes/twentyeleven/js/html5.js" type="text/javascript"></script>
+<![endif]-->
+<link rel="alternate" type="application/rss+xml" title="Gangrey.com &raquo; Feed" href="http://gangrey.com/?feed=rss2" />
+<link rel="alternate" type="application/rss+xml" title="Gangrey.com &raquo; Comments Feed" href="http://gangrey.com/?feed=comments-rss2" />
+		<script type="text/javascript">
+			window._wpemojiSettings = {"baseUrl":"https:\/\/s.w.org\/images\/core\/emoji\/72x72\/","ext":".png","source":{"concatemoji":"http:\/\/gangrey.com\/wp-includes\/js\/wp-emoji-release.min.js?ver=4.4.5"}};
+			!function(a,b,c){function d(a){var c,d,e,f=b.createElement("canvas"),g=f.getContext&&f.getContext("2d"),h=String.fromCharCode;return g&&g.fillText?(g.textBaseline="top",g.font="600 32px Arial","flag"===a?(g.fillText(h(55356,56806,55356,56826),0,0),f.toDataURL().length>3e3):"diversity"===a?(g.fillText(h(55356,57221),0,0),c=g.getImageData(16,16,1,1).data,g.fillText(h(55356,57221,55356,57343),0,0),c=g.getImageData(16,16,1,1).data,e=c[0]+","+c[1]+","+c[2]+","+c[3],d!==e):("simple"===a?g.fillText(h(55357,56835),0,0):g.fillText(h(55356,57135),0,0),0!==g.getImageData(16,16,1,1).data[0])):!1}function e(a){var c=b.createElement("script");c.src=a,c.type="text/javascript",b.getElementsByTagName("head")[0].appendChild(c)}var f,g;c.supports={simple:d("simple"),flag:d("flag"),unicode8:d("unicode8"),diversity:d("diversity")},c.DOMReady=!1,c.readyCallback=function(){c.DOMReady=!0},c.supports.simple&&c.supports.flag&&c.supports.unicode8&&c.supports.diversity||(g=function(){c.readyCallback()},b.addEventListener?(b.addEventListener("DOMContentLoaded",g,!1),a.addEventListener("load",g,!1)):(a.attachEvent("onload",g),b.attachEvent("onreadystatechange",function(){"complete"===b.readyState&&c.readyCallback()})),f=c.source||{},f.concatemoji?e(f.concatemoji):f.wpemoji&&f.twemoji&&(e(f.twemoji),e(f.wpemoji)))}(window,document,window._wpemojiSettings);
+		</script>
+		<style type="text/css">
+img.wp-smiley,
+img.emoji {
+	display: inline !important;
+	border: none !important;
+	box-shadow: none !important;
+	height: 1em !important;
+	width: 1em !important;
+	margin: 0 .07em !important;
+	vertical-align: -0.1em !important;
+	background: none !important;
+	padding: 0 !important;
+}
+</style>
+<link rel='stylesheet' id='googlefonts-css'  href='http://fonts.googleapis.com/css?family=Tinos:400' type='text/css' media='all' />
+<link rel='stylesheet' id='amazon-link-style-css'  href='http://gangrey.com/wp-content/plugins/amazon-link/Amazon.css?ver=3.2.5' type='text/css' media='all' />
+<link rel='https://api.w.org/' href='http://gangrey.com/?rest_route=/' />
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://gangrey.com/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://gangrey.com/wp-includes/wlwmanifest.xml" /> 
+<meta name="generator" content="WordPress 4.4.5" />
+<style type='text/css' media='screen'>
+	body{ font-family:"Tinos", arial, sans-serif;}
+	h1{ font-family:"Tinos", arial, sans-serif;}
+	h2{ font-family:"Tinos", arial, sans-serif;}
+	h3{ font-family:"Tinos", arial, sans-serif;}
+	h4{ font-family:"Tinos", arial, sans-serif;}
+	h5{ font-family:"Tinos", arial, sans-serif;}
+	h6{ font-family:"Tinos", arial, sans-serif;}
+	blockquote{ font-family:"Tinos", arial, sans-serif;}
+	p{ font-family:"Tinos", arial, sans-serif;}
+	li{ font-family:"Tinos", arial, sans-serif;}
+</style>
+<!-- fonts delivered by Wordpress Google Fonts, a plugin by Adrian3.com -->	<style>
+		/* Link color */
+		a,
+		#site-title a:focus,
+		#site-title a:hover,
+		#site-title a:active,
+		.entry-title a:hover,
+		.entry-title a:focus,
+		.entry-title a:active,
+		.widget_twentyeleven_ephemera .comments-link a:hover,
+		section.recent-posts .other-recent-posts a[rel="bookmark"]:hover,
+		section.recent-posts .other-recent-posts .comments-link a:hover,
+		.format-image footer.entry-meta a:hover,
+		#site-generator a:hover {
+			color: #989997;
+		}
+		section.recent-posts .other-recent-posts .comments-link a:hover {
+			border-color: #989997;
+		}
+		article.feature-image.small .entry-summary p a:hover,
+		.entry-header .comments-link a:hover,
+		.entry-header .comments-link a:focus,
+		.entry-header .comments-link a:active,
+		.feature-slider a.active {
+			background-color: #989997;
+		}
+	</style>
+		<style type="text/css">.recentcomments a{display:inline !important;padding:0 !important;margin:0 !important;}</style>
+			<style type="text/css" id="twentyeleven-header-css">
+			#site-title,
+		#site-description {
+			position: absolute;
+			clip: rect(1px 1px 1px 1px); /* IE6, IE7 */
+			clip: rect(1px, 1px, 1px, 1px);
+		}
+		</style>
+	<style type="text/css" id="custom-background-css">
+body.custom-background { background-color: #ffffff; }
+</style>
+</head>
+
+<body class="home blog custom-background two-column right-sidebar">
+<div id="page" class="hfeed">
+	<header id="branding" role="banner">
+			<hgroup>
+				<h1 id="site-title"><span><a href="http://gangrey.com/" rel="home">Gangrey.com</a></span></h1>
+				<h2 id="site-description">Prolonging the slow death of newspapers</h2>
+			</hgroup>
+
+						<a href="http://gangrey.com/">
+									<img src="http://gangrey.com/wp-content/uploads/2012/07/dustbowlgangrey.jpg" width="940" height="198" alt="Gangrey.com" />
+							</a>
+			
+							<div class="only-search with-image">
+					<form method="get" id="searchform" action="http://gangrey.com/">
+		<label for="s" class="assistive-text">Search</label>
+		<input type="text" class="field" name="s" id="s" placeholder="Search" />
+		<input type="submit" class="submit" name="submit" id="searchsubmit" value="Search" />
+	</form>
+				</div>
+			
+			<nav id="access" role="navigation">
+				<h3 class="assistive-text">Main menu</h3>
+								<div class="skip-link"><a class="assistive-text" href="#content">Skip to primary content</a></div>
+									<div class="skip-link"><a class="assistive-text" href="#secondary">Skip to secondary content</a></div>
+												<div class="menu"><ul><li class="current_page_item"><a href="http://gangrey.com/">Home</a></li></ul></div>
+			</nav><!-- #access -->
+	</header><!-- #branding -->
+
+
+	<div id="main">
+
+		<div id="primary">
+			<div id="content" role="main">
+
+			
+						<nav id="nav-above">
+			<h3 class="assistive-text">Post navigation</h3>
+			<div class="nav-previous"><a href="http://gangrey.com/?paged=2" ><span class="meta-nav">&larr;</span> Older posts</a></div>
+			<div class="nav-next"></div>
+		</nav><!-- #nav-above -->
+	
+								
+					
+	<article id="post-5852" class="post-5852 post type-post status-publish format-standard hentry category-general">
+		<header class="entry-header">
+						<h1 class="entry-title"><a href="http://gangrey.com/?p=5852" rel="bookmark">The Hardwick Gazette</a></h1>
+			
+						<div class="entry-meta">
+				<span class="sep">Posted on </span><a href="http://gangrey.com/?p=5852" title="2:01 pm" rel="bookmark"><time class="entry-date" datetime="2016-08-26T14:01:29+00:00">August 26, 2016</time></a><span class="by-author"> <span class="sep"> by </span> <span class="author vcard"><a class="url fn n" href="http://gangrey.com/?author=1" title="View all posts by ben" rel="author">ben</a></span></span>			</div><!-- .entry-meta -->
+			
+						<div class="comments-link">
+				<a href="http://gangrey.com/?p=5852#respond"><span class="leave-reply">Reply</span></a>			</div>
+					</header><!-- .entry-header -->
+
+				<div class="entry-content">
+			<p><a href="http://www.hardwickgazette.com/">Who&#8217;s in</a>?</p>
+					</div><!-- .entry-content -->
+		
+		<footer class="entry-meta">
+												<span class="cat-links">
+				<span class="entry-utility-prep entry-utility-prep-cat-links">Posted in</span> <a href="http://gangrey.com/?cat=1" rel="category">General</a>			</span>
+															
+									<span class="sep"> | </span>
+						<span class="comments-link"><a href="http://gangrey.com/?p=5852#respond"><span class="leave-reply">Leave a reply</span></a></span>
+			
+					</footer><!-- .entry-meta -->
+	</article><!-- #post-5852 -->
+
+				
+					
+	<article id="post-5835" class="post-5835 post type-post status-publish format-standard hentry category-general">
+		<header class="entry-header">
+						<h1 class="entry-title"><a href="http://gangrey.com/?p=5835" rel="bookmark">Nightstand</a></h1>
+			
+						<div class="entry-meta">
+				<span class="sep">Posted on </span><a href="http://gangrey.com/?p=5835" title="3:45 pm" rel="bookmark"><time class="entry-date" datetime="2016-06-08T15:45:06+00:00">June 8, 2016</time></a><span class="by-author"> <span class="sep"> by </span> <span class="author vcard"><a class="url fn n" href="http://gangrey.com/?author=1" title="View all posts by ben" rel="author">ben</a></span></span>			</div><!-- .entry-meta -->
+			
+						<div class="comments-link">
+				<a href="http://gangrey.com/?p=5835#comments">2</a>			</div>
+					</header><!-- .entry-header -->
+
+				<div class="entry-content">
+			<p>Seems like so many exciting new books from friends are hitting the shelves this summer and fall. Here&#8217;s my rundown. Correct my oversight. And what are you reading?</p>
+<p><a href="http://gangrey.com/wp-content/uploads/2016/06/513WtPRAH6L._SX332_BO1204203200_.jpg" rel="attachment wp-att-5836"><img src="http://gangrey.com/wp-content/uploads/2016/06/513WtPRAH6L._SX332_BO1204203200_.jpg" alt="513WtPRAH6L._SX332_BO1,204,203,200_" width="334" height="499" class="alignnone size-full wp-image-5836" srcset="http://gangrey.com/wp-content/uploads/2016/06/513WtPRAH6L._SX332_BO1204203200_-201x300.jpg 201w, http://gangrey.com/wp-content/uploads/2016/06/513WtPRAH6L._SX332_BO1204203200_.jpg 334w" sizes="(max-width: 334px) 100vw, 334px" /></a></p>
+<p><a href="https://www.amazon.com/Juniper-Girl-Who-Born-Soon/dp/0316324426/ref=sr_1_1?s=books&#038;ie=UTF8&#038;qid=1465400022&#038;sr=1-1&#038;keywords=juniper">Juniper: The Girl Who Was Born Too Soon</a>, by Kelley Benham French and Tom French.</p>
+<p><a href="http://gangrey.com/wp-content/uploads/2016/06/5102M7cjXFL._SX329_BO1204203200_.jpg" rel="attachment wp-att-5837"><img src="http://gangrey.com/wp-content/uploads/2016/06/5102M7cjXFL._SX329_BO1204203200_.jpg" alt="5102M7cjXFL._SX329_BO1,204,203,200_" width="331" height="499" class="alignnone size-full wp-image-5837" srcset="http://gangrey.com/wp-content/uploads/2016/06/5102M7cjXFL._SX329_BO1204203200_-199x300.jpg 199w, http://gangrey.com/wp-content/uploads/2016/06/5102M7cjXFL._SX329_BO1204203200_.jpg 331w" sizes="(max-width: 331px) 100vw, 331px" /></a></p>
+<p><a href="https://www.amazon.com/One-Billion-Volker-Genomic-Medicine/dp/1451661320?ie=UTF8&#038;*Version*=1&#038;*entries*=0">One In a Billion: The Story of Nic Volker and the Dawn of Genomic Medicine</a>, by Mark Johnson and Kathleen Gallagher. </p>
+<p><a href="http://gangrey.com/wp-content/uploads/2016/06/51GYl4D5QEL._SX321_BO1204203200_.jpg" rel="attachment wp-att-5838"><img src="http://gangrey.com/wp-content/uploads/2016/06/51GYl4D5QEL._SX321_BO1204203200_.jpg" alt="51GYl4D5QEL._SX321_BO1,204,203,200_" width="323" height="499" class="alignnone size-full wp-image-5838" srcset="http://gangrey.com/wp-content/uploads/2016/06/51GYl4D5QEL._SX321_BO1204203200_-194x300.jpg 194w, http://gangrey.com/wp-content/uploads/2016/06/51GYl4D5QEL._SX321_BO1204203200_.jpg 323w" sizes="(max-width: 323px) 100vw, 323px" /></a></p>
+<p><a href="https://www.amazon.com/Truevine-Brothers-Kidnapping-Mothers-Quest/dp/0316337544?ie=UTF8&#038;ref_=asap_bc">Truevine: Two Brothers, a Kidnapping, and a Mother&#8217;s Quest: A True Story of the Jim Crow South</a>, by Beth Macy.</p>
+<p><a href="http://gangrey.com/wp-content/uploads/2016/06/51Q8GHi6FFL._SX329_BO1204203200_.jpg" rel="attachment wp-att-5849"><img src="http://gangrey.com/wp-content/uploads/2016/06/51Q8GHi6FFL._SX329_BO1204203200_.jpg" alt="51Q8GHi6FFL._SX329_BO1,204,203,200_" width="331" height="499" class="alignnone size-full wp-image-5849" srcset="http://gangrey.com/wp-content/uploads/2016/06/51Q8GHi6FFL._SX329_BO1204203200_-199x300.jpg 199w, http://gangrey.com/wp-content/uploads/2016/06/51Q8GHi6FFL._SX329_BO1204203200_.jpg 331w" sizes="(max-width: 331px) 100vw, 331px" /></a></p>
+<p><a href="https://www.amazon.com/Boys-Bunkhouse-Servitude-Salvation-Heartland-ebook/dp/B014DU76O0">The Boys in the Bunkhouse: Servitude and Salvation in the Heartland</a>, by Dan Barry.</p>
+<p><a href="http://gangrey.com/wp-content/uploads/2016/06/51jpMvuN3WL._SX329_BO1204203200_.jpg" rel="attachment wp-att-5839"><img src="http://gangrey.com/wp-content/uploads/2016/06/51jpMvuN3WL._SX329_BO1204203200_.jpg" alt="51jpMvuN3WL._SX329_BO1,204,203,200_" width="331" height="499" class="alignnone size-full wp-image-5839" srcset="http://gangrey.com/wp-content/uploads/2016/06/51jpMvuN3WL._SX329_BO1204203200_-199x300.jpg 199w, http://gangrey.com/wp-content/uploads/2016/06/51jpMvuN3WL._SX329_BO1204203200_.jpg 331w" sizes="(max-width: 331px) 100vw, 331px" /></a></p>
+<p><a href="https://www.amazon.com/Almighty-Courage-Resistance-Existential-Nuclear/dp/0399173757/ref=sr_1_1?s=books&#038;ie=UTF8&#038;qid=1465399939&#038;sr=1-1&#038;keywords=dan+zak">Almighty: Courage, Resistance and Existential Peril in the Nuclear Age</a>, by Dan Zak.</p>
+<p><a href="http://gangrey.com/wp-content/uploads/2016/06/51PyCZXrWyL._SX329_BO1204203200_.jpg" rel="attachment wp-att-5840"><img src="http://gangrey.com/wp-content/uploads/2016/06/51PyCZXrWyL._SX329_BO1204203200_.jpg" alt="51PyCZXrWyL._SX329_BO1,204,203,200_" width="331" height="499" class="alignnone size-full wp-image-5840" srcset="http://gangrey.com/wp-content/uploads/2016/06/51PyCZXrWyL._SX329_BO1204203200_-199x300.jpg 199w, http://gangrey.com/wp-content/uploads/2016/06/51PyCZXrWyL._SX329_BO1204203200_.jpg 331w" sizes="(max-width: 331px) 100vw, 331px" /></a></p>
+<p><a href="https://www.amazon.com/Darktown-Novel-Thomas-Mullen/dp/1501133861/ref=sr_1_1?s=books&#038;ie=UTF8&#038;qid=1465400239&#038;sr=1-1&#038;keywords=darktown+by+thomas+mullen">Darktown: A Novel</a>, by Thomas Mullen.</p>
+<p><a href="http://gangrey.com/wp-content/uploads/2016/06/41-Y3TDUxDL._SX329_BO1204203200_.jpg" rel="attachment wp-att-5843"><img src="http://gangrey.com/wp-content/uploads/2016/06/41-Y3TDUxDL._SX329_BO1204203200_.jpg" alt="41-Y3TDUxDL._SX329_BO1,204,203,200_" width="331" height="499" class="alignnone size-full wp-image-5843" srcset="http://gangrey.com/wp-content/uploads/2016/06/41-Y3TDUxDL._SX329_BO1204203200_-199x300.jpg 199w, http://gangrey.com/wp-content/uploads/2016/06/41-Y3TDUxDL._SX329_BO1204203200_.jpg 331w" sizes="(max-width: 331px) 100vw, 331px" /></a></p>
+<p><a href="https://www.amazon.com/Patient-H-M-Memory-Madness-Secrets/dp/0812992733?ie=UTF8&#038;*Version*=1&#038;*entries*=0">Patient H.M.: A Story of Memory, Madness, and Family Secrets</a>, by Luke Dittrich.</p>
+<p><a href="http://gangrey.com/wp-content/uploads/2016/06/517FaW5rdL._SX326_BO1204203200_.jpg" rel="attachment wp-att-5845"><img src="http://gangrey.com/wp-content/uploads/2016/06/517FaW5rdL._SX326_BO1204203200_.jpg" alt="517Fa+W5rdL._SX326_BO1,204,203,200_" width="328" height="499" class="alignnone size-full wp-image-5845" srcset="http://gangrey.com/wp-content/uploads/2016/06/517FaW5rdL._SX326_BO1204203200_-197x300.jpg 197w, http://gangrey.com/wp-content/uploads/2016/06/517FaW5rdL._SX326_BO1204203200_.jpg 328w" sizes="(max-width: 328px) 100vw, 328px" /></a></p>
+<p><a href="https://www.amazon.com/Oh-Florida-Americas-Weirdest-Influences-ebook/dp/B019CB3UNQ/ref=tmm_kin_swatch_0?_encoding=UTF8&#038;qid=&#038;sr=&#038;utm_content=buffer01498&#038;utm_medium=social&#038;utm_source=twitter.com&#038;utm_campaign=buffer">Oh, Florida!: Inside America&#8217;s Strangest State and How It&#8217;s Shaping the Country</a>, by Craig Pittman.</p>
+					</div><!-- .entry-content -->
+		
+		<footer class="entry-meta">
+												<span class="cat-links">
+				<span class="entry-utility-prep entry-utility-prep-cat-links">Posted in</span> <a href="http://gangrey.com/?cat=1" rel="category">General</a>			</span>
+															
+									<span class="sep"> | </span>
+						<span class="comments-link"><a href="http://gangrey.com/?p=5835#comments"><b>2</b> Replies</a></span>
+			
+					</footer><!-- .entry-meta -->
+	</article><!-- #post-5835 -->
+
+				
+					
+	<article id="post-5832" class="post-5832 post type-post status-publish format-standard hentry category-general">
+		<header class="entry-header">
+						<h1 class="entry-title"><a href="http://gangrey.com/?p=5832" rel="bookmark">Dying Alone</a></h1>
+			
+						<div class="entry-meta">
+				<span class="sep">Posted on </span><a href="http://gangrey.com/?p=5832" title="1:24 pm" rel="bookmark"><time class="entry-date" datetime="2016-05-25T13:24:30+00:00">May 25, 2016</time></a><span class="by-author"> <span class="sep"> by </span> <span class="author vcard"><a class="url fn n" href="http://gangrey.com/?author=1" title="View all posts by ben" rel="author">ben</a></span></span>			</div><!-- .entry-meta -->
+			
+						<div class="comments-link">
+				<a href="http://gangrey.com/?p=5832#respond"><span class="leave-reply">Reply</span></a>			</div>
+					</header><!-- .entry-header -->
+
+				<div class="entry-content">
+			<p><a href="http://www.oregonlive.com/washingtoncounty/index.ssf/2016/04/dying_alone_a_jail_inmates_hea.html">Rebecca Woolington</a>: The obituary ran six days after the death of Madaline Christine Pitkin. It recalled the sunny early October evening she was born. It told stories from her childhood, the time she wanted to jump rope like the older girls, the way she loved all animals except spiders.</p>
+<p>It said she spent her time taking black-and-white photographs. It described her as spunky, candid, independent.</p>
+<p>It didn&#8217;t say how or where she died &#8212; only that she &#8220;passed away unexpectedly.&#8221;</p>
+<p>Her parents didn&#8217;t know much more then.</p>
+<p>On the afternoon of April 24, 2014, a chaplain and deputy had come to the door of the family&#8217;s tan-and-brick bungalow in North Portland&#8217;s Overlook neighborhood. Mary Pitkin was alone, cleaning in the dining room. Russell Pitkin was at work, so the deputy met him at his office, told him the news, then drove him home.</p>
+<p>The Pitkins&#8217; 26-year-old daughter had dropped dead inside a jail cell earlier that day. No one could revive her.</p>
+<p>The parents remember thinking: There had to be a mistake. How could this happen?</p>
+					</div><!-- .entry-content -->
+		
+		<footer class="entry-meta">
+												<span class="cat-links">
+				<span class="entry-utility-prep entry-utility-prep-cat-links">Posted in</span> <a href="http://gangrey.com/?cat=1" rel="category">General</a>			</span>
+															
+									<span class="sep"> | </span>
+						<span class="comments-link"><a href="http://gangrey.com/?p=5832#respond"><span class="leave-reply">Leave a reply</span></a></span>
+			
+					</footer><!-- .entry-meta -->
+	</article><!-- #post-5832 -->
+
+				
+					
+	<article id="post-5828" class="post-5828 post type-post status-publish format-standard hentry category-general">
+		<header class="entry-header">
+						<h1 class="entry-title"><a href="http://gangrey.com/?p=5828" rel="bookmark">Everyone Leaves Behind a Name</a></h1>
+			
+						<div class="entry-meta">
+				<span class="sep">Posted on </span><a href="http://gangrey.com/?p=5828" title="2:18 pm" rel="bookmark"><time class="entry-date" datetime="2016-05-10T14:18:05+00:00">May 10, 2016</time></a><span class="by-author"> <span class="sep"> by </span> <span class="author vcard"><a class="url fn n" href="http://gangrey.com/?author=1" title="View all posts by ben" rel="author">ben</a></span></span>			</div><!-- .entry-meta -->
+			
+						<div class="comments-link">
+				<a href="http://gangrey.com/?p=5828#comments">2</a>			</div>
+					</header><!-- .entry-header -->
+
+				<div class="entry-content">
+			<p>NiemanStoryboard launched an eight-week project showcasing the work of Michael Brick, which is collected in <a href="http://www.amazon.com/Everyone-Leaves-Behind-Name-Stories/dp/0996490159">Everybody Leaves Behind a Name: True Stories.</a> Here&#8217;s a <a href="http://niemanstoryboard.org/stories/5-questions-with-ben-montgomery-on-michael-brick-and-everyone-leaves-behind-a-name/">Q and A about the book.</a> And here&#8217;s<a href="http://niemanstoryboard.org/stories/from-everyone-leaves-behind-a-name-a-hipster-quits-williamsburg/"> the first story, with an essay from Wright</a>: </p>
+<blockquote><p>The story of Mr. Todd Fatjo’s departure from his truly dope duplex loft is one of those rare pieces that manages to capture a subculture in a moment of transition, and were that all the story did, it would be a success. Most people wouldn’t have seen a flier and understood that modern anthropology begins, and often ends, with noticing something hiding in plain sight. In this recognition, and the mental hop-scotch from there to the wide angle lens, Michael Brick shows his reporting virtuosity. But there’s something else, a subversive undercurrent laced beneath the story, managing to both be a newspaper trend piece while also subtly poking fun at the entire conceit. The voice and language is confident, and reading it always makes me picture a young man, running flat out and roaring, in complete control. Even the use of the New York Times’ honorific isn’t perfunctory; he turns a stodgy rule of style into another weapon in his arsenal. There’s a line by singer-songwriter Jason Isbell that comes to mind when I get to the last sentence about building the city on rock n roll: “A vandal’s smile,” Isbell sings, and that’s what I imagine on Brick’s face when he finished typing this dispatch. He’d completely captured a world, avoiding the tropes so common with similar trend stories, and while evoking hipster Brooklyn and Mr. Fatjo’s transition from a DJ to “some guy with a job,” he’d left behind a finger in the eye of those who’d sling cartoons and clichés. He wrote a flawless story, while managing to spray-paint his name on the worst impulses of journalists, doing both at the same time. It is nearly perfect.<br />
+—Wright Thompson</p></blockquote>
+					</div><!-- .entry-content -->
+		
+		<footer class="entry-meta">
+												<span class="cat-links">
+				<span class="entry-utility-prep entry-utility-prep-cat-links">Posted in</span> <a href="http://gangrey.com/?cat=1" rel="category">General</a>			</span>
+															
+									<span class="sep"> | </span>
+						<span class="comments-link"><a href="http://gangrey.com/?p=5828#comments"><b>2</b> Replies</a></span>
+			
+					</footer><!-- .entry-meta -->
+	</article><!-- #post-5828 -->
+
+				
+					
+	<article id="post-5825" class="post-5825 post type-post status-publish format-standard hentry category-general">
+		<header class="entry-header">
+						<h1 class="entry-title"><a href="http://gangrey.com/?p=5825" rel="bookmark">We Were Right</a></h1>
+			
+						<div class="entry-meta">
+				<span class="sep">Posted on </span><a href="http://gangrey.com/?p=5825" title="3:37 pm" rel="bookmark"><time class="entry-date" datetime="2016-04-06T15:37:01+00:00">April 6, 2016</time></a><span class="by-author"> <span class="sep"> by </span> <span class="author vcard"><a class="url fn n" href="http://gangrey.com/?author=1" title="View all posts by ben" rel="author">ben</a></span></span>			</div><!-- .entry-meta -->
+			
+						<div class="comments-link">
+				<a href="http://gangrey.com/?p=5825#comments">1</a>			</div>
+					</header><!-- .entry-header -->
+
+				<div class="entry-content">
+			<p>Interesting findings in this new study by Tim Rosenstiel for the Brookings Institute, who says the path toward <a href="http://www.brookings.edu/research/papers/2016/02/19-journalism-terrible-analytics-rosenstiel">sustainable journalism is being undermined by terrible data</a> (thanks, John):</p>
+<blockquote><p>    <strong>Major enterprise pays</strong> &#8211; The single biggest change publishers can make is to produce more major enterprise journalism. Major enterprise stories scored 48 percent better than others in a measure of overall engagement. However, just one percent of all content produced is classified as such.</p>
+<p>    <strong>People like long stories</strong> &#8211; The conventional wisdom that writing for the web needs to be short and fast simply is not true. “Long form” stories, those averaging 1,200 words, drove 23 percent more engagement and lifted other metrics such as page views (up 11 percent), sharing (by 45 percent), and reading time (by 36 percent).</p>
+<p>    <strong>The power of photos, audio, and video</strong> &#8211; Stories presented with a photo scored 19 percent higher in engagement than stories without photos. Stories with multiple photos scored 43 percent higher.</p>
+<p>    <strong>Crime as a staple of local reporting</strong> &#8211; Across the data set, crime ranked with food and dining as the topics audiences engaged with most. But in a digital world, what works best is somewhat different than it may have been previously. For instance, crime briefs—the classic police blotter of small incidents—do not perform well online.
+</p></blockquote>
+<p>Agree?</p>
+					</div><!-- .entry-content -->
+		
+		<footer class="entry-meta">
+												<span class="cat-links">
+				<span class="entry-utility-prep entry-utility-prep-cat-links">Posted in</span> <a href="http://gangrey.com/?cat=1" rel="category">General</a>			</span>
+															
+									<span class="sep"> | </span>
+						<span class="comments-link"><a href="http://gangrey.com/?p=5825#comments"><b>1</b> Reply</a></span>
+			
+					</footer><!-- .entry-meta -->
+	</article><!-- #post-5825 -->
+
+				
+					
+	<article id="post-5822" class="post-5822 post type-post status-publish format-standard hentry category-general">
+		<header class="entry-header">
+						<h1 class="entry-title"><a href="http://gangrey.com/?p=5822" rel="bookmark">The Enigmatic Life Of Anthony Monaco</a></h1>
+			
+						<div class="entry-meta">
+				<span class="sep">Posted on </span><a href="http://gangrey.com/?p=5822" title="12:46 am" rel="bookmark"><time class="entry-date" datetime="2016-03-29T00:46:44+00:00">March 29, 2016</time></a><span class="by-author"> <span class="sep"> by </span> <span class="author vcard"><a class="url fn n" href="http://gangrey.com/?author=1" title="View all posts by ben" rel="author">ben</a></span></span>			</div><!-- .entry-meta -->
+			
+						<div class="comments-link">
+				<a href="http://gangrey.com/?p=5822#comments">1</a>			</div>
+					</header><!-- .entry-header -->
+
+				<div class="entry-content">
+			<p><a href="http://www.poughkeepsiejournal.com/story/news/local/ulster-county/2016/03/26/enigmatic-life-anthony-monaco/76741474/">John Ferro</a> (thanks, Oliver): HIGHLAND &#8211; The small, frail man with an Italian passport would arrive unannounced, trundling a small suitcase behind him.</p>
+<p>Like a wispy Willy Loman, but with nothing to sell, Anthony Monaco would appear from time to time at one of the motels along Route 299 in New Paltz or Route 9W in Highland.</p>
+<p>He had no family there. No desire to go sightseeing. He talked at length with almost no one.</p>
+<p>But he was known to local police, mostly because of his erratic behavior — eruptions of rage that would get him tossed from one motel to another, but almost never charged with a crime.</p>
+<p>When his suitcase was found along the shoulder of Route 9W, Town of Lloyd police issued a missing persons report. They found his body days later, on Sept. 30, 2015, washed up in the Twaalfskill Creek.</p>
+					</div><!-- .entry-content -->
+		
+		<footer class="entry-meta">
+												<span class="cat-links">
+				<span class="entry-utility-prep entry-utility-prep-cat-links">Posted in</span> <a href="http://gangrey.com/?cat=1" rel="category">General</a>			</span>
+															
+									<span class="sep"> | </span>
+						<span class="comments-link"><a href="http://gangrey.com/?p=5822#comments"><b>1</b> Reply</a></span>
+			
+					</footer><!-- .entry-meta -->
+	</article><!-- #post-5822 -->
+
+				
+					
+	<article id="post-5820" class="post-5820 post type-post status-publish format-standard hentry category-general">
+		<header class="entry-header">
+						<h1 class="entry-title"><a href="http://gangrey.com/?p=5820" rel="bookmark">Fight</a></h1>
+			
+						<div class="entry-meta">
+				<span class="sep">Posted on </span><a href="http://gangrey.com/?p=5820" title="5:07 pm" rel="bookmark"><time class="entry-date" datetime="2016-03-28T17:07:39+00:00">March 28, 2016</time></a><span class="by-author"> <span class="sep"> by </span> <span class="author vcard"><a class="url fn n" href="http://gangrey.com/?author=1" title="View all posts by ben" rel="author">ben</a></span></span>			</div><!-- .entry-meta -->
+			
+						<div class="comments-link">
+				<a href="http://gangrey.com/?p=5820#respond"><span class="leave-reply">Reply</span></a>			</div>
+					</header><!-- .entry-header -->
+
+				<div class="entry-content">
+			<p><a href="http://www.nytimes.com/2016/03/28/sports/boxing-youngstown-anthony-taylor-hamzah-aljahmi.html?smid=tw-share&#038;_r=0">Dan Barry</a>: YOUNGSTOWN, Ohio — Numbered balls of chance rattle and rise two nights a week down at the cavernous community hall of Sts. Peter and Paul Ukrainian Orthodox Church. It’s called a good bingo when your number comes up.</p>
+<p>But that last Saturday before Christmas offered no good bingos. The night was reserved for a boxing event billed as Season’s Beatings, which had prompted a newspaper deliveryman named Anthony Taylor to pull up in his clattering Dodge Caravan. Twenty-four years old, 5 feet tall, 115 pounds, about to turn pro.</p>
+<p>A fist of nerves, he walked down the glazed-tile stairwell to the finished basement, a space used for church dances and wedding banquets, but now an open locker room. Chandeliers glittered above the fighters trying to warm up and calm down, while the crowds upstairs cheered on the amateurs, including a sleepy-eyed 11-year-old who would knock out his grade-school opponent.</p>
+					</div><!-- .entry-content -->
+		
+		<footer class="entry-meta">
+												<span class="cat-links">
+				<span class="entry-utility-prep entry-utility-prep-cat-links">Posted in</span> <a href="http://gangrey.com/?cat=1" rel="category">General</a>			</span>
+															
+									<span class="sep"> | </span>
+						<span class="comments-link"><a href="http://gangrey.com/?p=5820#respond"><span class="leave-reply">Leave a reply</span></a></span>
+			
+					</footer><!-- .entry-meta -->
+	</article><!-- #post-5820 -->
+
+				
+					
+	<article id="post-5817" class="post-5817 post type-post status-publish format-standard hentry category-general">
+		<header class="entry-header">
+						<h1 class="entry-title"><a href="http://gangrey.com/?p=5817" rel="bookmark">Busting Cactus Thieves</a></h1>
+			
+						<div class="entry-meta">
+				<span class="sep">Posted on </span><a href="http://gangrey.com/?p=5817" title="9:56 pm" rel="bookmark"><time class="entry-date" datetime="2016-03-18T21:56:40+00:00">March 18, 2016</time></a><span class="by-author"> <span class="sep"> by </span> <span class="author vcard"><a class="url fn n" href="http://gangrey.com/?author=1" title="View all posts by ben" rel="author">ben</a></span></span>			</div><!-- .entry-meta -->
+			
+						<div class="comments-link">
+				<a href="http://gangrey.com/?p=5817#respond"><span class="leave-reply">Reply</span></a>			</div>
+					</header><!-- .entry-header -->
+
+				<div class="entry-content">
+			<p><a href="http://www.theatlantic.com/science/archive/2016/02/cactus-thieves/470070/">Weston Phippen</a>: Yevgeny Safronov and the four tourists landed in Los Angeles on a 70-degree dream of a day last May. They were Czechs, Slovaks, and Russians, here on vacation. It was a holiday, so the banks and much of government had closed, but not all of it. For at least six months investigators in federal agencies that watch the nation’s wild lands, its fauna and flora, had also kept eyes on these five foreigners, who would soon drive into the desert, where undercover agents would be waiting. The flight from Moscow had lasted 12 hours. Safronov and the others left their seats, then applied for entry into the U.S.</p>
+<p>The investigation began when an agent in Denver found a European website advertising a trip. Written in Slovak, the blog post read: “Already this summer, I began to have ‘cold turkey’––I have not been in the U.S. since last June.” The post was written by the trip’s organizer and the site’s host, Igor Drab, who had planned a camping tour of state and national parks across the American Southwest, starting and ending in Los Angeles. “If anyone among you is interested to join,” Drab wrote, “you must do so as soon as possible.” The investigator alerted Fish &#038; Wildlife Service in El Paso, Texas, and from there the Bureau of Land Management, Customs and Border Protection, even the crisp-brimmed rangers of the National Park Service.</p>
+					</div><!-- .entry-content -->
+		
+		<footer class="entry-meta">
+												<span class="cat-links">
+				<span class="entry-utility-prep entry-utility-prep-cat-links">Posted in</span> <a href="http://gangrey.com/?cat=1" rel="category">General</a>			</span>
+															
+									<span class="sep"> | </span>
+						<span class="comments-link"><a href="http://gangrey.com/?p=5817#respond"><span class="leave-reply">Leave a reply</span></a></span>
+			
+					</footer><!-- .entry-meta -->
+	</article><!-- #post-5817 -->
+
+				
+					
+	<article id="post-5815" class="post-5815 post type-post status-publish format-standard hentry category-general">
+		<header class="entry-header">
+						<h1 class="entry-title"><a href="http://gangrey.com/?p=5815" rel="bookmark">In The Land Of Missing Persons</a></h1>
+			
+						<div class="entry-meta">
+				<span class="sep">Posted on </span><a href="http://gangrey.com/?p=5815" title="9:10 pm" rel="bookmark"><time class="entry-date" datetime="2016-03-18T21:10:26+00:00">March 18, 2016</time></a><span class="by-author"> <span class="sep"> by </span> <span class="author vcard"><a class="url fn n" href="http://gangrey.com/?author=1" title="View all posts by ben" rel="author">ben</a></span></span>			</div><!-- .entry-meta -->
+			
+						<div class="comments-link">
+				<a href="http://gangrey.com/?p=5815#respond"><span class="leave-reply">Reply</span></a>			</div>
+					</header><!-- .entry-header -->
+
+				<div class="entry-content">
+			<p><a href="http://www.theatlantic.com/magazine/archive/2016/04/in-the-land-of-missing-persons/471477/">Alex Tizon</a>: They found what was left of him in the spring of 2014. Firefighters battling a huge blaze on Alaska’s Kenai Peninsula first spotted a boot in the dirt. Then they noticed some bones scattered across a wide grassy area. Fire crews in Alaska are used to seeing the bones of moose, caribou, bears, and other large creatures that live and die in these woods. So it wasn’t until crew members found a human skull that they stopped to consider that the pieces might go together. The skull was resting on its side, the face angled toward the ground. A few blackened molars clung to the upper jaw. The lower jaw was missing.</p>
+<p>The Alaska State Troopers arrived by helicopter and salvaged what they could. “The bones were close to being ash,” Lieutenant Kat Shuey later recalled. “They weren’t quite to the point where if you touched them they would disintegrate, but close.”  </p>
+<p>The remains were spread across an area about 60 yards in diameter, presumably the work of scavenging animals. Also found at the site were three hunting knives, two quarters, two metal buttons, a zipper, and part of a Samsung mobile phone. All of the items were charred to varying degrees, like most everything else in the path of the Funny River Fire, which burned nearly 200,000 acres in the western lowlands of the Kenai Peninsula, a remote corner of this remote part of the world, a place one local described as “the middle of the middle of nowhere.”</p>
+					</div><!-- .entry-content -->
+		
+		<footer class="entry-meta">
+												<span class="cat-links">
+				<span class="entry-utility-prep entry-utility-prep-cat-links">Posted in</span> <a href="http://gangrey.com/?cat=1" rel="category">General</a>			</span>
+															
+									<span class="sep"> | </span>
+						<span class="comments-link"><a href="http://gangrey.com/?p=5815#respond"><span class="leave-reply">Leave a reply</span></a></span>
+			
+					</footer><!-- .entry-meta -->
+	</article><!-- #post-5815 -->
+
+				
+					
+	<article id="post-5813" class="post-5813 post type-post status-publish format-standard hentry category-general">
+		<header class="entry-header">
+						<h1 class="entry-title"><a href="http://gangrey.com/?p=5813" rel="bookmark">Goodbye, 600</a></h1>
+			
+						<div class="entry-meta">
+				<span class="sep">Posted on </span><a href="http://gangrey.com/?p=5813" title="8:01 pm" rel="bookmark"><time class="entry-date" datetime="2016-03-18T20:01:12+00:00">March 18, 2016</time></a><span class="by-author"> <span class="sep"> by </span> <span class="author vcard"><a class="url fn n" href="http://gangrey.com/?author=1" title="View all posts by ben" rel="author">ben</a></span></span>			</div><!-- .entry-meta -->
+			
+						<div class="comments-link">
+				<a href="http://gangrey.com/?p=5813#respond"><span class="leave-reply">Reply</span></a>			</div>
+					</header><!-- .entry-header -->
+
+				<div class="entry-content">
+			<p><a href="https://tommytomlinson.wordpress.com/2016/03/11/goodbye-600/">Tommy T</a> (thanks, Oliver): The business I love has put a lot of good people on the street and left behind a lot of empty buildings. I love it anyway, and so do the people who came by the paper Thursday, not so much to say goodbye to the old building but to say hello again to one another. I did most of the best work of my life with those people, and had most of the good times I’ll ever have, and met the woman I married. Newspapers can break your heart. But I’ll let it be broken every time for what I got out of the deal. </p>
+					</div><!-- .entry-content -->
+		
+		<footer class="entry-meta">
+												<span class="cat-links">
+				<span class="entry-utility-prep entry-utility-prep-cat-links">Posted in</span> <a href="http://gangrey.com/?cat=1" rel="category">General</a>			</span>
+															
+									<span class="sep"> | </span>
+						<span class="comments-link"><a href="http://gangrey.com/?p=5813#respond"><span class="leave-reply">Leave a reply</span></a></span>
+			
+					</footer><!-- .entry-meta -->
+	</article><!-- #post-5813 -->
+
+				
+						<nav id="nav-below">
+			<h3 class="assistive-text">Post navigation</h3>
+			<div class="nav-previous"><a href="http://gangrey.com/?paged=2" ><span class="meta-nav">&larr;</span> Older posts</a></div>
+			<div class="nav-next"></div>
+		</nav><!-- #nav-above -->
+	
+			
+			</div><!-- #content -->
+		</div><!-- #primary -->
+
+		<div id="secondary" class="widget-area" role="complementary">
+			<aside id="text-9" class="widget widget_text">			<div class="textwidget"><a href="http://www.amazon.com/Everyone-Leaves-Behind-Name-Stories/dp/0996490159/ref=as_li_ss_il?ie=UTF8&linkCode=li2&tag=gangrey-20&linkId=28f06eee02632b86c35f9cb458788dc6" target="_blank"><img border="0" src="//ws-na.amazon-adsystem.com/widgets/q?_encoding=UTF8&ASIN=0996490159&Format=_SL160_&ID=AsinImage&MarketPlace=US&ServiceVersion=20070822&WS=1&tag=gangrey-20" /></a><img src="//ir-na.amazon-adsystem.com/e/ir?t=gangrey-20&l=li2&o=1&a=0996490159" width="1" height="1" border="0" alt="" style="border:none !important; margin:0px !important;" /></div>
+		</aside><aside id="text-10" class="widget widget_text">			<div class="textwidget"><a href="http://www.amazon.com/Grandma-Gatewoods-Walk-Inspiring-Appalachian/dp/1613747187/ref=as_li_ss_il?ie=UTF8&linkCode=li2&tag=gangrey-20&linkId=d6cf047b789444fdcdc9280384605c28" target="_blank"><img border="0" src="//ws-na.amazon-adsystem.com/widgets/q?_encoding=UTF8&ASIN=1613747187&Format=_SL160_&ID=AsinImage&MarketPlace=US&ServiceVersion=20070822&WS=1&tag=gangrey-20" /></a><img src="//ir-na.amazon-adsystem.com/e/ir?t=gangrey-20&l=li2&o=1&a=1613747187" width="1" height="1" border="0" alt="" style="border:none !important; margin:0px !important;" /></div>
+		</aside><aside id="rss-3" class="widget widget_rss"><h3 class="widget-title"><a class="rsswidget" href="http://mrtullis.podomatic.com/rss2.xml"><img class="rss-widget-icon" style="border:0" width="14" height="14" src="http://gangrey.com/wp-includes/images/rss.png" alt="RSS" /></a> <a class="rsswidget" href="">The Podcast</a></h3></aside><aside id="recent-comments-2" class="widget widget_recent_comments"><h3 class="widget-title">Recent Comments</h3><ul id="recentcomments"><li class="recentcomments"><span class="comment-author-link"><a href='http://www.jsonline.com' rel='external nofollow' class='url'>Mark Johnson</a></span> on <a href="http://gangrey.com/?p=5835#comment-74403">Nightstand</a></li><li class="recentcomments"><span class="comment-author-link"><a href='http://www.andrewpantazi.com' rel='external nofollow' class='url'>pantazi</a></span> on <a href="http://gangrey.com/?p=5835#comment-74387">Nightstand</a></li><li class="recentcomments"><span class="comment-author-link">Glenn Stout</span> on <a href="http://gangrey.com/?p=5828#comment-73827">Everyone Leaves Behind a Name</a></li><li class="recentcomments"><span class="comment-author-link"><a href='http://www.andrewpantazi.com' rel='external nofollow' class='url'>Pantazi</a></span> on <a href="http://gangrey.com/?p=5828#comment-73764">Everyone Leaves Behind a Name</a></li><li class="recentcomments"><span class="comment-author-link"><a href='http://www.andrewpantazi.com' rel='external nofollow' class='url'>pantazi</a></span> on <a href="http://gangrey.com/?p=5825#comment-73073">We Were Right</a></li><li class="recentcomments"><span class="comment-author-link">Oliver Mackson</span> on <a href="http://gangrey.com/?p=5822#comment-72906">The Enigmatic Life Of Anthony Monaco</a></li><li class="recentcomments"><span class="comment-author-link">tloh</span> on <a href="http://gangrey.com/?p=5801#comment-72254">Is 90% of longform crap?</a></li><li class="recentcomments"><span class="comment-author-link"><a href='http://www.jsonline.com' rel='external nofollow' class='url'>Mark Johnson</a></span> on <a href="http://gangrey.com/?p=5801#comment-72194">Is 90% of longform crap?</a></li><li class="recentcomments"><span class="comment-author-link">Joan Nassivera</span> on <a href="http://gangrey.com/?p=5781#comment-71564">Brick By Brick</a></li><li class="recentcomments"><span class="comment-author-link">Ruth SoRelle</span> on <a href="http://gangrey.com/?p=5781#comment-71563">Brick By Brick</a></li><li class="recentcomments"><span class="comment-author-link">Juanpablo Wright</span> on <a href="http://gangrey.com/?p=5781#comment-71556">Brick By Brick</a></li><li class="recentcomments"><span class="comment-author-link">Glenn Stout</span> on <a href="http://gangrey.com/?p=5781#comment-71475">Brick By Brick</a></li><li class="recentcomments"><span class="comment-author-link"><a href='http://www.jsonline.com' rel='external nofollow' class='url'>Mark Johnson</a></span> on <a href="http://gangrey.com/?p=5781#comment-71457">Brick By Brick</a></li><li class="recentcomments"><span class="comment-author-link">Leonora LaPeter Anton</span> on <a href="http://gangrey.com/?p=5781#comment-71455">Brick By Brick</a></li><li class="recentcomments"><span class="comment-author-link">Mary Jane Park</span> on <a href="http://gangrey.com/?p=5781#comment-71435">Brick By Brick</a></li></ul></aside><aside id="text-5" class="widget widget_text">			<div class="textwidget"><a href="http://twitter.com/gangrey" class="twitter-follow-button" data-show-count="true">Follow @gangrey</a>
+<a href="http://twitter.com/michaelkruse" class="twitter-follow-button" data-show-count="true">Follow @michaelkruse</a>
+<a href="http://twitter.com/thomaslake" class="twitter-follow-button" data-show-count="true">Follow @thomaslake</a>
+<a href="http://twitter.com/gangreypodcast" class="twitter-follow-button" data-show-count="true">Follow @gangreypodcast</a></div>
+		</aside>		<aside id="recent-posts-2" class="widget widget_recent_entries">		<h3 class="widget-title">Recent Posts</h3>		<ul>
+					<li>
+				<a href="http://gangrey.com/?p=5852">The Hardwick Gazette</a>
+						</li>
+					<li>
+				<a href="http://gangrey.com/?p=5835">Nightstand</a>
+						</li>
+					<li>
+				<a href="http://gangrey.com/?p=5832">Dying Alone</a>
+						</li>
+					<li>
+				<a href="http://gangrey.com/?p=5828">Everyone Leaves Behind a Name</a>
+						</li>
+					<li>
+				<a href="http://gangrey.com/?p=5825">We Were Right</a>
+						</li>
+				</ul>
+		</aside>		<aside id="archives-2" class="widget widget_archive"><h3 class="widget-title">Archives</h3>		<ul>
+			<li><a href='http://gangrey.com/?m=201608'>August 2016</a></li>
+	<li><a href='http://gangrey.com/?m=201606'>June 2016</a></li>
+	<li><a href='http://gangrey.com/?m=201605'>May 2016</a></li>
+	<li><a href='http://gangrey.com/?m=201604'>April 2016</a></li>
+	<li><a href='http://gangrey.com/?m=201603'>March 2016</a></li>
+	<li><a href='http://gangrey.com/?m=201602'>February 2016</a></li>
+	<li><a href='http://gangrey.com/?m=201601'>January 2016</a></li>
+	<li><a href='http://gangrey.com/?m=201512'>December 2015</a></li>
+	<li><a href='http://gangrey.com/?m=201510'>October 2015</a></li>
+	<li><a href='http://gangrey.com/?m=201509'>September 2015</a></li>
+	<li><a href='http://gangrey.com/?m=201508'>August 2015</a></li>
+	<li><a href='http://gangrey.com/?m=201507'>July 2015</a></li>
+	<li><a href='http://gangrey.com/?m=201506'>June 2015</a></li>
+	<li><a href='http://gangrey.com/?m=201505'>May 2015</a></li>
+	<li><a href='http://gangrey.com/?m=201504'>April 2015</a></li>
+	<li><a href='http://gangrey.com/?m=201503'>March 2015</a></li>
+	<li><a href='http://gangrey.com/?m=201502'>February 2015</a></li>
+	<li><a href='http://gangrey.com/?m=201501'>January 2015</a></li>
+	<li><a href='http://gangrey.com/?m=201412'>December 2014</a></li>
+	<li><a href='http://gangrey.com/?m=201411'>November 2014</a></li>
+	<li><a href='http://gangrey.com/?m=201410'>October 2014</a></li>
+	<li><a href='http://gangrey.com/?m=201409'>September 2014</a></li>
+	<li><a href='http://gangrey.com/?m=201408'>August 2014</a></li>
+	<li><a href='http://gangrey.com/?m=201407'>July 2014</a></li>
+	<li><a href='http://gangrey.com/?m=201406'>June 2014</a></li>
+	<li><a href='http://gangrey.com/?m=201405'>May 2014</a></li>
+	<li><a href='http://gangrey.com/?m=201404'>April 2014</a></li>
+	<li><a href='http://gangrey.com/?m=201403'>March 2014</a></li>
+	<li><a href='http://gangrey.com/?m=201402'>February 2014</a></li>
+	<li><a href='http://gangrey.com/?m=201401'>January 2014</a></li>
+	<li><a href='http://gangrey.com/?m=201312'>December 2013</a></li>
+	<li><a href='http://gangrey.com/?m=201311'>November 2013</a></li>
+	<li><a href='http://gangrey.com/?m=201310'>October 2013</a></li>
+	<li><a href='http://gangrey.com/?m=201309'>September 2013</a></li>
+	<li><a href='http://gangrey.com/?m=201308'>August 2013</a></li>
+	<li><a href='http://gangrey.com/?m=201307'>July 2013</a></li>
+	<li><a href='http://gangrey.com/?m=201306'>June 2013</a></li>
+	<li><a href='http://gangrey.com/?m=201305'>May 2013</a></li>
+	<li><a href='http://gangrey.com/?m=201304'>April 2013</a></li>
+	<li><a href='http://gangrey.com/?m=201303'>March 2013</a></li>
+	<li><a href='http://gangrey.com/?m=201302'>February 2013</a></li>
+	<li><a href='http://gangrey.com/?m=201301'>January 2013</a></li>
+	<li><a href='http://gangrey.com/?m=201212'>December 2012</a></li>
+	<li><a href='http://gangrey.com/?m=201211'>November 2012</a></li>
+	<li><a href='http://gangrey.com/?m=201210'>October 2012</a></li>
+	<li><a href='http://gangrey.com/?m=201209'>September 2012</a></li>
+	<li><a href='http://gangrey.com/?m=201208'>August 2012</a></li>
+	<li><a href='http://gangrey.com/?m=201207'>July 2012</a></li>
+	<li><a href='http://gangrey.com/?m=201206'>June 2012</a></li>
+	<li><a href='http://gangrey.com/?m=201205'>May 2012</a></li>
+	<li><a href='http://gangrey.com/?m=201204'>April 2012</a></li>
+	<li><a href='http://gangrey.com/?m=201203'>March 2012</a></li>
+	<li><a href='http://gangrey.com/?m=201202'>February 2012</a></li>
+	<li><a href='http://gangrey.com/?m=201201'>January 2012</a></li>
+	<li><a href='http://gangrey.com/?m=201112'>December 2011</a></li>
+	<li><a href='http://gangrey.com/?m=201111'>November 2011</a></li>
+	<li><a href='http://gangrey.com/?m=201110'>October 2011</a></li>
+	<li><a href='http://gangrey.com/?m=201109'>September 2011</a></li>
+	<li><a href='http://gangrey.com/?m=201108'>August 2011</a></li>
+	<li><a href='http://gangrey.com/?m=201107'>July 2011</a></li>
+	<li><a href='http://gangrey.com/?m=201106'>June 2011</a></li>
+	<li><a href='http://gangrey.com/?m=201105'>May 2011</a></li>
+	<li><a href='http://gangrey.com/?m=201104'>April 2011</a></li>
+	<li><a href='http://gangrey.com/?m=201103'>March 2011</a></li>
+	<li><a href='http://gangrey.com/?m=201102'>February 2011</a></li>
+	<li><a href='http://gangrey.com/?m=201101'>January 2011</a></li>
+	<li><a href='http://gangrey.com/?m=201012'>December 2010</a></li>
+	<li><a href='http://gangrey.com/?m=201011'>November 2010</a></li>
+	<li><a href='http://gangrey.com/?m=201010'>October 2010</a></li>
+	<li><a href='http://gangrey.com/?m=201009'>September 2010</a></li>
+	<li><a href='http://gangrey.com/?m=201008'>August 2010</a></li>
+	<li><a href='http://gangrey.com/?m=201007'>July 2010</a></li>
+	<li><a href='http://gangrey.com/?m=201006'>June 2010</a></li>
+	<li><a href='http://gangrey.com/?m=201005'>May 2010</a></li>
+	<li><a href='http://gangrey.com/?m=201004'>April 2010</a></li>
+	<li><a href='http://gangrey.com/?m=201003'>March 2010</a></li>
+	<li><a href='http://gangrey.com/?m=201002'>February 2010</a></li>
+	<li><a href='http://gangrey.com/?m=201001'>January 2010</a></li>
+	<li><a href='http://gangrey.com/?m=200912'>December 2009</a></li>
+	<li><a href='http://gangrey.com/?m=200911'>November 2009</a></li>
+	<li><a href='http://gangrey.com/?m=200910'>October 2009</a></li>
+	<li><a href='http://gangrey.com/?m=200909'>September 2009</a></li>
+	<li><a href='http://gangrey.com/?m=200908'>August 2009</a></li>
+	<li><a href='http://gangrey.com/?m=200907'>July 2009</a></li>
+	<li><a href='http://gangrey.com/?m=200906'>June 2009</a></li>
+	<li><a href='http://gangrey.com/?m=200905'>May 2009</a></li>
+	<li><a href='http://gangrey.com/?m=200904'>April 2009</a></li>
+	<li><a href='http://gangrey.com/?m=200903'>March 2009</a></li>
+	<li><a href='http://gangrey.com/?m=200902'>February 2009</a></li>
+	<li><a href='http://gangrey.com/?m=200901'>January 2009</a></li>
+	<li><a href='http://gangrey.com/?m=200812'>December 2008</a></li>
+	<li><a href='http://gangrey.com/?m=200811'>November 2008</a></li>
+	<li><a href='http://gangrey.com/?m=200810'>October 2008</a></li>
+	<li><a href='http://gangrey.com/?m=200809'>September 2008</a></li>
+	<li><a href='http://gangrey.com/?m=200808'>August 2008</a></li>
+	<li><a href='http://gangrey.com/?m=200807'>July 2008</a></li>
+	<li><a href='http://gangrey.com/?m=200806'>June 2008</a></li>
+	<li><a href='http://gangrey.com/?m=200805'>May 2008</a></li>
+	<li><a href='http://gangrey.com/?m=200804'>April 2008</a></li>
+	<li><a href='http://gangrey.com/?m=200803'>March 2008</a></li>
+	<li><a href='http://gangrey.com/?m=200802'>February 2008</a></li>
+	<li><a href='http://gangrey.com/?m=200801'>January 2008</a></li>
+	<li><a href='http://gangrey.com/?m=200712'>December 2007</a></li>
+	<li><a href='http://gangrey.com/?m=200711'>November 2007</a></li>
+	<li><a href='http://gangrey.com/?m=200710'>October 2007</a></li>
+	<li><a href='http://gangrey.com/?m=200709'>September 2007</a></li>
+	<li><a href='http://gangrey.com/?m=200708'>August 2007</a></li>
+	<li><a href='http://gangrey.com/?m=200707'>July 2007</a></li>
+	<li><a href='http://gangrey.com/?m=200706'>June 2007</a></li>
+	<li><a href='http://gangrey.com/?m=200705'>May 2007</a></li>
+	<li><a href='http://gangrey.com/?m=200704'>April 2007</a></li>
+	<li><a href='http://gangrey.com/?m=200703'>March 2007</a></li>
+	<li><a href='http://gangrey.com/?m=200702'>February 2007</a></li>
+	<li><a href='http://gangrey.com/?m=200701'>January 2007</a></li>
+	<li><a href='http://gangrey.com/?m=200612'>December 2006</a></li>
+	<li><a href='http://gangrey.com/?m=200611'>November 2006</a></li>
+	<li><a href='http://gangrey.com/?m=200610'>October 2006</a></li>
+	<li><a href='http://gangrey.com/?m=200609'>September 2006</a></li>
+	<li><a href='http://gangrey.com/?m=200608'>August 2006</a></li>
+	<li><a href='http://gangrey.com/?m=200607'>July 2006</a></li>
+	<li><a href='http://gangrey.com/?m=200606'>June 2006</a></li>
+	<li><a href='http://gangrey.com/?m=200605'>May 2006</a></li>
+	<li><a href='http://gangrey.com/?m=200604'>April 2006</a></li>
+	<li><a href='http://gangrey.com/?m=200603'>March 2006</a></li>
+	<li><a href='http://gangrey.com/?m=200602'>February 2006</a></li>
+	<li><a href='http://gangrey.com/?m=200601'>January 2006</a></li>
+	<li><a href='http://gangrey.com/?m=200512'>December 2005</a></li>
+	<li><a href='http://gangrey.com/?m=200511'>November 2005</a></li>
+	<li><a href='http://gangrey.com/?m=200510'>October 2005</a></li>
+	<li><a href='http://gangrey.com/?m=200509'>September 2005</a></li>
+	<li><a href='http://gangrey.com/?m=200508'>August 2005</a></li>
+	<li><a href='http://gangrey.com/?m=200507'>July 2005</a></li>
+	<li><a href='http://gangrey.com/?m=200506'>June 2005</a></li>
+		</ul>
+		</aside><aside id="categories-2" class="widget widget_categories"><h3 class="widget-title">Categories</h3>		<ul>
+	<li class="cat-item cat-item-1"><a href="http://gangrey.com/?cat=1" >General</a>
+</li>
+		</ul>
+</aside><aside id="meta-2" class="widget widget_meta"><h3 class="widget-title">Meta</h3>			<ul>
+						<li><a href="http://gangrey.com/wp-login.php">Log in</a></li>
+			<li><a href="http://gangrey.com/?feed=rss2">Entries <abbr title="Really Simple Syndication">RSS</abbr></a></li>
+			<li><a href="http://gangrey.com/?feed=comments-rss2">Comments <abbr title="Really Simple Syndication">RSS</abbr></a></li>
+			<li><a href="https://wordpress.org/" title="Powered by WordPress, state-of-the-art semantic personal publishing platform.">WordPress.org</a></li>			</ul>
+			</aside><aside id="text-4" class="widget widget_text">			<div class="textwidget"><div id="statcounter_image" style="display:inline;"><a title="wordpress statistics"
+href="http://statcounter.com/wordpress.org/"
+class="statcounter"><img src="http://c.statcounter.com/816224/0/3f5308bc/0/"
+alt="wordpress statistics" style="border:none;" /></a></div></div>
+		</aside>		</div><!-- #secondary .widget-area -->
+
+	</div><!-- #main -->
+
+	<footer id="colophon" role="contentinfo">
+
+			
+<div id="supplementary" class="one">
+		<div id="first" class="widget-area" role="complementary">
+		<aside id="text-8" class="widget widget_text">			<div class="textwidget"></div>
+		</aside>	</div><!-- #first .widget-area -->
+	
+	
+	</div><!-- #supplementary -->
+			<div id="site-generator">
+								<a href="https://wordpress.org/" title="Semantic Personal Publishing Platform">Proudly powered by WordPress</a>
+			</div>
+	</footer><!-- #colophon -->
+</div><!-- #page -->
+
+<script type='text/javascript' src='http://gangrey.com/wp-includes/js/wp-embed.min.js?ver=4.4.5'></script>
+
+</body>
+</html>
