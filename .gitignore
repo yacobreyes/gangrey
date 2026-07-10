@@ -44,3 +44,4 @@ next-env.d.ts
 .env.selfhost
 data/
 backups/
+.gangrey-rebuild-cache/
