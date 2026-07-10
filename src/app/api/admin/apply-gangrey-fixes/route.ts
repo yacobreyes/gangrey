@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminOrCronSecret } from "@/lib/adminAuth";
-import { isSqliteBackend, sqliteArchivePostsForFixes, sqliteSetDateByline } from "@/lib/storage/sqlite";
+import { isSqliteBackend, sqliteArchivePostsForFixes, sqliteSetDateByline, sqliteSetStatus } from "@/lib/storage/sqlite";
 import fixes from "@/lib/gangreyFixes.json";
 
 export const dynamic = "force-dynamic";
@@ -14,8 +14,15 @@ export const maxDuration = 120;
 // Dry-run by default: GET/POST returns exactly what WOULD change. Pass
 // ?apply=1 to write. Idempotent — re-running only touches rows still off.
 //
-//   POST /api/admin/apply-gangrey-fixes            (dry run, report)
-//   POST /api/admin/apply-gangrey-fixes?apply=1    (write)
+//   POST /api/admin/apply-gangrey-fixes                       (dry run, report)
+//   POST /api/admin/apply-gangrey-fixes?apply=1               (write fixes)
+//   POST /api/admin/apply-gangrey-fixes?trashUnmatched=1      (dry run: list them)
+//   POST /api/admin/apply-gangrey-fixes?trashUnmatched=1&apply=1  (trash them)
+//
+// Unmatched = archive posts with no Wayback record at all (never captured as
+// their own page — the import scraped them off listing pages, so their dates
+// are fabricated). Editorial call: those get trashed (status='trashed',
+// reversible from Imago's Trash), and the response lists every one by name.
 
 type Fix = { d?: string; b?: string };
 const bySlug = (fixes as { bySlug?: Record<string, Fix> }).bySlug ?? {};
@@ -67,19 +74,26 @@ export async function POST(req: NextRequest) {
   await requireAdminOrCronSecret(req);
   if (!isSqliteBackend()) return NextResponse.json({ error: "sqlite-only" }, { status: 400 });
   const apply = req.nextUrl.searchParams.get("apply") === "1";
+  const trashUnmatched = req.nextUrl.searchParams.get("trashUnmatched") === "1";
 
   const posts = sqliteArchivePostsForFixes();
-  let matched = 0, dateChanges = 0, bylineChanges = 0, unmatched = 0, written = 0;
+  let matched = 0, dateChanges = 0, bylineChanges = 0, unmatched = 0, written = 0, trashed = 0;
   const bylineDist: Record<string, number> = {};
   const samples: { headline: string; oldDate: string; newDate?: string; oldByline: string; newByline?: string }[] = [];
   const unmatchedSample: string[] = [];
+  const unmatchedAll: string[] = [];
 
   for (const p of posts) {
     // Match by slug first (gangrey-pN / gangrey-N), then by normalized headline.
     const fix = bySlug[p.slug] ?? byHeadline[normHeadline(p.headline)];
     if (!fix) {
       unmatched++;
+      unmatchedAll.push(`${p.headline || "(no headline)"} [${p.slug}, dated ${p.date.slice(0, 10) || "?"}]`);
       if (unmatchedSample.length < 25) unmatchedSample.push(`${p.slug} — ${p.headline}`);
+      if (trashUnmatched && apply) {
+        sqliteSetStatus(p.id, "trashed");
+        trashed++;
+      }
       continue;
     }
     matched++;
@@ -119,8 +133,11 @@ export async function POST(req: NextRequest) {
     wouldChangeDate: dateChanges,
     wouldChangeByline: bylineChanges,
     written,
+    trashed,
     bylineDistribution: Object.fromEntries(topBylines),
     sampleChanges: samples,
-    unmatchedSample,
+    // With ?trashUnmatched=1 the response carries EVERY unmatched post by
+    // name — the record of what was (or would be) trashed.
+    ...(trashUnmatched ? { unmatchedAll } : { unmatchedSample }),
   });
 }
