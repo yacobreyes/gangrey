@@ -43,12 +43,20 @@ function titleCase(s: string): string {
   return s.replace(/\b([a-z])/g, m => m.toUpperCase());
 }
 
-// Resolve a harvested raw byline to its display form, or null to skip writing.
+// Resolve a harvested raw byline to a SAFE display form, or null to skip
+// (leaving the post's existing byline untouched). We only write when confident:
+//   - a mapped regular (ben → Ben Montgomery, kruse → Michael Kruse, …), or
+//   - a harvested value that already looks like a real full name (has a space:
+//     "paige williams" → "Paige Williams").
+// Bare one-word usernames (emw, zack, ramsey, reiter…) are NOT trustworthy —
+// writing them would clobber a good existing byline (e.g. "Justin Heckert" →
+// "Emw"), so those are skipped and the current byline is kept.
 function displayByline(raw?: string): string | null {
   const b = (raw ?? "").trim();
   if (!b || JUNK.has(b)) return null;
   if (NAME_MAP[b]) return NAME_MAP[b];
-  return titleCase(b);
+  if (/\s/.test(b)) return titleCase(b); // multi-word → a real name
+  return null;                            // lone username → don't trust it
 }
 
 function normHeadline(s: string): string {
