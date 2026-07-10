@@ -4,7 +4,6 @@ import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
 import GangreyArchive from "@/components/GangreyArchive";
 import ListingHeader from "@/components/ListingHeader";
-import { normalizeHeadline } from "@/lib/gangreyDedup";
 
 export const revalidate = 300;
 
@@ -25,23 +24,11 @@ export default async function GangreyPage() {
       return (a.sortOrder ?? 999) - (b.sortOrder ?? 999);
     });
 
-  // Deduplicate by normalized headline + day. Headline alone is too broad:
-  // the blog genuinely re-ran pieces years apart ("Eating Jack Hooker's Cow",
-  // June 2005 and May 2010), and both runs belong in the archive. Same-day
-  // same-headline is a true duplicate (the old import's slug variants).
-  const seen = new Map<string, typeof gangrey[number]>();
-  for (const p of gangrey) {
-    const base = normalizeHeadline(p.headline);
-    const key = base ? `${base}|${(p.date ?? "").slice(0, 10)}` : "";
-    if (!key) continue;
-    const prev = seen.get(key);
-    if (!prev || (!prev.byline && p.byline)) seen.set(key, p);
-  }
-  const deduped = [...seen.values()].sort((a, b) => {
-    const dt = new Date(b.date).getTime() - new Date(a.date).getTime();
-    if (dt !== 0) return dt;
-    return (a.sortOrder ?? 999) - (b.sortOrder ?? 999);
-  });
+  // No dedupe: the archive is rebuilt from the month-by-month Wayback crawl,
+  // which guarantees unique posts at the source (and keeps genuine reposts
+  // like "Eating Jack Hooker's Cow", June 2005 + May 2010). The old
+  // headline-dedupe existed for the first import's slug-variant duplicates.
+  const deduped = gangrey;
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#ffffff", color: "#000000" }}>
