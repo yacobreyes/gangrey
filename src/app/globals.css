@@ -16,6 +16,11 @@
   --font-inter:      var(--font-subhead);
   --font-cormorant:  var(--font-headline);
   --font-bodoni:     var(--font-headline);
+
+  /* Top safe-area inset. 0 in every browser; the status-bar height inside the
+     full-bleed Imago iOS shell (viewport-fit=cover). Admin headers stretch by
+     it so content can't scroll out above them into the status bar. */
+  --safe-top: env(safe-area-inset-top, 0px);
 }
 
 * { box-sizing: border-box; }

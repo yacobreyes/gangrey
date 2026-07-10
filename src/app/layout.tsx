@@ -50,6 +50,10 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#ffffff",
+  // cover → env(safe-area-inset-*) is populated in full-bleed contexts (the
+  // Imago iOS shell); sticky admin headers stretch by --safe-top there.
+  // Everywhere else the insets are 0 and nothing changes.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

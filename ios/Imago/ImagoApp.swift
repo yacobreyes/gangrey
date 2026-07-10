@@ -27,23 +27,14 @@ struct ImagoApp: App {
 
 struct ContentView: View {
     var body: some View {
-        // Full-bleed: the web view extends under the status bar and home
-        // indicator, and WKWebView's automatic content insets keep the page
-        // content out from under them. The site's sticky headers don't know
-        // about the notch area though, so scrolled content would show above
-        // them in the status bar — cover exactly that strip with frosted
-        // glass (the zero-height view expands to fill the top safe-area
-        // inset), the same treatment Safari gives the status bar.
-        ZStack(alignment: .top) {
-            ImagoWebView()
-                .ignoresSafeArea()
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .frame(maxWidth: .infinity)
-                .frame(height: 0)
-                .ignoresSafeArea(edges: .top)
-        }
-        .background(Color.white)
+        // Full-bleed, page-owned layout: the web view covers the whole screen
+        // and the PAGE handles the notch — the site declares viewport-fit=cover
+        // and stretches its admin headers by env(safe-area-inset-top), so the
+        // header background runs to the physical top and nothing can scroll
+        // out above it. No native strips or overlays.
+        ImagoWebView()
+            .ignoresSafeArea()
+            .background(Color.white)
     }
 }
 
@@ -74,7 +65,10 @@ struct ImagoWebView: UIViewRepresentable {
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = true
-        webView.scrollView.contentInsetAdjustmentBehavior = .automatic
+        // .never: don't inject scroll insets for the notch — the page lays
+        // itself out with env(safe-area-inset-top) instead (viewport-fit=cover),
+        // so its headers stretch to the physical top of the screen.
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
         // Present as mobile Safari. Google's OAuth page rejects user agents it
         // classifies as embedded webviews ("disallowed_useragent"); the stock
         // WKWebView UA lacks the Version/Safari tokens and can trip that.

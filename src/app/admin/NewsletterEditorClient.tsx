@@ -753,14 +753,14 @@ export default function NewsletterEditorClient({
       {/* Floating "find content" trigger — fixed to the left edge, hidden while the panel is open */}
       {!isMobile && !showFindContent && (
         <button type="button" title="Find content" onClick={() => setShowFindContent(true)}
-          style={{ position: "fixed", top: 80, left: 24, zIndex: 50, width: 44, height: 44, borderRadius: "50%", background: CRIMSON, color: "white", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 2px 10px rgba(0,0,0,0.2)" }}>
+          style={{ position: "fixed", top: "calc(80px + var(--safe-top))", left: 24, zIndex: 50, width: 44, height: 44, borderRadius: "50%", background: CRIMSON, color: "white", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 2px 10px rgba(0,0,0,0.2)" }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
         </button>
       )}
 
       {/* Find content panel — pull a story in as a new card */}
       {showFindContent && (
-        <div className="nl-find-panel" style={{ position: "fixed", top: 64, left: 12, height: "calc(100% - 76px)", width: 296, maxWidth: "88vw", zIndex: 400, background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, boxShadow: "4px 0 24px rgba(0,0,0,0.12)", display: "flex", flexDirection: "column", overflowY: "auto" }}>
+        <div className="nl-find-panel" style={{ position: "fixed", top: "calc(64px + var(--safe-top))", left: 12, height: "calc(100% - 76px - var(--safe-top))", width: 296, maxWidth: "88vw", zIndex: 400, background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, boxShadow: "4px 0 24px rgba(0,0,0,0.12)", display: "flex", flexDirection: "column", overflowY: "auto" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1rem 1.25rem", borderBottom: `1px solid ${BORDER}` }}>
               <span style={{ fontFamily: FONT, fontWeight: 700, color: TEXT_DARK }}>Find content</span>
               <button type="button" title="Close" onClick={() => setShowFindContent(false)} style={{ background: "none", border: "none", fontSize: "1.3rem", cursor: "pointer", color: TEXT_MUTED, lineHeight: 1 }}>×</button>
@@ -809,7 +809,7 @@ export default function NewsletterEditorClient({
       )}
 
       {/* Top bar — matches story editor */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 1.5rem", borderBottom: `1px solid ${BORDER}`, height: 52, boxSizing: "border-box", flexShrink: 0, background: "white", position: "fixed", top: 0, left: 0, right: 0, zIndex: 410 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 1.5rem", paddingTop: "var(--safe-top)", borderBottom: `1px solid ${BORDER}`, height: "calc(52px + var(--safe-top))", boxSizing: "border-box", flexShrink: 0, background: "white", position: "fixed", top: 0, left: 0, right: 0, zIndex: 410 }}>
         <button disabled={nlExiting} onClick={nlReadOnly ? () => router.push("/admin/imago") : saveAndExit} style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "none", border: "none", fontFamily: FONT, fontSize: "0.85rem", fontWeight: 600, color: TEXT_MUTED, cursor: nlExiting ? "default" : "pointer", opacity: nlExiting ? 0.55 : 1, padding: 0, whiteSpace: "nowrap" }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
           {nlExiting ? "Saving…" : nlReadOnly ? "Go Back" : "Save & Exit"}
@@ -883,7 +883,7 @@ export default function NewsletterEditorClient({
       {/* Mobile: formatting toolbar as its own row below the top bar (Axios
           position). Desktop keeps it inside the top bar — unchanged. */}
       {isMobile && nlToolbarButtons && (
-        <div style={{ display: "flex", alignItems: "center", gap: "0.2rem", padding: "0.25rem 0.75rem", borderBottom: `1px solid ${BORDER}`, background: "white", flexShrink: 0, position: "fixed", top: 52, left: 0, right: 0, zIndex: 405, overflowX: "auto", overflowY: "hidden", touchAction: "pan-x", overscrollBehavior: "contain" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.2rem", padding: "0.25rem 0.75rem", borderBottom: `1px solid ${BORDER}`, background: "white", flexShrink: 0, position: "fixed", top: "calc(52px + var(--safe-top))", left: 0, right: 0, zIndex: 405, overflowX: "auto", overflowY: "hidden", touchAction: "pan-x", overscrollBehavior: "contain" }}>
           {nlToolbarButtons}
         </div>
       )}
@@ -904,7 +904,7 @@ export default function NewsletterEditorClient({
 
       {/* Content — when the find panel is open on desktop, reserve its width on
           the left so the centered page never slides underneath it. */}
-      <div style={{ flex: 1, overflowY: "auto", background: "#f5f8fa", paddingTop: "2rem", paddingBottom: "4rem", paddingRight: "1rem", paddingLeft: showFindContent && !isMobile ? 320 : "1rem", transition: "padding-left 0.2s", marginTop: isMobile && nlActiveE && !nlActiveE.isDestroyed && !nlReadOnly ? 101 : 52 }}>
+      <div style={{ flex: 1, overflowY: "auto", background: "#f5f8fa", paddingTop: "2rem", paddingBottom: "4rem", paddingRight: "1rem", paddingLeft: showFindContent && !isMobile ? 320 : "1rem", transition: "padding-left 0.2s", marginTop: isMobile && nlActiveE && !nlActiveE.isDestroyed && !nlReadOnly ? "calc(101px + var(--safe-top))" : "calc(52px + var(--safe-top))" }}>
         {/* Magazine page — 600px to match the email's inbox-safe width */}
         <div style={{ maxWidth: 600, margin: "0 auto", background: "#ffffff", boxShadow: "0 4px 32px rgba(0,0,0,0.18)" }}>
 

@@ -567,7 +567,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
       <input ref={fileRef} type="file" accept="image/*" onChange={handleImageChange} style={{ display: "none" }} />
 
       {/* Top bar */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "0 1rem" : "0 1.5rem", borderBottom: `1px solid ${BORDER}`, height: 52, boxSizing: "border-box", flexShrink: 0, background: "white" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "0 1rem" : "0 1.5rem", paddingTop: "var(--safe-top)", borderBottom: `1px solid ${BORDER}`, height: "calc(52px + var(--safe-top))", boxSizing: "border-box", flexShrink: 0, background: "white" }}>
         <button type="button" disabled={exiting} onClick={() => {
           if (exiting) return;
           exitingRef.current = true;

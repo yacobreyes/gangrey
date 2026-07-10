@@ -595,7 +595,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
 
           {/* Top bar — mobile */}
           {isMobile && (
-            <div style={{ position: "sticky", top: 0, zIndex: 200, background: "white", borderBottom: `1px solid ${BORDER}` }}>
+            <div style={{ position: "sticky", top: 0, zIndex: 200, background: "white", borderBottom: `1px solid ${BORDER}`, paddingTop: "var(--safe-top)" }}>
               {/* Row 1: menu | logo | + new */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 1rem", height: 52, boxSizing: "border-box" }}>
                 <button onClick={() => setShowMobileNav(true)} style={{ background: "none", border: "none", cursor: "pointer", color: TEXT_DARK, padding: 0, display: "flex", alignItems: "center" }}>
@@ -655,7 +655,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
           {showMobileNav && (
             <div style={{ position: "fixed", inset: 0, zIndex: 300 }} onClick={() => setShowMobileNav(false)}>
               <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)" }} />
-              <div style={{ position: "absolute", top: 0, left: 0, width: 260, height: "100%", background: "white", display: "flex", flexDirection: "column", overflowY: "auto", boxSizing: "border-box", boxShadow: "2px 0 12px rgba(0,0,0,0.15)" }} onClick={e => e.stopPropagation()}>
+              <div style={{ position: "absolute", top: 0, left: 0, width: 260, height: "100%", background: "white", display: "flex", flexDirection: "column", overflowY: "auto", boxSizing: "border-box", boxShadow: "2px 0 12px rgba(0,0,0,0.15)", paddingTop: "var(--safe-top)" }} onClick={e => e.stopPropagation()}>
                 <div style={{ padding: "1rem 1.25rem", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <span style={{ fontFamily: FONT, fontSize: "1rem", fontWeight: 900, color: TEXT_DARK }}><span style={{ color: CRIMSON }}>i</span><span style={{ color: "#000000" }}>mago</span></span>
                   <button onClick={() => setShowMobileNav(false)} style={{ background: "none", border: "none", cursor: "pointer", color: TEXT_MUTED, padding: 0, display: "flex" }}>
