@@ -18,6 +18,13 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 
+// Node's fetch does NOT read HTTPS_PROXY on its own; in proxied environments
+// every request silently fails. Route through the env proxy when one is set.
+if (process.env.HTTPS_PROXY || process.env.https_proxy) {
+  const { setGlobalDispatcher, EnvHttpProxyAgent } = await import("undici");
+  setGlobalDispatcher(new EnvHttpProxyAgent());
+}
+
 const WB = "https://web.archive.org/web";
 const SNAP = "20161024173100"; // late-life snapshot; Wayback serves nearest capture
 const CACHE = ".gangrey-rebuild-cache";
