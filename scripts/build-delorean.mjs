@@ -79,6 +79,7 @@ function localPath(u) {
   }
   const clean = pathname.replace(/^\//, "").replace(/\/$/, "");
   if (!clean) return "index.html";
+  if (/\.html?$/i.test(clean)) return clean; // literal .html paths stay files
   if (/^\d+$/.test(clean)) return `${clean}/index.html`; // old permalink /1234
   if (/\.(css|js|jpe?g|png|gif|ico|svg|woff2?|ttf)$/i.test(clean)) return clean;
   if (clean.startsWith("wp-content/") || clean.startsWith("wp-includes/")) return clean;
