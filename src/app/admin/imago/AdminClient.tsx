@@ -595,7 +595,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
 
           {/* Top bar — mobile */}
           {isMobile && (
-            <div style={{ position: "sticky", top: 0, zIndex: 200, background: "white", borderBottom: `1px solid ${BORDER}`, paddingTop: "var(--safe-top)" }}>
+            <div style={{ position: "sticky", top: 0, zIndex: 200, background: "#f5f8fa", borderBottom: `1px solid ${BORDER}`, paddingTop: "var(--safe-top)" }}>
               {/* Row 1: menu | logo | + new */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 1rem", height: 52, boxSizing: "border-box" }}>
                 <button onClick={() => setShowMobileNav(true)} style={{ background: "none", border: "none", cursor: "pointer", color: TEXT_DARK, padding: 0, display: "flex", alignItems: "center" }}>

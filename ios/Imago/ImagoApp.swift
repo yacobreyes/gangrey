@@ -74,13 +74,6 @@ struct ImagoWebView: UIViewRepresentable {
         // WKWebView UA lacks the Version/Safari tokens and can trip that.
         webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"
 
-        // Overscroll (rubber-band) reveals the web view's under-page color.
-        // Pin it to white so pulling down matches the white header band,
-        // exactly like Safari shows it — not the dashboard's gray-blue.
-        webView.backgroundColor = .white
-        webView.scrollView.backgroundColor = .white
-        webView.underPageBackgroundColor = .white
-
         let refresh = UIRefreshControl()
         refresh.addTarget(context.coordinator, action: #selector(Coordinator.reload(_:)), for: .valueChanged)
         webView.scrollView.refreshControl = refresh
