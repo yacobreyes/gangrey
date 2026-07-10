@@ -29,11 +29,21 @@ struct ContentView: View {
     var body: some View {
         // Full-bleed: the web view extends under the status bar and home
         // indicator, and WKWebView's automatic content insets keep the page
-        // content out from under them — so the page's OWN background shows
-        // there, with no colored strips from the native shell.
-        ImagoWebView()
-            .ignoresSafeArea()
-            .background(Color.white)
+        // content out from under them. The site's sticky headers don't know
+        // about the notch area though, so scrolled content would show above
+        // them in the status bar — cover exactly that strip with frosted
+        // glass (the zero-height view expands to fill the top safe-area
+        // inset), the same treatment Safari gives the status bar.
+        ZStack(alignment: .top) {
+            ImagoWebView()
+                .ignoresSafeArea()
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .frame(maxWidth: .infinity)
+                .frame(height: 0)
+                .ignoresSafeArea(edges: .top)
+        }
+        .background(Color.white)
     }
 }
 
