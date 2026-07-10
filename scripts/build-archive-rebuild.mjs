@@ -33,6 +33,13 @@ fs.mkdirSync(CACHE, { recursive: true });
 
 const fixes = JSON.parse(fs.readFileSync("src/lib/gangreyFixes.json", "utf8"));
 const bySlug = fixes.bySlug || {};
+const byHeadline = fixes.byHeadline || {};
+const normHeadline = s => s.toLowerCase().replace(/&#\d+;|&\w+;/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
+// House style: straight quotes.
+const straighten = s => s.replace(/[\u2018\u2019\u201A]/g, "'").replace(/[\u201C\u201D\u201E]/g, '"');
+const decodeEntities = s => s
+  .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
+  .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&nbsp;/g, " ");
 
 // WP username → display byline (poster). Same policy as apply-gangrey-fixes.
 const NAME_MAP = {
@@ -140,21 +147,41 @@ async function pool(items, n, fn) {
     const html = await fetchCached(`${WB}/${SNAP}id_/http://gangrey.com/?p=${id}`);
     if (++done % 100 === 0) console.log(`  …${done}/${ids.length} (ok ${ok})`);
     if (!html) { skipped++; return null; }
-    const { headline, paras } = extractPost(html);
+    let { headline, paras } = extractPost(html);
     if (!headline || paras.length === 0) { skipped++; return null; }
     ok++;
+    headline = straighten(decodeEntities(headline));
+    paras = paras.map(t => straighten(t));
+    // Byline: the per-post ?p=N feeds are COMMENT feeds — dc:creator there is
+    // the commenter, not the author (how "Starting Somewhere" briefly became
+    // Mark Davis). The main-feed byHeadline table carries the true author, so
+    // prefer it; bySlug is the fallback. Same preference for the timestamp.
+    const hb = byHeadline[normHeadline(headline)];
+    const rawByline = (hb && hb.b) || meta.b;
+    // Date stays per-id (bySlug): headline-keyed dates would give every post
+    // sharing a title the same day. Per-id timestamps agree with the main feed
+    // where both exist, so they're trustworthy.
+    const date = meta.d;
     const words = paras.join(" ").split(/\s+/).length;
     return {
       slug: `gangrey-${id}`,
       headline,
-      byline: displayByline(meta.b),
-      date: meta.d,
+      byline: displayByline(rawByline),
+      date,
       readingTime: Math.max(1, Math.round(words / 200)),
       body: toBlocks(paras),
     };
   });
 
-  const clean = records.filter(Boolean).sort((a, b) => a.date.localeCompare(b.date));
+  // Dedupe: Wayback occasionally serves the same story under two post-ids
+  // (same headline, same day). Keep the fuller capture.
+  const byKey = new Map();
+  for (const r of records.filter(Boolean)) {
+    const key = r.headline.toLowerCase() + "|" + r.date.slice(0, 10);
+    const prev = byKey.get(key);
+    if (!prev || r.body.length > prev.body.length) byKey.set(key, r);
+  }
+  const clean = [...byKey.values()].sort((a, b) => a.date.localeCompare(b.date));
   fs.writeFileSync(OUT, JSON.stringify(clean));
   console.log(`\nWrote ${OUT}: ${clean.length} posts (skipped ${skipped}).`);
   console.log("Earliest 8:");
