@@ -16,6 +16,22 @@ import WebKit
 private let HOME_URL = URL(string: "https://gangrey.org/admin/imago")!
 private let APP_HOST = "gangrey.org"
 
+extension UIColor {
+    // Parses "rgb(r, g, b)" / "rgba(r, g, b, a)" as returned by
+    // getComputedStyle; returns nil for anything else (e.g. "transparent").
+    convenience init?(cssRGB: String) {
+        let nums = cssRGB
+            .replacingOccurrences(of: "rgba(", with: "")
+            .replacingOccurrences(of: "rgb(", with: "")
+            .replacingOccurrences(of: ")", with: "")
+            .split(separator: ",")
+            .map { Double($0.trimmingCharacters(in: .whitespaces)) }
+        guard nums.count >= 3, let r = nums[0], let g = nums[1], let b = nums[2] else { return nil }
+        let a = nums.count >= 4 ? (nums[3] ?? 1) : 1
+        self.init(red: r / 255, green: g / 255, blue: b / 255, alpha: a)
+    }
+}
+
 @main
 struct ImagoApp: App {
     var body: some Scene {
@@ -74,13 +90,19 @@ struct ImagoWebView: UIViewRepresentable {
         // WKWebView UA lacks the Version/Safari tokens and can trip that.
         webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"
 
-        // Overscroll (rubber-band) past the top reveals this color. Pin it to
-        // white so pulling down shows the same white as Imago's header band —
-        // one continuous surface — instead of the page's #f5f8fa body. Bounce
-        // and pull-to-refresh stay on.
+        // Split overscroll top vs bottom:
+        //  - TOP: a white filler view sitting just above the content. Pull down
+        //    and it's revealed — the same white as Imago's header band.
+        //  - BOTTOM: underPageBackgroundColor follows the page's real body
+        //    color (read per-page in didFinish), so the bottom rubber-band
+        //    matches whatever page you're on (dashboard #f5f8fa, editors white).
+        let topFiller = UIView(frame: CGRect(x: 0, y: -3000, width: UIScreen.main.bounds.width, height: 3000))
+        topFiller.backgroundColor = .white
+        topFiller.autoresizingMask = [.flexibleWidth]
+        webView.scrollView.addSubview(topFiller)
+
         webView.backgroundColor = .white
-        webView.scrollView.backgroundColor = .white
-        webView.underPageBackgroundColor = .white
+        webView.underPageBackgroundColor = .white // bottom, until the page's color is read
 
         let refresh = UIRefreshControl()
         refresh.addTarget(context.coordinator, action: #selector(Coordinator.reload(_:)), for: .valueChanged)
@@ -102,6 +124,11 @@ struct ImagoWebView: UIViewRepresentable {
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             webView.scrollView.refreshControl?.endRefreshing()
+            // Match the bottom overscroll to the page's own body color.
+            webView.evaluateJavaScript("getComputedStyle(document.body).backgroundColor") { value, _ in
+                guard let rgb = value as? String, let color = UIColor(cssRGB: rgb) else { return }
+                webView.underPageBackgroundColor = color
+            }
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
