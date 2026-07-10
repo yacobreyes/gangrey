@@ -100,6 +100,44 @@ struct ImagoWebView: UIViewRepresentable {
             webView.scrollView.refreshControl?.endRefreshing()
         }
 
+        // WKWebView drops JavaScript alert()/confirm()/prompt() unless the
+        // host app presents them natively — without these, every "Delete?"
+        // confirm in Imago silently answers "no" and the button looks dead.
+        private func topViewController() -> UIViewController? {
+            let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+            var top = scene?.windows.first(where: { $0.isKeyWindow })?.rootViewController
+            while let presented = top?.presentedViewController { top = presented }
+            return top
+        }
+
+        func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String,
+                     initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
+            guard let vc = topViewController() else { completionHandler(); return }
+            let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in completionHandler() })
+            vc.present(alert, animated: true)
+        }
+
+        func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String,
+                     initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (Bool) -> Void) {
+            guard let vc = topViewController() else { completionHandler(false); return }
+            let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in completionHandler(false) })
+            alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in completionHandler(true) })
+            vc.present(alert, animated: true)
+        }
+
+        func webView(_ webView: WKWebView, runJavaScriptTextInputPanelWithPrompt prompt: String,
+                     defaultText: String?, initiatedByFrame frame: WKFrameInfo,
+                     completionHandler: @escaping (String?) -> Void) {
+            guard let vc = topViewController() else { completionHandler(nil); return }
+            let alert = UIAlertController(title: nil, message: prompt, preferredStyle: .alert)
+            alert.addTextField { $0.text = defaultText }
+            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in completionHandler(nil) })
+            alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak alert] _ in completionHandler(alert?.textFields?.first?.text) })
+            vc.present(alert, animated: true)
+        }
+
         // Keep gangrey.org and the Google sign-in flow in-app; hand every
         // other host to Safari.
         func webView(_ webView: WKWebView,

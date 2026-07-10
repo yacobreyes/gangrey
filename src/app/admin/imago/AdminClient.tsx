@@ -750,7 +750,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                           <div key={n._id}
                             onClick={() => openNewsletter(n)}
                             onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, kind: "newsletter", newsletter: n }); }}
-                            style={{ display: "grid", gridTemplateColumns: "1fr 140px 120px", padding: "0.85rem 1rem", borderBottom: `1px solid ${BORDER}`, cursor: "pointer", alignItems: "center" }}
+                            style={{ display: "grid", gridTemplateColumns: "1fr 140px 120px 28px", padding: "0.85rem 1rem", borderBottom: `1px solid ${BORDER}`, cursor: "pointer", alignItems: "center" }}
                             onMouseEnter={e => (e.currentTarget.style.background = "#ffffff")}
                             onMouseLeave={e => (e.currentTarget.style.background = "white")}>
                             <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", minWidth: 0 }}>
@@ -769,13 +769,14 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                             </div>
                             <span style={{ fontFamily: FONT, fontSize: isMobile ? "0.7rem" : "0.8rem", color: TEXT_MUTED, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Newsletter</span>
                             <span style={{ fontFamily: FONT, fontSize: isMobile ? "0.7rem" : "0.8rem", color: TEXT_MUTED, whiteSpace: "nowrap" }}>{(n.createdAt ?? n.updatedAt ?? "").slice(0, 10) || "—"}</span>
+                            <button type="button" aria-label="More actions" onClick={e => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setContextMenu({ x: Math.max(8, r.right - 190), y: r.bottom + 4, kind: "newsletter", newsletter: n }); }} style={{ background: "none", border: "none", cursor: "pointer", color: TEXT_MUTED, padding: "0.4rem", margin: "-0.4rem", display: "flex", alignItems: "center", justifySelf: "end" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button>
                           </div>
                         ))}
                         {sortedPosts.map(post => (
                           <div key={post._id}
                             onClick={() => startEdit(post)}
                             onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, kind: "post", post }); }}
-                            style={{ display: "grid", gridTemplateColumns: "1fr 140px 120px", padding: "0.85rem 1rem", borderBottom: `1px solid ${BORDER}`, cursor: "pointer", alignItems: "center" }}
+                            style={{ display: "grid", gridTemplateColumns: "1fr 140px 120px 28px", padding: "0.85rem 1rem", borderBottom: `1px solid ${BORDER}`, cursor: "pointer", alignItems: "center" }}
                             onMouseEnter={e => (e.currentTarget.style.background = "#ffffff")}
                             onMouseLeave={e => (e.currentTarget.style.background = "white")}>
                             <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", minWidth: 0 }}>
@@ -794,6 +795,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                             </div>
                             <span style={{ fontFamily: FONT, fontSize: isMobile ? "0.7rem" : "0.8rem", color: TEXT_MUTED, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{post.section}</span>
                             <span style={{ fontFamily: FONT, fontSize: isMobile ? "0.7rem" : "0.8rem", color: TEXT_MUTED, whiteSpace: "nowrap" }}>{post.date}</span>
+                            <button type="button" aria-label="More actions" onClick={e => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setContextMenu({ x: Math.max(8, r.right - 190), y: r.bottom + 4, kind: "post", post }); }} style={{ background: "none", border: "none", cursor: "pointer", color: TEXT_MUTED, padding: "0.4rem", margin: "-0.4rem", display: "flex", alignItems: "center", justifySelf: "end" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button>
                           </div>
                         ))}
                         {archiveOverflow > 0 && (

@@ -127,7 +127,7 @@ export default function ImagePickerModal({
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflow: "hidden", display: "flex" }}>
+        <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: isMobile ? "column" : "row" }}>
           {tab === "library" && (
             <>
               <div style={{ flex: 1, overflowY: "auto", padding: "1rem" }}>
@@ -147,9 +147,9 @@ export default function ImagePickerModal({
                 )}
               </div>
               {selected && (
-                <div style={{ width: 280, flexShrink: 0, borderLeft: `1px solid ${BORDER}`, padding: "1.25rem", overflowY: "auto", display: "flex", flexDirection: "column", gap: "1.1rem" }}>
+                <div style={{ width: isMobile ? "auto" : 280, maxHeight: isMobile ? "46dvh" : undefined, flexShrink: 0, borderLeft: isMobile ? "none" : `1px solid ${BORDER}`, borderTop: isMobile ? `1px solid ${BORDER}` : "none", padding: isMobile ? "1rem" : "1.25rem", overflowY: "auto", display: "flex", flexDirection: "column", gap: "1.1rem" }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={thumb(selected.url, 560)} alt="" style={{ width: "100%", height: 160, objectFit: "cover", borderRadius: 6 }} />
+                  <img src={thumb(selected.url, 560)} alt="" style={{ width: "100%", height: isMobile ? 110 : 160, objectFit: "cover", borderRadius: 6 }} />
                   <Field label="Alt text" count={alt.length} max={300}>
                     <input style={INPUT} value={alt} onChange={e => setAlt(straightenQuotes(e.target.value))} placeholder="Describe this image…" />
                     <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, margin: "0.35rem 0 0", lineHeight: 1.4 }}>{ALT_HELP}</p>
@@ -161,7 +161,7 @@ export default function ImagePickerModal({
           )}
 
           {tab === "upload" && (
-            <div style={{ flex: 1, display: "flex", gap: "1.5rem", padding: "1.5rem", overflowY: "auto" }}>
+            <div style={{ flex: 1, display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? "1.1rem" : "1.5rem", padding: isMobile ? "1rem" : "1.5rem", overflowY: "auto" }}>
               <div style={{ flex: 1 }}>
                 {!uploadPreviewUrl ? (
                   <label
@@ -182,7 +182,7 @@ export default function ImagePickerModal({
                   </div>
                 )}
               </div>
-              <div style={{ width: 280, flexShrink: 0, display: "flex", flexDirection: "column", gap: "1.1rem" }}>
+              <div style={{ width: isMobile ? "auto" : 280, flexShrink: 0, display: "flex", flexDirection: "column", gap: "1.1rem" }}>
                 <Field label="Alt text" required count={alt.length} max={300}>
                   <input style={INPUT} value={alt} onChange={e => setAlt(straightenQuotes(e.target.value))} placeholder="Describe this image…" />
                   <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, margin: "0.35rem 0 0", lineHeight: 1.4 }}>{ALT_HELP}</p>
