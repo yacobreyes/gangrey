@@ -12,14 +12,14 @@ export const metadata: Metadata = {
   title: "Gangrey | A Literary Magazine",
   description: "Gangrey is a literary magazine that publishes true stories for the time you have, from reported narratives and essays to micro-memoirs and craft talks.",
   metadataBase: new URL(siteUrl),
-  // Two favicon treatments: the browser tab uses the small transparent "G"
-  // (16/32px); Google Search only picks icons whose size is a multiple of 48px,
-  // so it lands on the black circle-bubble "G" (48/96/192px) instead.
+  // One favicon everywhere: the black circle-bubble "G". Every size (browser
+  // tab 16/32, Google 48/96/192, apple-touch 180) is downscaled from the same
+  // bubble master so the mark is identical at every scale.
   icons: {
     icon: [
       // The root .ico is the URL every crawler (Google especially) probes
       // first, by convention, before reading the sized PNGs below. It bundles
-      // the transparent 16/32 (browser tab) + the circle 48 (Google's pick).
+      // the bubble at 16/32/48.
       { url: "/favicon.ico", sizes: "any" },
       { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
       { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
