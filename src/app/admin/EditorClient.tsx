@@ -567,7 +567,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
       <input ref={fileRef} type="file" accept="image/*" onChange={handleImageChange} style={{ display: "none" }} />
 
       {/* Top bar */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "0 1rem" : "0 1.5rem", paddingTop: "var(--safe-top)", borderBottom: `1px solid ${BORDER}`, height: "calc(52px + var(--safe-top))", boxSizing: "border-box", flexShrink: 0, background: "white" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "0 1rem" : "0 1.5rem", paddingTop: `calc(var(--safe-top) + ${isMobile ? "10px" : "0px"})`, borderBottom: `1px solid ${BORDER}`, height: `calc(52px + var(--safe-top) + ${isMobile ? "10px" : "0px"})`, boxSizing: "border-box", flexShrink: 0, background: "white" }}>
         <button type="button" disabled={exiting} onClick={() => {
           if (exiting) return;
           exitingRef.current = true;
@@ -594,8 +594,8 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
             }
           }
           router.push("/admin/imago");
-        }} style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "none", border: "none", fontFamily: FONT, fontSize: "0.85rem", fontWeight: 600, color: TEXT_MUTED, cursor: exiting ? "default" : "pointer", opacity: exiting ? 0.55 : 1, padding: 0, whiteSpace: "nowrap" }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        }} style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "none", border: "none", fontFamily: FONT, fontSize: "0.85rem", fontWeight: 600, color: TEXT_MUTED, cursor: exiting ? "default" : "pointer", opacity: exiting ? 0.55 : 1, padding: isMobile ? "0.4rem 0.6rem 0.4rem 0" : 0, margin: isMobile ? "-0.4rem 0" : 0, whiteSpace: "nowrap" }}>
+          <svg width={isMobile ? 26 : 16} height={isMobile ? 26 : 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={isMobile ? 2 : 2.2} strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
           {!isMobile && (exiting ? "Leaving…" : readOnly ? "Go Back" : "Save & Exit")}
         </button>
 
