@@ -136,16 +136,93 @@ async function pool(items, n, fn) {
   return out;
 }
 
+
+// ── Monthly-page walk (primary source) ──────────────────────────────────────
+// Each ?m=YYYYMM page renders every post of that month as a full <article>:
+// entry-title, exact <time datetime>, rel="author", and complete entry-content.
+// One self-consistent block per post — the strongest source there is.
+function parseMonthly(html) {
+  const root = parse(html);
+  const out = [];
+  for (const art of root.querySelectorAll("article[id^=post-]")) {
+    const id = +(art.getAttribute("id") || "").replace("post-", "");
+    if (!id) continue;
+    const titleEl = art.querySelector(".entry-title");
+    let headline = (titleEl?.innerText || "").replace(/\s+/g, " ").trim();
+    headline = straighten(decodeEntities(headline));
+    const dt = art.querySelector("time.entry-date")?.getAttribute("datetime");
+    const date = dt && !isNaN(+new Date(dt)) ? new Date(dt).toISOString() : null;
+    const author = (art.querySelector('a[rel="author"]')?.innerText || "").trim().toLowerCase();
+    const contentEl = art.querySelector(".entry-content");
+    if (!headline || !date || !contentEl) continue;
+    contentEl.querySelectorAll("script, style, .sharedaddy, .wp-caption-text").forEach(n => n.remove());
+    const paras = [];
+    for (const pEl of contentEl.querySelectorAll("p")) {
+      let t = pEl.innerHTML.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "");
+      t = straighten(decodeEntities(t
+        .replace(/&#8217;|&rsquo;/g, "\u2019").replace(/&#8216;|&lsquo;/g, "\u2018")
+        .replace(/&#8220;|&ldquo;/g, "\u201C").replace(/&#8221;|&rdquo;/g, "\u201D")
+        .replace(/&#8212;|&mdash;/g, "\u2014").replace(/&#8230;|&hellip;/g, "\u2026")));
+      t = t.replace(/[ \t]+/g, " ").trim();
+      if (t) paras.push(t);
+    }
+    if (!paras.length) continue;
+    out.push({ id, headline, date, author, paras });
+  }
+  return out;
+}
+
+function monthsRange() {
+  const months = [];
+  for (let y = 2005; y <= 2016; y++)
+    for (let m = 1; m <= 12; m++) {
+      if (y === 2005 && m < 6) continue;
+      if (y === 2016 && m > 8) break;
+      months.push(`${y}${String(m).padStart(2, "0")}`);
+    }
+  return months;
+}
+
+async function walkMonths() {
+  const byId = new Map();
+  const months = monthsRange();
+  console.log(`Phase 1: walking ${months.length} monthly pages…`);
+  let mi = 0;
+  await pool(months, 4, async (mm) => {
+    for (let page = 1; page <= 20; page++) {
+      const orig = page === 1 ? `http://gangrey.com/?m=${mm}` : `http://gangrey.com/?paged=${page}&m=${mm}`;
+      const html = await fetchCached(`${WB}/${SNAP}id_/${orig}`);
+      if (!html) break;
+      const posts = parseMonthly(html);
+      // Wayback serves the homepage for months with no capture — detect by
+      // whether the entries actually belong to the requested month.
+      const inMonth = posts.filter(p => p.date.slice(0, 7).replace("-", "") === mm);
+      if (!inMonth.length) break;
+      for (const p of inMonth) {
+        const prev = byId.get(p.id);
+        if (!prev || p.paras.length > prev.paras.length) byId.set(p.id, p);
+      }
+      if (posts.length < 3 && page > 1) break; // trailing partial page
+    }
+    if (++mi % 20 === 0) console.log(`  …months ${mi}/${months.length} (posts ${byId.size})`);
+  });
+  console.log(`  monthly walk done: ${byId.size} posts`);
+  return byId;
+}
+
 (async () => {
+  const monthly = await walkMonths();
+
   const ids = [...new Set(Object.keys(bySlug).map(k => (k.match(/^gangrey-p?(\d+)$/) || [])[1]).filter(Boolean).map(Number))].sort((a, b) => a - b);
-  console.log(`Building ${ids.length} posts…`);
+  const gapIds = ids.filter(id => !monthly.has(id));
+  console.log(`Phase 2: per-post gap fill for ${gapIds.length} ids not on monthly pages…`);
 
   let done = 0, ok = 0, skipped = 0;
-  const records = await pool(ids, 5, async (id) => {
+  const records = await pool(gapIds, 5, async (id) => {
     const meta = bySlug[`gangrey-p${id}`] || bySlug[`gangrey-${id}`];
     if (!meta || !meta.d) { skipped++; return null; }
     const html = await fetchCached(`${WB}/${SNAP}id_/http://gangrey.com/?p=${id}`);
-    if (++done % 100 === 0) console.log(`  …${done}/${ids.length} (ok ${ok})`);
+    if (++done % 100 === 0) console.log(`  …${done}/${gapIds.length} (ok ${ok})`);
     if (!html) { skipped++; return null; }
     let { headline, paras } = extractPost(html);
     if (!headline || paras.length === 0) { skipped++; return null; }
@@ -173,10 +250,25 @@ async function pool(items, n, fn) {
     };
   });
 
+  // Monthly records (primary) + per-post gap fills → one list.
+  const merged = [];
+  for (const [id, m] of monthly) {
+    const words = m.paras.join(" ").split(/\s+/).length;
+    merged.push({
+      slug: `gangrey-${id}`,
+      headline: m.headline,
+      byline: displayByline(m.author),
+      date: m.date,
+      readingTime: Math.max(1, Math.round(words / 200)),
+      body: toBlocks(m.paras),
+    });
+  }
+  merged.push(...records.filter(Boolean));
+
   // Dedupe: Wayback occasionally serves the same story under two post-ids
   // (same headline, same day). Keep the fuller capture.
   const byKey = new Map();
-  for (const r of records.filter(Boolean)) {
+  for (const r of merged) {
     const key = r.headline.toLowerCase() + "|" + r.date.slice(0, 10);
     const prev = byKey.get(key);
     if (!prev || r.body.length > prev.body.length) byKey.set(key, r);
