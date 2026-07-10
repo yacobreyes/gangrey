@@ -25,10 +25,14 @@ export default async function GangreyPage() {
       return (a.sortOrder ?? 999) - (b.sortOrder ?? 999);
     });
 
-  // Deduplicate by normalized headline — keep the entry with a byline, else the first seen.
+  // Deduplicate by normalized headline + day. Headline alone is too broad:
+  // the blog genuinely re-ran pieces years apart ("Eating Jack Hooker's Cow",
+  // June 2005 and May 2010), and both runs belong in the archive. Same-day
+  // same-headline is a true duplicate (the old import's slug variants).
   const seen = new Map<string, typeof gangrey[number]>();
   for (const p of gangrey) {
-    const key = normalizeHeadline(p.headline);
+    const base = normalizeHeadline(p.headline);
+    const key = base ? `${base}|${(p.date ?? "").slice(0, 10)}` : "";
     if (!key) continue;
     const prev = seen.get(key);
     if (!prev || (!prev.byline && p.byline)) seen.set(key, p);
