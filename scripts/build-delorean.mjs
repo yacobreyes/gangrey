@@ -106,6 +106,11 @@ function rewriteHtml(html) {
   // Dead third-party embeds: Amazon affiliate widgets and StatCounter no
   // longer serve these — they render as broken-image icons. Strip them.
   s = s.replace(/<img[^>]+(amazon-adsystem\.com|statcounter\.com)[^>]*>/gi, "");
+  s = s.replace(/<iframe[^>]+amazon-adsystem\.com[\s\S]*?(<\/iframe>|\/>)/gi, "");
+  // A few uploads were never archived by anyone (zero captures exist) — hide
+  // them cleanly instead of rendering broken-image icons.
+  s = s.replace(/<img([^>]+src="\/delorean\/wp-content[^>]*)>/gi, (mm, attrs) =>
+    attrs.includes("onerror") ? mm : `<img${attrs} onerror="this.style.display='none'">`);
   // Point stragglers of the old feed/search endpoints at the homepage rather
   // than a 404 hole.
   s = s.replace(/\/delorean\/(xmlrpc\.php|wp-login\.php)[^"']*/g, "/delorean/");
@@ -173,7 +178,10 @@ async function pool(items, n, fn) {
       if (e.isDirectory()) sweep(full);
       else if (e.name.endsWith(".html")) {
         const h = fs.readFileSync(full, "utf8");
-        const h2 = h.replace(DEAD_IMG, "").replace(/<title>[\s\S]*?<\/title>/i, "<title>Gangrey | DeLorean</title>");
+        let h2 = h.replace(DEAD_IMG, "").replace(/<title>[\s\S]*?<\/title>/i, "<title>Gangrey | DeLorean</title>");
+        h2 = h2.replace(/<iframe[^>]+amazon-adsystem\.com[\s\S]*?(<\/iframe>|\/>)/gi, "");
+        h2 = h2.replace(/<img([^>]+src="\/delorean\/wp-content[^>]*)>/gi, (mm, attrs) =>
+          attrs.includes("onerror") ? mm : `<img${attrs} onerror="this.style.display='none'">`);
         if (h2 !== h) fs.writeFileSync(full, h2);
       }
     }
