@@ -93,7 +93,8 @@ struct ImagoWebView: UIViewRepresentable {
             webView.scrollView.refreshControl?.endRefreshing()
         }
 
-        // Keep gangrey.org in-app; hand every other host to Safari.
+        // Keep gangrey.org and the Google sign-in flow in-app; hand every
+        // other host to Safari.
         func webView(_ webView: WKWebView,
                      decidePolicyFor navigationAction: WKNavigationAction,
                      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
@@ -102,8 +103,7 @@ struct ImagoWebView: UIViewRepresentable {
                 decisionHandler(.allow)
                 return
             }
-            let host = url.host ?? ""
-            if host == APP_HOST || host.hasSuffix("." + APP_HOST) {
+            if isInAppHost(url.host ?? "") {
                 decisionHandler(.allow)
             } else {
                 UIApplication.shared.open(url)
@@ -117,8 +117,7 @@ struct ImagoWebView: UIViewRepresentable {
                      for navigationAction: WKNavigationAction,
                      windowFeatures: WKWindowFeatures) -> WKWebView? {
             if let url = navigationAction.request.url {
-                let host = url.host ?? ""
-                if host == APP_HOST || host.hasSuffix("." + APP_HOST) {
+                if isInAppHost(url.host ?? "") {
                     webView.load(navigationAction.request)
                 } else {
                     UIApplication.shared.open(url)
