@@ -31,6 +31,9 @@ ENV DATA_DIR=/data
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
+# The archive rebuild dataset — read at runtime by /api/admin/rebuild-archive
+# (a plain file, not a JS import, so it doesn't bloat the server bundle).
+COPY --from=build /app/scripts/archive-rebuild.json ./scripts/archive-rebuild.json
 EXPOSE 3000
 VOLUME ["/data"]
 CMD ["node", "server.js"]

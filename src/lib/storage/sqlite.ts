@@ -333,6 +333,36 @@ export function sqliteDeletePost(id: string): void {
   db().prepare(`DELETE FROM posts WHERE id = ?`).run(id);
 }
 
+// Full archive rebuild: wipe every Archive/Gangrey-Redux post and re-insert the
+// clean dataset in one transaction. Returns {deleted, inserted}. Each record is
+// keyed by its real WordPress post id, so headline/date/byline/body all agree.
+export function sqliteReplaceArchive(
+  records: { slug: string; headline: string; byline: string; date: string; readingTime?: number; body: unknown }[]
+): { deleted: number; inserted: number } {
+  const d = db();
+  const now = new Date().toISOString();
+  const del = d.prepare(`DELETE FROM posts WHERE section IN ('Archive', 'Gangrey Redux')`);
+  const ins = d.prepare(`
+    INSERT INTO posts (id, slug, section, headline, subheadline, byline, date, status, access,
+      body, reading_time, created_at, updated_at)
+    VALUES (@id, @slug, 'Archive', @headline, '', @byline, @date, 'published', 'paid',
+      @body, @reading_time, @now, @now)`);
+  const tx = d.transaction((rows: typeof records) => {
+    const deleted = del.run().changes;
+    let inserted = 0;
+    for (const r of rows) {
+      ins.run({
+        id: `gangrey-import-${r.slug}`, slug: r.slug, headline: r.headline ?? "",
+        byline: r.byline ?? "", date: r.date ?? "", body: JSON.stringify(r.body ?? []),
+        reading_time: r.readingTime ?? null, now,
+      });
+      inserted++;
+    }
+    return { deleted, inserted };
+  });
+  return tx(records);
+}
+
 export function sqliteSetStatus(id: string, status: string): void {
   db().prepare(`UPDATE posts SET status = ?, updated_at = ? WHERE id = ?`).run(status, new Date().toISOString(), id);
 }
