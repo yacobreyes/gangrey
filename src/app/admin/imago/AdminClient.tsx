@@ -640,7 +640,9 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
               )}
               {/* Row 3: tabs (dashboard only) */}
               {activePanel === "dashboard" && (
-                <div style={{ display: "flex", borderTop: `1px solid ${BORDER}` }}>
+                {/* Tabs keep their original white ground — only the logo/search
+                    rows above share the dashboard's #f5f8fa. */}
+                <div style={{ display: "flex", borderTop: `1px solid ${BORDER}`, background: "white" }}>
                   {(["drafts", "scheduled", "published"] as const).map(tab => (
                     <button key={tab} onClick={() => setPostTab(tab)} style={{ flex: 1, background: "none", border: "none", borderBottom: `2px solid ${postTab === tab ? CRIMSON : "transparent"}`, padding: "0.6rem 0", fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: postTab === tab ? CRIMSON : TEXT_MUTED, cursor: "pointer" }}>
                       {tab === "drafts" ? "Drafts" : tab === "scheduled" ? "Sched." : "Published"}
