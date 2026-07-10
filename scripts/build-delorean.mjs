@@ -103,9 +103,14 @@ function rewriteHtml(html) {
     const href = localHref(tail || "/");
     return href ?? full;
   });
+  // Dead third-party embeds: Amazon affiliate widgets and StatCounter no
+  // longer serve these — they render as broken-image icons. Strip them.
+  s = s.replace(/<img[^>]+(amazon-adsystem\.com|statcounter\.com)[^>]*>/gi, "");
   // Point stragglers of the old feed/search endpoints at the homepage rather
   // than a 404 hole.
   s = s.replace(/\/delorean\/(xmlrpc\.php|wp-login\.php)[^"']*/g, "/delorean/");
+  // Uniform tab title for the time machine.
+  s = s.replace(/<title>[\s\S]*?<\/title>/i, "<title>Gangrey | DeLorean</title>");
   // Tag the page so readers know where they are (and search engines stay out).
   s = s.replace(/<head([^>]*)>/i, `<head$1>\n<meta name="robots" content="noindex, nofollow">\n<base target="_self">`);
   return s;
@@ -156,6 +161,52 @@ async function pool(items, n, fn) {
   // but their FULL articles render on the month pages. For every article that
   // appears on a listing page with no /p/N/ page of its own, synthesize one:
   // same page shell, all other articles removed, pagination nav dropped.
+  // ── Second-chance images ────────────────────────────────────────────────────
+  // Some uploads' captures aren't near the pin, so the nearest-pin pass missed
+  // them. For every image referenced by a mirrored page but absent on disk,
+  // take ANY 200 capture Wayback has.
+  // Sweep already-mirrored pages too (rewriteHtml only touches new fetches).
+  const DEAD_IMG = /<img[^>]+(amazon-adsystem\.com|statcounter\.com)[^>]*>/gi;
+  const sweep = dir => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) sweep(full);
+      else if (e.name.endsWith(".html")) {
+        const h = fs.readFileSync(full, "utf8");
+        const h2 = h.replace(DEAD_IMG, "").replace(/<title>[\s\S]*?<\/title>/i, "<title>Gangrey | DeLorean</title>");
+        if (h2 !== h) fs.writeFileSync(full, h2);
+      }
+    }
+  };
+  sweep(OUT);
+
+  console.log("Second-chance pass for missing images…");
+  const refRe = /src="\/delorean\/((?:wp-content|wp-includes)\/[^"]+)"/g;
+  const wanted = new Set();
+  const scan = dir => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) scan(full);
+      else if (e.name.endsWith(".html")) {
+        const h = fs.readFileSync(full, "utf8");
+        for (const m of h.matchAll(refRe)) if (!fs.existsSync(path.join(OUT, m[1]))) wanted.add(m[1]);
+      }
+    }
+  };
+  scan(OUT);
+  console.log(`  ${wanted.size} missing images to hunt`);
+  await pool([...wanted], 4, async rel => {
+    const orig = `http://gangrey.com/${rel}`;
+    const rows = await fetchCached(`${CDX}?url=${encodeURIComponent(orig)}&output=text&fl=timestamp&filter=statuscode:200&limit=1`);
+    const ts = rows?.toString().trim().split("\n")[0];
+    if (!ts) return;
+    const buf = await fetchCached(`${WB}/${ts}id_/${orig}`, true);
+    if (buf) {
+      fs.mkdirSync(path.dirname(path.join(OUT, rel)), { recursive: true });
+      fs.writeFileSync(path.join(OUT, rel), buf);
+    }
+  });
+
   console.log("Synthesizing pages for posts without their own capture…");
   const listingFiles = [];
   const walk = dir => {
@@ -187,8 +238,7 @@ async function pool(items, n, fn) {
       // Drop the listing's own banner ("MONTHLY ARCHIVES: JULY 2005") — this
       // is a single-post page now.
       page = page.replace(/<header class="page-header">[\s\S]*?<\/header>/, "");
-      const t = m[0].match(/<h1 class="entry-title">.*?>([^<]+)</s);
-      if (t) page = page.replace(/<title>[\s\S]*?<\/title>/, `<title>${t[1]} | Gangrey.com</title>`);
+      page = page.replace(/<title>[\s\S]*?<\/title>/, "<title>Gangrey | DeLorean</title>");
       fs.mkdirSync(path.dirname(dest), { recursive: true });
       fs.writeFileSync(dest, page);
       synthesized++;
