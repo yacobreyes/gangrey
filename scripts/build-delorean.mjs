@@ -150,4 +150,49 @@ async function pool(items, n, fn) {
     if (++done % 250 === 0) console.log(`  …${done}/${entries.length} (ok ${ok})`);
   });
   console.log(`Done: ${ok}/${entries.length} files mirrored.`);
+
+  // ── Synthesis pass ──────────────────────────────────────────────────────────
+  // Wayback never crawled some posts' own pages (e.g. July 2005's p=20–29),
+  // but their FULL articles render on the month pages. For every article that
+  // appears on a listing page with no /p/N/ page of its own, synthesize one:
+  // same page shell, all other articles removed, pagination nav dropped.
+  console.log("Synthesizing pages for posts without their own capture…");
+  const listingFiles = [];
+  const walk = dir => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) walk(full);
+      else if (e.name === "index.html") listingFiles.push(full);
+    }
+  };
+  for (const sub of ["m", "page", "cat", "author"]) {
+    const d = path.join(OUT, sub);
+    if (fs.existsSync(d)) walk(d);
+  }
+  listingFiles.push(path.join(OUT, "index.html"));
+
+  const ARTICLE_RE = /<article id="post-(\d+)"[\s\S]*?<\/article>/g;
+  let synthesized = 0;
+  for (const file of listingFiles) {
+    const html = fs.readFileSync(file, "utf8");
+    const articles = [...html.matchAll(ARTICLE_RE)];
+    for (const m of articles) {
+      const id = m[1];
+      const dest = path.join(OUT, "p", id, "index.html");
+      if (fs.existsSync(dest)) continue;
+      // Shell = this listing page with every article replaced by just this one,
+      // and the Older/Newer posts nav removed (it belongs to the listing).
+      let page = html.replace(ARTICLE_RE, mm => (mm === m[0] ? mm : ""));
+      page = page.replace(/<nav id="nav-(?:above|below)"[\s\S]*?<\/nav>/g, "");
+      // Drop the listing's own banner ("MONTHLY ARCHIVES: JULY 2005") — this
+      // is a single-post page now.
+      page = page.replace(/<header class="page-header">[\s\S]*?<\/header>/, "");
+      const t = m[0].match(/<h1 class="entry-title">.*?>([^<]+)</s);
+      if (t) page = page.replace(/<title>[\s\S]*?<\/title>/, `<title>${t[1]} | Gangrey.com</title>`);
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.writeFileSync(dest, page);
+      synthesized++;
+    }
+  }
+  console.log(`Synthesized ${synthesized} missing post pages.`);
 })();
