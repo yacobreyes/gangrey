@@ -685,7 +685,7 @@ export default function NewsletterEditorClient({
           position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 400,
           display: "flex", alignItems: "center", justifyContent: "center", gap: "1.25rem",
           background: "#ffffff", borderTop: `1px solid ${BORDER}`,
-          boxShadow: "0 -2px 16px rgba(0,0,0,0.08)", padding: "0.85rem 1.25rem",
+          boxShadow: "0 -2px 16px rgba(0,0,0,0.08)", padding: "0.85rem 1.25rem", paddingBottom: "calc(0.85rem + var(--safe-bottom))",
           fontFamily: FONT, fontSize: "0.9rem", color: TEXT_DARK,
         }}>
           <span>

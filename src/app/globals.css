@@ -21,6 +21,10 @@
      full-bleed Imago iOS shell (viewport-fit=cover). Admin headers stretch by
      it so content can't scroll out above them into the status bar. */
   --safe-top: env(safe-area-inset-top, 0px);
+  /* Bottom safe-area inset — the home-indicator gap inside the full-bleed
+     Imago iOS shell; 0 in every browser. Fixed bottom bars pad by it so
+     their buttons clear the home indicator. */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 * { box-sizing: border-box; }
