@@ -172,11 +172,6 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
   type AdminComment = { _id: string; name: string; email?: string; text: string; slug: string; approved?: boolean; _createdAt: string };
   const [adminComments, setAdminComments] = useState<AdminComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
-  // Per-story page-view counts ({ slug: count }) for the Posts list.
-  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
-  useEffect(() => {
-    fetch("/api/views").then(r => r.json()).then(d => { if (d && typeof d === "object") setViewCounts(d); }).catch(() => {});
-  }, []);
   type ContextMenuState = { x: number; y: number; kind: "post"; post: SanityPost } | { x: number; y: number; kind: "newsletter"; newsletter: NlListItem };
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -744,13 +739,13 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                       </div>
                     ) : isMobile ? (
                       /* Mobile: white post cards with a status dot, meta line, and
-                         date/views column (from the mobile design prototype). */
+                         date column (from the mobile design prototype). */
                       <div style={{ marginTop: "0.25rem" }}>
                         {(() => {
                           // Dots mark items with a live state: yellow = scheduled,
                           // green = published. Drafts get no dot.
                           const dot = isArchive || postTab === "published" ? "#1a7f37" : postTab === "scheduled" ? "#c9a227" : null;
-                          const card = (opts: { key: string; onClick: () => void; isNl?: boolean; title: React.ReactNode; meta: string; lock?: LockHolder; date: string; views?: number }) => (
+                          const card = (opts: { key: string; onClick: () => void; isNl?: boolean; title: React.ReactNode; meta: string; lock?: LockHolder; date: string }) => (
                             <div key={opts.key} onClick={opts.onClick}
                               style={{ background: "white", border: `1px solid ${CARD_LINE}`, borderRadius: 12, padding: "0.8rem 0.9rem", marginBottom: 9, display: "flex", alignItems: "flex-start", gap: 11, cursor: "pointer", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
                               {dot && <span style={{ width: 9, height: 9, borderRadius: "50%", marginTop: 5, flexShrink: 0, background: dot }} />}
@@ -766,15 +761,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                                   </span>
                                 )}
                               </span>
-                              <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
-                                <span style={{ fontFamily: FONT, fontSize: "0.7rem", color: "#a29a93", whiteSpace: "nowrap" }}>{opts.date}</span>
-                                {typeof opts.views === "number" && opts.views > 0 && (
-                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontFamily: FONT, fontSize: "0.7rem", color: "#7a6f68", fontWeight: 600 }}>
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                                    {opts.views.toLocaleString()}
-                                  </span>
-                                )}
-                              </span>
+                              <span style={{ fontFamily: FONT, fontSize: "0.7rem", color: "#a29a93", whiteSpace: "nowrap", flexShrink: 0 }}>{opts.date}</span>
                             </div>
                           );
                           return (
@@ -790,7 +777,6 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                                 title: post.headline || <span style={{ color: TEXT_MUTED, fontWeight: 400 }}>No headline</span>,
                                 meta: [post.section, post.byline].filter(Boolean).join(" · ") || " ",
                                 lock: activeLocks[post._id], date: post.date,
-                                views: postTab === "published" || isArchive ? viewCounts[post.slug] : undefined,
                               }))}
                               {archiveOverflow > 0 && (
                                 <p style={{ fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, margin: 0, padding: "0.85rem 1rem", textAlign: "center" }}>Showing first {sortedPosts.length} of {sortedPosts.length + archiveOverflow}. Search to narrow results.</p>
