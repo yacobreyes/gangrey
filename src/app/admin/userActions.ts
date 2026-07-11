@@ -2,7 +2,7 @@
 
 import { requireAdmin, getCurrentUser } from "@/lib/adminAuth";
 import { listAllUsers, type FlatplanUser, type UserRole } from "@/lib/users";
-import { sanityMutate, uploadImageAsset } from "@/lib/sanityWrite";
+import { sanityMutate, uploadUserPhotoAsset } from "@/lib/sanityWrite";
 import { straightenQuotes } from "@/lib/straighten";
 
 const sq = (s: string | null | undefined) => (typeof s === "string" ? straightenQuotes(s) : s);
@@ -96,7 +96,7 @@ export async function uploadUserPhoto(formData: FormData): Promise<{ assetId: st
   await requireAdmin();
   const file = formData.get("file") as File;
   if (!file) throw new Error("No file provided");
-  return uploadImageAsset(file);
+  return uploadUserPhotoAsset(file);
 }
 
 // The signed-in person's own record (role, name) for gating the UI.

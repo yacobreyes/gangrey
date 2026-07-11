@@ -13,3 +13,9 @@ export async function sanityMutate(mutations: unknown[]) {
 export async function uploadImageAsset(file: File): Promise<{ assetId: string; url: string }> {
   return sqliteSaveMedia(file.name, Buffer.from(await file.arrayBuffer()));
 }
+
+// Profile photos — stored alongside media on disk but excluded from the
+// Media Library listing (they're headshots, not editorial assets).
+export async function uploadUserPhotoAsset(file: File): Promise<{ assetId: string; url: string }> {
+  return sqliteSaveMedia(file.name, Buffer.from(await file.arrayBuffer()), "user");
+}

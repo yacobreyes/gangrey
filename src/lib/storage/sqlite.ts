@@ -528,9 +528,11 @@ export function sqliteMediaDir(): string {
   return dir;
 }
 
-export function sqliteSaveMedia(filename: string, buf: Buffer): { assetId: string; url: string } {
+export function sqliteSaveMedia(filename: string, buf: Buffer, kind: "library" | "user" = "library"): { assetId: string; url: string } {
   const safe = filename.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-80);
-  const name = `${Date.now()}-${safe}`;
+  // User profile photos get a reserved prefix so the Media Library listing
+  // can exclude them — headshots aren't editorial assets.
+  const name = `${kind === "user" ? "userpic-" : ""}${Date.now()}-${safe}`;
   fs.writeFileSync(path.join(sqliteMediaDir(), name), buf);
   const url = `/media/${name}`;
   return { assetId: url, url };
@@ -539,7 +541,7 @@ export function sqliteSaveMedia(filename: string, buf: Buffer): { assetId: strin
 export function sqliteListMedia(): { _id: string; _createdAt: string; url: string; originalFilename: string; size: number }[] {
   const dir = sqliteMediaDir();
   return fs.readdirSync(dir)
-    .filter(f => !f.startsWith("."))
+    .filter(f => !f.startsWith(".") && !f.startsWith("userpic-"))
     .map(f => {
       const st = fs.statSync(path.join(dir, f));
       return { _id: `/media/${f}`, _createdAt: st.mtime.toISOString(), url: `/media/${f}`, originalFilename: f.replace(/^\d+-/, ""), size: st.size };
