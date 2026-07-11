@@ -767,7 +767,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                 />
               </div>
               {!imagePreview ? (
-                <button type="button" onClick={openImageModal} style={{ fontFamily: FONT, fontSize: "0.85rem", color: CRIMSON, background: "none", border: `1px solid ${CRIMSON}`, borderRadius: 20, padding: "0.4rem 1rem", cursor: "pointer", alignSelf: "flex-start" }}>
+                <button type="button" onClick={openImageModal} disabled={readOnly} style={{ fontFamily: FONT, fontSize: "0.85rem", color: CRIMSON, background: "none", border: `1px solid ${CRIMSON}`, borderRadius: 20, padding: "0.4rem 1rem", cursor: readOnly ? "default" : "pointer", opacity: readOnly ? 0.5 : 1, alignSelf: "flex-start" }}>
                   Add a featured image
                 </button>
               ) : (
@@ -780,6 +780,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={imagePreview} alt=""
                       onClick={e => {
+                        if (readOnly) return;
                         // Open the menu at the click point, clamped so it stays
                         // fully inside the image.
                         const r = e.currentTarget.getBoundingClientRect();
@@ -790,7 +791,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                         });
                         setImageMenuOpen(v => !v);
                       }}
-                      style={{ width: "100%", aspectRatio: "16 / 9", objectFit: "cover", display: "block", borderRadius: 6, cursor: "pointer" }} />
+                      style={{ width: "100%", aspectRatio: "16 / 9", objectFit: "cover", display: "block", borderRadius: 6, cursor: readOnly ? "default" : "pointer" }} />
                     {imageMenuOpen && (
                       <>
                         <div onClick={() => setImageMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
@@ -826,7 +827,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
             <div style={{ maxWidth: 480, display: "flex", flexDirection: "column", gap: "1.5rem" }}>
               <div>
                 <label style={LABEL}>Section</label>
-                <select style={INPUT} value={form.section} onChange={e => updateForm({ section: e.target.value })}>
+                <select style={INPUT} value={form.section} onChange={e => updateForm({ section: e.target.value })} disabled={readOnly}>
                   <option value="">— Select a section —</option>
                   <option>Micro-Memoir</option>
                   <option>Narratives</option>
@@ -839,7 +840,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                 {form.section === "Archive" ? (
                   <>
                     <label style={{ display: "flex", alignItems: "flex-start", gap: "0.6rem", cursor: "pointer" }}>
-                      <input type="checkbox" checked={form.archiveFree === "1"} onChange={e => updateForm({ archiveFree: e.target.checked ? "1" : "0" })} style={{ marginTop: 3 }} />
+                      <input type="checkbox" checked={form.archiveFree === "1"} onChange={e => updateForm({ archiveFree: e.target.checked ? "1" : "0" })} disabled={readOnly} style={{ marginTop: 3 }} />
                       <span>
                         <span style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_DARK, fontWeight: 600 }}>Make this story free</span>
                         <span style={{ display: "block", fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, lineHeight: 1.4 }}>Archive stories are members-only by default. Check this to let anyone read this one, outside the paywall.</span>
@@ -848,7 +849,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                   </>
                 ) : (
                   <>
-                    <select style={INPUT} value={form.access} onChange={e => updateForm({ access: e.target.value as "free" | "paid" })}>
+                    <select style={INPUT} value={form.access} onChange={e => updateForm({ access: e.target.value as "free" | "paid" })} disabled={readOnly}>
                       <option value="free">Free — anyone can read</option>
                       <option value="paid">Paid — members only</option>
                     </select>
@@ -862,14 +863,14 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                 <div>
                   <label style={LABEL}>Homepage</label>
                   <label style={{ display: "flex", alignItems: "flex-start", gap: "0.6rem", cursor: "pointer", marginBottom: "0.6rem" }}>
-                    <input type="checkbox" checked={form.pinHero === "1"} onChange={e => updateForm({ pinHero: e.target.checked ? "1" : "0" })} style={{ marginTop: 3 }} />
+                    <input type="checkbox" checked={form.pinHero === "1"} onChange={e => updateForm({ pinHero: e.target.checked ? "1" : "0" })} disabled={readOnly} style={{ marginTop: 3 }} />
                     <span>
                       <span style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_DARK, fontWeight: 600 }}>Pin as hero</span>
                       <span style={{ display: "block", fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, lineHeight: 1.4 }}>Feature this as the big story at the top of the homepage. Only one story can be the hero.</span>
                     </span>
                   </label>
                   <label style={{ display: "flex", alignItems: "flex-start", gap: "0.6rem", cursor: "pointer" }}>
-                    <input type="checkbox" checked={form.pinTop === "1"} onChange={e => updateForm({ pinTop: e.target.checked ? "1" : "0" })} style={{ marginTop: 3 }} />
+                    <input type="checkbox" checked={form.pinTop === "1"} onChange={e => updateForm({ pinTop: e.target.checked ? "1" : "0" })} disabled={readOnly} style={{ marginTop: 3 }} />
                     <span>
                       <span style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_DARK, fontWeight: 600 }}>Pin to Top Stories</span>
                       <span style={{ display: "block", fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, lineHeight: 1.4 }}>Keep this in the Top Stories row instead of letting it roll off as newer stories publish.</span>
@@ -880,14 +881,14 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                   )}
                 </div>
               )}
-              <div><label style={LABEL}>Author</label><input style={INPUT} value={form.byline} onChange={e => updateForm({ byline: straightenQuotes(e.target.value) })} /></div>
+              <div><label style={LABEL}>Author</label><input style={INPUT} value={form.byline} onChange={e => updateForm({ byline: straightenQuotes(e.target.value) })} disabled={readOnly} /></div>
               <div>
                 <label style={LABEL}>Publish date</label>
-                <input type="date" style={INPUT} value={(form.date || "").slice(0, 10)} onChange={e => updateForm({ date: e.target.value })} />
+                <input type="date" style={INPUT} value={(form.date || "").slice(0, 10)} onChange={e => updateForm({ date: e.target.value })} disabled={readOnly} />
               </div>
               <div>
                 <label style={LABEL}>Reading time</label>
-                <select style={INPUT} value={form.readingTime} onChange={e => updateForm({ readingTime: e.target.value })}>
+                <select style={INPUT} value={form.readingTime} onChange={e => updateForm({ readingTime: e.target.value })} disabled={readOnly}>
                   <option value="">Auto (from word count)</option>
                   {[1, 2, 3, 4, 5].map(m => (
                     <option key={m} value={m}>{m} min</option>
@@ -897,7 +898,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
               {form.section === "Archive" && (
                 <div>
                   <label style={LABEL}>Sort order <span style={{ fontWeight: 400, color: TEXT_MUTED }}>(lower = earlier on same day)</span></label>
-                  <input type="number" style={INPUT} value={form.sortOrder} onChange={e => updateForm({ sortOrder: e.target.value })} placeholder="e.g. 1, 2, 3…" />
+                  <input type="number" style={INPUT} value={form.sortOrder} onChange={e => updateForm({ sortOrder: e.target.value })} placeholder="e.g. 1, 2, 3…" disabled={readOnly} />
                 </div>
               )}
             </div>
@@ -907,21 +908,21 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
             <div style={{ maxWidth: 480, display: "flex", flexDirection: "column", gap: "1.5rem" }}>
               <div>
                 <label style={LABEL}>URL Slug</label>
-                <input style={INPUT} value={form.slug.startsWith("untitled-") && !form.headline ? "" : form.slug} onChange={e => updateForm({ slug: e.target.value.toLowerCase().replace(/\s+/g, "-") })} placeholder="auto-generated from headline" />
+                <input style={INPUT} value={form.slug.startsWith("untitled-") && !form.headline ? "" : form.slug} onChange={e => updateForm({ slug: e.target.value.toLowerCase().replace(/\s+/g, "-") })} placeholder="auto-generated from headline" disabled={readOnly} />
               </div>
               <div>
                 <label style={LABEL}>SEO Headline</label>
-                <input style={INPUT} value={form.seoHeadline} onChange={e => updateForm({ seoHeadline: e.target.value })} placeholder={form.headline || "Appears in Google search results"} />
+                <input style={INPUT} value={form.seoHeadline} onChange={e => updateForm({ seoHeadline: e.target.value })} placeholder={form.headline || "Appears in Google search results"} disabled={readOnly} />
                 <SeoCount value={form.seoHeadline || form.headline} ideal={60} min={30} />
               </div>
               <div>
                 <label style={LABEL}>Social Headline</label>
-                <input style={INPUT} value={form.socialHeadline} onChange={e => updateForm({ socialHeadline: e.target.value })} placeholder={form.headline || "Appears on shared link preview"} />
+                <input style={INPUT} value={form.socialHeadline} onChange={e => updateForm({ socialHeadline: e.target.value })} placeholder={form.headline || "Appears on shared link preview"} disabled={readOnly} />
                 <SeoCount value={form.socialHeadline || form.headline} ideal={70} min={30} />
               </div>
               <div>
                 <label style={LABEL}>Social Description</label>
-                <textarea style={{ ...INPUT, resize: "vertical", minHeight: 80 }} value={form.socialDescription} onChange={e => updateForm({ socialDescription: e.target.value })} placeholder="Caption that appears under shared link" />
+                <textarea style={{ ...INPUT, resize: "vertical", minHeight: 80 }} value={form.socialDescription} onChange={e => updateForm({ socialDescription: e.target.value })} placeholder="Caption that appears under shared link" disabled={readOnly} />
                 <SeoCount value={form.socialDescription} ideal={160} min={70} />
               </div>
             </div>

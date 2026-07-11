@@ -751,7 +751,7 @@ export default function NewsletterEditorClient({
       )}
 
       {/* Floating "find content" trigger — fixed to the left edge, hidden while the panel is open */}
-      {!isMobile && !showFindContent && (
+      {!isMobile && !showFindContent && !nlReadOnly && (
         <button type="button" title="Find content" onClick={() => setShowFindContent(true)}
           style={{ position: "fixed", top: "calc(80px + var(--safe-top))", left: 24, zIndex: 50, width: 44, height: 44, borderRadius: "50%", background: CRIMSON, color: "white", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 2px 10px rgba(0,0,0,0.2)" }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
@@ -759,7 +759,7 @@ export default function NewsletterEditorClient({
       )}
 
       {/* Find content panel — pull a story in as a new card */}
-      {showFindContent && (
+      {showFindContent && !nlReadOnly && (
         <div className="nl-find-panel" style={{ position: "fixed", top: "calc(64px + var(--safe-top))", left: 12, height: "calc(100% - 76px - var(--safe-top))", width: 296, maxWidth: "88vw", zIndex: 400, background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, boxShadow: "4px 0 24px rgba(0,0,0,0.12)", display: "flex", flexDirection: "column", overflowY: "auto" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1rem 1.25rem", borderBottom: `1px solid ${BORDER}` }}>
               <span style={{ fontFamily: FONT, fontWeight: 700, color: TEXT_DARK }}>Find content</span>
@@ -1061,15 +1061,15 @@ export default function NewsletterEditorClient({
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={sized(card.image.url, 1040)} alt={card.image.alt ?? ""} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block" }} />
                             <input value={card.image.caption ?? ""} onChange={e => nlUpdateCard(card.id, { image: { ...card.image!, caption: straightenQuotes(e.target.value) } })}
-                              placeholder="Add a caption…"
+                              placeholder="Add a caption…" readOnly={nlReadOnly}
                               style={{ fontFamily: FONT, fontSize: "0.7rem", color: TEXT_MUTED, fontStyle: "italic", border: "none", outline: "none", background: "transparent", width: "100%", padding: 0, margin: "0.4rem 1rem 0", boxSizing: "border-box", display: "block" }} />
                             <div className="nl-card-controls" style={{ position: "absolute", top: "0.5rem", right: "0.5rem", display: "flex", gap: "0.35rem" }}>
-                              <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.55rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Change</button>
-                              <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.55rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Remove</button>
+                              <button type="button" onClick={() => setNlImgPickerCard(card.id)} disabled={nlReadOnly} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.55rem", fontFamily: FONT, fontSize: "0.7rem", cursor: nlReadOnly ? "default" : "pointer" }}>Change</button>
+                              <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} disabled={nlReadOnly} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.55rem", fontFamily: FONT, fontSize: "0.7rem", cursor: nlReadOnly ? "default" : "pointer" }}>Remove</button>
                             </div>
                           </div>
                         ) : (
-                          <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ display: "block", width: "100%", margin: "0 0 1.75rem", background: "#ffffff", border: `2px dashed ${BORDER}`, color: TEXT_MUTED, fontFamily: FONT, fontSize: "0.85rem", padding: "3rem 0", cursor: "pointer", textAlign: "center", boxSizing: "border-box" }}>
+                          <button type="button" onClick={() => setNlImgPickerCard(card.id)} disabled={nlReadOnly} style={{ display: "block", width: "100%", margin: "0 0 1.75rem", background: "#ffffff", border: `2px dashed ${BORDER}`, color: TEXT_MUTED, fontFamily: FONT, fontSize: "0.85rem", padding: "3rem 0", cursor: nlReadOnly ? "default" : "pointer", opacity: nlReadOnly ? 0.6 : 1, textAlign: "center", boxSizing: "border-box" }}>
                             + Add a featured image
                           </button>
                         )}
@@ -1101,15 +1101,15 @@ export default function NewsletterEditorClient({
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block" }} />
                             <div className="nl-card-controls" style={{ position: "absolute", top: "0.4rem", right: "0.4rem", display: "flex", gap: "0.35rem" }}>
-                              <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Change</button>
-                              <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Remove</button>
+                              <button type="button" onClick={() => setNlImgPickerCard(card.id)} disabled={nlReadOnly} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: nlReadOnly ? "default" : "pointer" }}>Change</button>
+                              <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} disabled={nlReadOnly} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: nlReadOnly ? "default" : "pointer" }}>Remove</button>
                             </div>
                             <input value={card.image.caption ?? ""} onChange={e => nlUpdateCard(card.id, { image: { ...card.image!, caption: straightenQuotes(e.target.value) } })}
-                              placeholder="Add a caption…"
+                              placeholder="Add a caption…" readOnly={nlReadOnly}
                               style={{ fontFamily: FONT, fontSize: "0.7rem", color: TEXT_MUTED, fontStyle: "italic", border: "none", outline: "none", background: "transparent", width: "100%", padding: 0, margin: "0.4rem 0 0", boxSizing: "border-box", display: "block" }} />
                           </div>
                         ) : (
-                          <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ display: "block", width: "100%", margin: "0 0 1.75rem", background: "#ffffff", border: `2px dashed ${BORDER}`, color: TEXT_MUTED, fontFamily: FONT, fontSize: "0.85rem", padding: "3rem 0", cursor: "pointer", textAlign: "center", boxSizing: "border-box" }}>
+                          <button type="button" onClick={() => setNlImgPickerCard(card.id)} disabled={nlReadOnly} style={{ display: "block", width: "100%", margin: "0 0 1.75rem", background: "#ffffff", border: `2px dashed ${BORDER}`, color: TEXT_MUTED, fontFamily: FONT, fontSize: "0.85rem", padding: "3rem 0", cursor: nlReadOnly ? "default" : "pointer", opacity: nlReadOnly ? 0.6 : 1, textAlign: "center", boxSizing: "border-box" }}>
                             + Add a featured image
                           </button>
                         )}
@@ -1152,12 +1152,12 @@ export default function NewsletterEditorClient({
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block", borderRadius: 12 }} />
                             <div className="nl-card-controls" style={{ position: "absolute", top: "0.4rem", right: "0.4rem", display: "flex", gap: "0.35rem" }}>
-                              <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Change</button>
-                              <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Remove</button>
+                              <button type="button" onClick={() => setNlImgPickerCard(card.id)} disabled={nlReadOnly} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: nlReadOnly ? "default" : "pointer" }}>Change</button>
+                              <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} disabled={nlReadOnly} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: nlReadOnly ? "default" : "pointer" }}>Remove</button>
                             </div>
                           </div>
                         ) : (
-                          <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ display: "block", width: "100%", margin: "0 0 1.75rem", background: "#ffffff", border: `2px dashed ${BORDER}`, color: TEXT_MUTED, fontFamily: FONT, fontSize: "0.85rem", padding: "3rem 0", cursor: "pointer", textAlign: "center", boxSizing: "border-box" }}>
+                          <button type="button" onClick={() => setNlImgPickerCard(card.id)} disabled={nlReadOnly} style={{ display: "block", width: "100%", margin: "0 0 1.75rem", background: "#ffffff", border: `2px dashed ${BORDER}`, color: TEXT_MUTED, fontFamily: FONT, fontSize: "0.85rem", padding: "3rem 0", cursor: nlReadOnly ? "default" : "pointer", opacity: nlReadOnly ? 0.6 : 1, textAlign: "center", boxSizing: "border-box" }}>
                             + Add a featured image
                           </button>
                         )}
@@ -1194,12 +1194,12 @@ export default function NewsletterEditorClient({
                                 <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block", marginBottom: "0.25rem" }} />
                                 {card.image.caption && <p style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.56rem", letterSpacing: "0.04em", textTransform: "uppercase", color: TEXT_MUTED, margin: 0 }}>{card.image.caption}</p>}
                                 <div className="nl-card-controls" style={{ position: "absolute", top: "0.4rem", right: "0.4rem", display: "flex", gap: "0.35rem" }}>
-                                  <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Change</button>
-                                  <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: "pointer" }}>Remove</button>
+                                  <button type="button" onClick={() => setNlImgPickerCard(card.id)} disabled={nlReadOnly} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: nlReadOnly ? "default" : "pointer" }}>Change</button>
+                                  <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} disabled={nlReadOnly} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: nlReadOnly ? "default" : "pointer" }}>Remove</button>
                                 </div>
                               </div>
                             ) : (
-                              <button type="button" onClick={() => setNlImgPickerCard(card.id)} style={{ display: "block", width: "100%", margin: "0 0 1.75rem", background: "#ffffff", border: `2px dashed ${BORDER}`, color: TEXT_MUTED, fontFamily: FONT, fontSize: "0.85rem", padding: "3rem 0", cursor: "pointer", textAlign: "center", boxSizing: "border-box" }}>
+                              <button type="button" onClick={() => setNlImgPickerCard(card.id)} disabled={nlReadOnly} style={{ display: "block", width: "100%", margin: "0 0 1.75rem", background: "#ffffff", border: `2px dashed ${BORDER}`, color: TEXT_MUTED, fontFamily: FONT, fontSize: "0.85rem", padding: "3rem 0", cursor: nlReadOnly ? "default" : "pointer", opacity: nlReadOnly ? 0.6 : 1, textAlign: "center", boxSizing: "border-box" }}>
                             + Add a featured image
                           </button>
                             )}
