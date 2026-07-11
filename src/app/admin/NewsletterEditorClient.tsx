@@ -678,7 +678,7 @@ export default function NewsletterEditorClient({
   ) : null;
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "white" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#f5f8fa" }}>
       <EditLockBanner holder={nlLocked ? lockHolder : null} selfOtherTab={selfOtherTab} onTakeOver={takeOver} />
       {viewMode && !nlLocked && (
         <div style={{

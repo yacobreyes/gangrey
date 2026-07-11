@@ -71,57 +71,64 @@ struct ContentView: View {
     }
 }
 
-// A single drifting mayfly's parameters (ported from the old Efemera
-// IntroAnimation: left-to-right drift with a sine wobble, random size/opacity).
+// One drifting mayfly (ported from the old Efemera IntroAnimation: slow
+// left-to-right drift with a gentle vertical bob, random size/opacity).
 private struct Fly: Identifiable {
     let id = UUID()
-    let baseX: Double       // 0…1.2 starting phase across the width
-    let y: Double           // 0…1 vertical position
+    let baseX: Double       // -0.2…1.1 starting fraction across the width
+    let y: Double           // 0…1 vertical baseline
     let size: CGFloat       // points
-    let speed: Double       // fraction of width per second
-    let phase: Double       // wobble phase offset
-    let wobbleAmp: Double   // fraction of height
-    let wobbleSpeed: Double
+    let driftDur: Double    // seconds to cross (long → slow, graceful)
+    let bob: CGFloat        // vertical bob amplitude, points
+    let bobDur: Double      // bob period
     let opacity: Double
 }
 
 struct MayflyLoadingView: View {
-    private let start = Date()
-    @State private var flies: [Fly] = (0..<34).map { _ in
-        Fly(baseX: .random(in: 0...1.2),
-            y: .random(in: 0.05...0.9),
-            size: .random(in: 30...66),
-            speed: .random(in: 0.035...0.085),
-            phase: .random(in: 0...(2 * .pi)),
-            wobbleAmp: .random(in: 0.008...0.035),
-            wobbleSpeed: .random(in: 0.6...1.6),
+    private let flies: [Fly] = (0..<26).map { _ in
+        Fly(baseX: .random(in: -0.2...1.1),
+            y: .random(in: 0.05...0.92),
+            size: .random(in: 34...74),
+            driftDur: .random(in: 9...16),   // > splash length, so no reset-pop
+            bob: .random(in: 10...26),
+            bobDur: .random(in: 2.6...5.0),
             opacity: .random(in: 0.4...0.95))
     }
 
     var body: some View {
         GeometryReader { geo in
-            TimelineView(.animation) { timeline in
-                let t = timeline.date.timeIntervalSince(start)
-                ZStack {
-                    Color.black
-                    ForEach(flies) { f in
-                        // Wrap x across the width (with a margin so flies enter
-                        // and exit off-screen); wobble y with a sine.
-                        let xFrac = (f.baseX + f.speed * t).truncatingRemainder(dividingBy: 1.2) - 0.1
-                        let yFrac = f.y + sin(t * f.wobbleSpeed + f.phase) * f.wobbleAmp
-                        Image("mayfly")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: f.size, height: f.size)
-                            .rotationEffect(.degrees(90)) // point in the direction of travel
-                            .opacity(f.opacity)
-                            .position(x: CGFloat(xFrac) * geo.size.width,
-                                      y: CGFloat(yFrac) * geo.size.height)
-                    }
-                }
+            ZStack {
+                Color.black
+                ForEach(flies) { FlyView(fly: $0, canvas: geo.size) }
             }
         }
         .ignoresSafeArea()
+    }
+}
+
+// Each fly runs two Core-Animation-backed implicit animations (GPU, no
+// per-frame CPU): a single linear horizontal drift and a repeating vertical
+// bob. Scoped by state value so they don't interfere.
+private struct FlyView: View {
+    let fly: Fly
+    let canvas: CGSize
+    @State private var drift = false
+    @State private var bob = false
+
+    var body: some View {
+        let startX = fly.baseX * canvas.width
+        let endX = startX + canvas.width * 1.4 + 120   // drift off the right edge
+        Image("mayfly")
+            .resizable()
+            .scaledToFit()
+            .frame(width: fly.size, height: fly.size)
+            .rotationEffect(.degrees(90)) // point in the direction of travel
+            .opacity(fly.opacity)
+            .offset(y: bob ? fly.bob : -fly.bob)
+            .animation(.easeInOut(duration: fly.bobDur).repeatForever(autoreverses: true), value: bob)
+            .position(x: drift ? endX : startX, y: fly.y * canvas.height)
+            .animation(.linear(duration: fly.driftDur), value: drift)
+            .onAppear { drift = true; bob = true }
     }
 }
 
@@ -196,7 +203,7 @@ struct ImagoWebView: UIViewRepresentable {
         // The mayflies play for at least this long even if the page is ready
         // sooner — so it always reads as an intentional entrance, never a
         // half-second flash. Dismissal waits for BOTH this and the page load.
-        private static let minSplashSeconds = 3.0
+        private static let minSplashSeconds = 5.0
         private var minTimeElapsed = false
         private var pageLoaded = false
 
