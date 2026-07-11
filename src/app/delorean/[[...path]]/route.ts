@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
+import { isCurrentVisitorActiveMember } from "@/lib/currentMember";
 
 // Serves the DeLorean — the static mirror of the old gangrey.com (snapshot
 // nearest 2016-12-17) that scripts/build-delorean.mjs writes to
@@ -22,6 +23,12 @@ function mirrorRoot(): string {
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ path?: string[] }> }) {
+  // Members-only perk: the archive gates its stories behind membership, and
+  // the DeLorean carries all the same writing — leaving it open would be a
+  // paywall bypass. Non-members go to the subscribe page.
+  if (!(await isCurrentVisitorActiveMember())) {
+    return NextResponse.redirect(new URL("/subscribe", req.url), 302);
+  }
   const { path: parts } = await params;
   const rel = (parts ?? []).join("/");
   if (rel.includes("..")) return new NextResponse("Not found", { status: 404 });

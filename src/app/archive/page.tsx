@@ -4,8 +4,12 @@ import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
 import GangreyArchive from "@/components/GangreyArchive";
 import ListingHeader from "@/components/ListingHeader";
+import { isCurrentVisitorActiveMember } from "@/lib/currentMember";
 
-export const revalidate = 300;
+// Per-request render: the DeLorean button below is members-only, so this page
+// reads the session cookie (which opts out of ISR anyway). The list itself is
+// a light SQLite read — milliseconds.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Gangrey | Archive",
@@ -16,6 +20,7 @@ export const metadata: Metadata = {
 export default async function GangreyPage() {
   let gangrey = [] as Awaited<ReturnType<typeof getArchivePosts>>;
   try { gangrey = await getArchivePosts(); } catch {}
+  const isMember = await isCurrentVisitorActiveMember();
 
   gangrey = gangrey
     .sort((a, b) => {
@@ -41,13 +46,16 @@ export default async function GangreyPage() {
       <MagHeader />
       <main className="gr-wrap">
         <ListingHeader title="Archive" sub="Writing once featured on the original Gangrey blog." marginBottom={12} />
-        {/* Time machine: the full static mirror of the old gangrey.com,
-            rebuilt from the Wayback Machine and served at /delorean. */}
-        <p style={{ margin: "0 0 28px" }}>
-          <a href="/delorean/" style={{ display: "inline-block", fontFamily: "var(--font-subhead)", fontSize: 12, fontWeight: 800, letterSpacing: ".18em", textTransform: "uppercase", color: "#490000", border: "1px solid #490000", padding: "8px 14px", textDecoration: "none" }}>
-            Browse the original site (2005–2016) →
-          </a>
-        </p>
+        {/* Time machine: the full static mirror of the old gangrey.com at
+            /delorean — a members-only perk, shown only after sign-in (and the
+            route itself checks membership too). */}
+        {isMember && (
+          <p style={{ margin: "0 0 28px" }}>
+            <a href="/delorean/" style={{ display: "inline-block", fontFamily: "var(--font-subhead)", fontSize: 12, fontWeight: 800, letterSpacing: ".18em", textTransform: "uppercase", color: "#490000", border: "1px solid #490000", padding: "8px 14px", textDecoration: "none" }}>
+              Browse the original site (2005–2016) →
+            </a>
+          </p>
+        )}
         {deduped.length === 0
           ? <p style={{ fontFamily: "var(--font-headline)", fontSize: 22, fontStyle: "italic", color: "#000000" }}>No stories yet.</p>
           : <GangreyArchive posts={deduped} />
