@@ -124,6 +124,16 @@ function migrate(d: any) {
   // Who scheduled a scheduled story — shown in the editor's view-mode banner
   // ("This story was scheduled by X for ..."). Cleared when unscheduled.
   ensureColumn(d, "posts", "scheduled_by", "TEXT");
+  // Data fix: analytics events snapshot the byline at view time, and views
+  // recorded before the archive byline cleanup carry the old short poster
+  // names. The breakdown now groups by the post's current byline, but events
+  // whose slug no longer exists keep their snapshot — rewrite the known
+  // renames so "Ben" can't linger beside "Ben Montgomery". Idempotent.
+  try {
+    d.prepare(`UPDATE analytics_events SET byline='Ben Montgomery' WHERE byline IN ('Ben','ben')`).run();
+    d.prepare(`UPDATE analytics_events SET byline='Thomas Lake' WHERE byline IN ('t lake','T Lake','t. lake')`).run();
+    d.prepare(`UPDATE analytics_events SET byline='Michael Kruse' WHERE byline IN ('kruse','Kruse')`).run();
+  } catch { /* best-effort */ }
 }
 
 function ensureColumn(d: any, table: string, col: string, decl: string) {
