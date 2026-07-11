@@ -269,15 +269,29 @@ export function sqliteAllPostsAdminLight(excludeArchive = false): SanityPost[] {
 
 // slug -> plain body text, for client-side search. Parses bodies, so only call
 // when a search actually needs it (?q=), never on plain page loads.
-export function sqliteBodyTextBySlug(publishedOnly = true): Record<string, string> {
-  const where = publishedOnly ? `WHERE ${PUBLIC_WHERE}` : "";
-  const rows = db().prepare(`SELECT slug, body FROM posts ${where}`).all();
+// section: restrict to one section (e.g. "Archive") so callers building a
+// section list don't pay to parse every published post site-wide. maxChars
+// caps how much of each body gets decoded — list views only ever show a
+// short excerpt, so there's no reason to walk (and allocate) the full text
+// of a multi-thousand-word story for each of thousands of rows.
+export function sqliteBodyTextBySlug(publishedOnly = true, section?: string, maxChars = 400): Record<string, string> {
+  const clauses = [publishedOnly ? PUBLIC_WHERE : null, section ? `section = @section` : null].filter(Boolean);
+  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+  const rows = db().prepare(`SELECT slug, body FROM posts ${where}`).all({ section });
   const out: Record<string, string> = {};
   for (const r of rows) {
     try {
       const blocks = JSON.parse(r.body || "[]") as { _type?: string; children?: { text?: string }[] }[];
-      out[r.slug] = blocks.filter(b => b._type === "block")
-        .map(b => (b.children ?? []).map(c => c.text ?? "").join("")).join(" ");
+      let text = "";
+      for (const b of blocks) {
+        if (b._type !== "block") continue;
+        for (const c of b.children ?? []) {
+          text += (text ? " " : "") + (c.text ?? "");
+          if (text.length >= maxChars) break;
+        }
+        if (text.length >= maxChars) break;
+      }
+      out[r.slug] = text;
     } catch { out[r.slug] = ""; }
   }
   return out;

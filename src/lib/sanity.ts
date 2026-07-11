@@ -255,8 +255,10 @@ export async function getArchivePosts(): Promise<SanityPost[]> {
   if (isSqliteBackend()) {
     // Same trick as the Sanity path below: plain text wrapped in one synthetic
     // block, so the archive page's search/excerpt/reading-time logic works
-    // without parsing 2,500 full portable-text bodies.
-    const text = sqliteBodyTextBySlug(true);
+    // without parsing thousands of full portable-text bodies. Scoped to the
+    // Archive section (was querying every published post site-wide) and
+    // capped per-post, since list views only ever show a short excerpt.
+    const text = sqliteBodyTextBySlug(true, "Archive");
     return sqliteAllPublishedPostsLight().filter(p => p.section === "Archive").map(p => straightenPost({
       ...p,
       body: [{ _type: "block", style: "normal", children: [{ _type: "span", text: text[p.slug] ?? "" }] }] as SanityPost["body"],
