@@ -70,60 +70,73 @@ struct ContentView: View {
     }
 }
 
-// One drifting mayfly — parameters matched to the OG Efemera IntroAnimation:
-// brisk left-to-right drift (crossing in ~2.5–5s), wrap-around respawn, and a
-// gentle sine wander in y. The art is pre-rotated to face the travel direction.
-private struct Fly {
-    let baseX: Double       // starting fraction across the width
-    let y: Double           // 0…1 vertical baseline
-    let size: CGFloat       // points
-    let speed: Double       // fraction of width per second (OG: 0.35–0.8%/frame @60fps)
-    let amp: Double         // sine wander amplitude, fraction of height
-    let omega: Double       // wander angular speed, rad/s
-    let phase: Double
-    let opacity: Double
-}
-
-// Drawn in a single Canvas per frame — 35 small image blits is trivial GPU
-// work, and there is no implicit-animation state to misbehave. (The previous
-// version attached two implicit animations per fly and triggered both in one
-// transaction; SwiftUI cross-applied them, so the repeat-forever bob infected
-// the drift and flies ping-ponged across the screen.)
+// Redesigned splash (Imago Mobile prototype): one crimson mayfly flies in from
+// the lower-left along a curved, decelerating path, settles level and
+// motionless centered above the wordmark, and "imago" fades up beneath it.
+// Drawn per-frame from an explicit timeline (TimelineView + manual keyframe
+// interpolation) — no implicit SwiftUI animations, which cross-contaminated
+// in an earlier version of this screen.
 struct MayflyLoadingView: View {
     private let start = Date()
-    private let flies: [Fly] = (0..<35).map { _ in
-        Fly(baseX: .random(in: 0...1.3),
-            y: .random(in: 0.04...0.92),
-            size: .random(in: 32...72),
-            speed: .random(in: 0.21...0.48),
-            amp: .random(in: 0.01...0.07),
-            omega: .random(in: 1.2...3.6),
-            phase: .random(in: 0...(2 * .pi)),
-            opacity: .random(in: 0.45...0.95))
+
+    // CSS `mayflyIn` keyframes: progress → (x, y, rotation°, scale).
+    private static let path: [(p: Double, x: Double, y: Double, r: Double, s: Double)] = [
+        (0.00, -150, 230, 38, 0.55),
+        (0.62,   14, -14, -8, 1.02),
+        (0.82,   -4,   4,  5, 1.00),
+        (1.00,    0,   0,  0, 1.00),
+    ]
+    private static let flyDuration = 2.3
+    private static let wordmarkDuration = 1.8 // opacity 0 until 42%, then fade up
+
+    // Ease-out ≈ cubic-bezier(.22,.68,.24,1): fast start, long deceleration.
+    private func easeOut(_ t: Double) -> Double { 1 - pow(1 - t, 3) }
+
+    private func flyState(at elapsed: Double) -> (x: CGFloat, y: CGFloat, r: Angle, s: CGFloat, o: Double) {
+        let t = min(max(elapsed / Self.flyDuration, 0), 1)
+        let e = easeOut(t)
+        let keys = Self.path
+        var a = keys[0], b = keys[keys.count - 1]
+        for i in 0..<(keys.count - 1) where e >= keys[i].p && e <= keys[i + 1].p {
+            a = keys[i]; b = keys[i + 1]
+        }
+        let f = b.p > a.p ? (e - a.p) / (b.p - a.p) : 1
+        let lerp = { (u: Double, v: Double) in u + (v - u) * f }
+        let opacity = min(e / 0.28, 1) // fades in over the first stretch of the flight
+        return (CGFloat(lerp(a.x, b.x)), CGFloat(lerp(a.y, b.y)),
+                .degrees(lerp(a.r, b.r)), CGFloat(lerp(a.s, b.s)), opacity)
     }
 
     var body: some View {
         TimelineView(.animation) { timeline in
-            let t = timeline.date.timeIntervalSince(start)
-            Canvas { ctx, size in
-                ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(.black))
-                let img = ctx.resolve(Image("mayfly"))
-                let aspect = img.size.height / max(img.size.width, 1)
-                for f in flies {
-                    // Wrap x across [−0.15, 1.15] so flies enter and exit off-screen.
-                    let xf = (f.baseX + f.speed * t).truncatingRemainder(dividingBy: 1.3) - 0.15
-                    let yf = f.y + f.amp * sin(f.omega * t + f.phase)
-                    var layer = ctx
-                    layer.opacity = f.opacity
-                    let w = f.size, h = f.size * aspect
-                    layer.draw(img, in: CGRect(x: CGFloat(xf) * size.width - w / 2,
-                                               y: CGFloat(yf) * size.height - h / 2,
-                                               width: w, height: h))
+            let elapsed = timeline.date.timeIntervalSince(start)
+            let fly = flyState(at: elapsed)
+            // Wordmark: hold invisible for the first 42%, then fade + rise.
+            let wt = min(max(elapsed / Self.wordmarkDuration, 0), 1)
+            let wf = wt <= 0.42 ? 0.0 : easeOut((wt - 0.42) / 0.58)
+
+            VStack(spacing: 18) {
+                Image("crimson-mayfly")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 76, height: 76)
+                    .scaleEffect(fly.s)
+                    .rotationEffect(fly.r)
+                    .offset(x: fly.x, y: fly.y)
+                    .opacity(fly.o)
+                HStack(spacing: 0) {
+                    Text("i").foregroundColor(Color(red: 0x49 / 255, green: 0, blue: 0))
+                    Text("mago").foregroundColor(.black)
                 }
+                .font(.system(size: 40, weight: .black))
+                .kerning(-0.8)
+                .opacity(wf)
+                .offset(y: 8 * (1 - wf))
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(red: 245 / 255, green: 248 / 255, blue: 250 / 255))
         }
         .ignoresSafeArea()
-        .background(Color.black.ignoresSafeArea())
     }
 }
 
