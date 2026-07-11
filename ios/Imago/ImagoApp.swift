@@ -170,20 +170,24 @@ struct ImagoWebView: UIViewRepresentable {
         // WKWebView UA lacks the Version/Safari tokens and can trip that.
         webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"
 
-        // Overscroll (top AND bottom rubber-band) follows the page's own body
-        // color — set here as white for the first paint, then corrected per-page
-        // in didFinish. (A previous version tried to split top-white/bottom-page
-        // via a raw UIView pinned above the scroll content; that native subview
-        // could paint OVER the page's own fixed-position header on scroll,
-        // since it lives outside the WKWebView's content layer entirely. One
-        // uniform, page-driven color has no such layering risk.)
-        // Seed with the dashboard's color (the landing page) rather than white,
-        // so there's no white flash/band while the first page loads, before
-        // didCommit/didFinish read the page's real background.
-        let dashboardBG = UIColor(cssRGB: "rgb(245, 248, 250)") ?? .white // #f5f8fa
+        // Split overscroll: TOP matches the header, BOTTOM matches the canvas.
+        //  - Bottom: the scroll view / underPage background (a single native
+        //    color for the whole rubber-band) is set to the canvas color.
+        //  - Top: a white filler view INSERTED BEHIND the web content
+        //    (insertSubview at 0 — the earlier bug used addSubview, putting it
+        //    ON TOP where it covered the fixed header). Behind the opaque page,
+        //    it's only ever visible in the top overscroll gap, never over the
+        //    header. Colors are corrected per-page in syncPageBackground.
+        let dashboardBG = UIColor(cssRGB: "rgb(245, 248, 250)") ?? .white // #f5f8fa canvas
         webView.backgroundColor = dashboardBG
         webView.scrollView.backgroundColor = dashboardBG
         webView.underPageBackgroundColor = dashboardBG
+
+        let topFiller = UIView(frame: CGRect(x: 0, y: -4000, width: UIScreen.main.bounds.width, height: 4000))
+        topFiller.backgroundColor = .white
+        topFiller.autoresizingMask = [.flexibleWidth]
+        webView.scrollView.insertSubview(topFiller, at: 0)
+        context.coordinator.topFiller = topFiller
 
         let refresh = UIRefreshControl()
         refresh.addTarget(context.coordinator, action: #selector(Coordinator.reload(_:)), for: .valueChanged)
@@ -198,6 +202,7 @@ struct ImagoWebView: UIViewRepresentable {
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         weak var webView: WKWebView?
+        weak var topFiller: UIView?
         let loadState: LoadState
 
         // The mayflies play for at least this long even if the page is ready
@@ -243,24 +248,30 @@ struct ImagoWebView: UIViewRepresentable {
         // Run on BOTH didCommit (first render — kills the white band before the
         // user sees it) and didFinish (final, if body bg loads late).
         private func syncPageBackground(_ webView: WKWebView) {
-            // Read the effective background of whatever sits at the very TOP of
-            // the page (the sticky header — white on the dashboard), not the
-            // body: overscroll should continue the header you're pulling down,
-            // not the gray canvas underneath it. Falls back to body → html →
-            // white.
+            // Read two colors: TOP = the header (element at the top-center of the
+            // viewport, so the top overscroll continues what you're pulling
+            // down); BOTTOM = the body/canvas (for the bottom rubber-band).
             let js = """
             (function(){
               function bgUp(el){ while(el){ var c = getComputedStyle(el).backgroundColor;
                 if (c && c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent') return c; el = el.parentElement; } return null; }
               var topEl = document.elementFromPoint(Math.floor(window.innerWidth/2), 8);
-              return (topEl && bgUp(topEl)) || bgUp(document.body) || bgUp(document.documentElement) || 'rgb(255, 255, 255)';
+              var body = bgUp(document.body) || bgUp(document.documentElement) || 'rgb(255, 255, 255)';
+              var top = (topEl && bgUp(topEl)) || body;
+              return top + '|' + body;
             })()
             """
-            webView.evaluateJavaScript(js) { value, _ in
-                guard let rgb = value as? String, let color = UIColor(cssRGB: rgb) else { return }
-                webView.underPageBackgroundColor = color
-                webView.backgroundColor = color
-                webView.scrollView.backgroundColor = color
+            webView.evaluateJavaScript(js) { [weak self] value, _ in
+                guard let s = value as? String else { return }
+                let parts = s.components(separatedBy: "|")
+                guard parts.count == 2,
+                      let topColor = UIColor(cssRGB: parts[0]),
+                      let bodyColor = UIColor(cssRGB: parts[1]) else { return }
+                // Bottom (whole native rubber-band) = canvas; TOP filler = header.
+                webView.underPageBackgroundColor = bodyColor
+                webView.backgroundColor = bodyColor
+                webView.scrollView.backgroundColor = bodyColor
+                self?.topFiller?.backgroundColor = topColor
             }
         }
 
