@@ -19,13 +19,22 @@ export type FlatplanUser = {
 const USER_FIELDS = `_id, email, firstName, lastName, byline, jobTitle, bio,
   "photoUrl": photo.asset->url, role, active`;
 
+// On the sqlite backend the raw user doc stores the photo as
+// photo.asset._ref (which is the local /media/... path — see
+// sqliteSaveMedia), and the GROQ projection that derives photoUrl never
+// runs. Surface it here, or uploaded photos save but never display.
+function withPhotoUrl(u: FlatplanUser & { photo?: { asset?: { _ref?: string } } }): FlatplanUser {
+  return { ...u, photoUrl: u.photoUrl ?? u.photo?.asset?._ref ?? undefined };
+}
+
 // Look up an active user by email (case-insensitive — emails are stored
 // lowercased on write). Returns null for unknown or deactivated users.
 export async function getUserByEmail(email: string): Promise<FlatplanUser | null> {
   const e = (email ?? "").trim().toLowerCase();
   if (!e) return null;
   if (isSqliteBackend()) {
-    return sqliteDocsByType<FlatplanUser>("user").find(u => u.email === e && u.active === true) ?? null;
+    const u = sqliteDocsByType<FlatplanUser>("user").find(x => x.email === e && x.active === true);
+    return u ? withPhotoUrl(u) : null;
   }
   const u: FlatplanUser | null = await client.fetch(
     `*[_type == "user" && email == $email && active == true][0]{ ${USER_FIELDS} }`,
@@ -39,6 +48,7 @@ export async function getUserByEmail(email: string): Promise<FlatplanUser | null
 export async function listAllUsers(): Promise<FlatplanUser[]> {
   if (isSqliteBackend()) {
     return sqliteDocsByType<FlatplanUser>("user")
+      .map(withPhotoUrl)
       .sort((a, b) => Number(b.active) - Number(a.active) || (a.firstName ?? "").localeCompare(b.firstName ?? "") || a.email.localeCompare(b.email));
   }
   const users: FlatplanUser[] = await client.fetch(
