@@ -3,6 +3,8 @@ import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { isCurrentVisitorActiveMember } from "@/lib/currentMember";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org";
+
 // Serves the DeLorean — the static mirror of the old gangrey.com (snapshot
 // nearest 2016-12-17) that scripts/build-delorean.mjs writes to
 // DATA_DIR/delorean. Querystring routes were flattened to directories at
@@ -27,7 +29,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
   // the DeLorean carries all the same writing — leaving it open would be a
   // paywall bypass. Non-members go to the subscribe page.
   if (!(await isCurrentVisitorActiveMember())) {
-    return NextResponse.redirect(new URL("/subscribe", req.url), 302);
+    // Redirect against the PUBLIC origin, never req.url — behind the reverse
+    // proxy req.url carries the container's internal hostname, and a 302 to
+    // http://<container-id>:3000/... is a dead end for the browser.
+    return NextResponse.redirect(new URL("/subscribe", SITE_URL), 302);
   }
   const { path: parts } = await params;
   const rel = (parts ?? []).join("/");
@@ -46,7 +51,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
     if (!fs.existsSync(path.join(root, "index.html"))) {
       return new NextResponse("The DeLorean isn't built yet — run scripts/build-delorean.mjs on the server.", { status: 503 });
     }
-    return NextResponse.redirect(new URL("/delorean/", req.url), 302);
+    return NextResponse.redirect(new URL("/delorean/", SITE_URL), 302);
   }
 
   const ext = path.extname(file).toLowerCase();
