@@ -166,24 +166,19 @@ struct ImagoWebView: UIViewRepresentable {
         // WKWebView UA lacks the Version/Safari tokens and can trip that.
         webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"
 
-        // Split overscroll: TOP matches the header, BOTTOM matches the canvas.
-        //  - Bottom: the scroll view / underPage background (a single native
-        //    color for the whole rubber-band) is set to the canvas color.
-        //  - Top: a white filler view INSERTED BEHIND the web content
-        //    (insertSubview at 0 — the earlier bug used addSubview, putting it
-        //    ON TOP where it covered the fixed header). Behind the opaque page,
-        //    it's only ever visible in the top overscroll gap, never over the
-        //    header. Colors are corrected per-page in syncPageBackground.
+        // Split overscroll: TOP white (the header), BOTTOM blue-gray (the
+        // canvas). WKWebView has ONE native overscroll color at a time
+        // (underPageBackgroundColor — WebKit paints it inside the content
+        // layer, so filler subviews behind the page can never show through).
+        // Instead, the scroll delegate switches that color live by position:
+        // top half of the page → header color, bottom half → canvas color.
+        // Rubber-banding only happens at the extremes, so each end always
+        // shows its own color. Per-page colors are read in syncPageBackground.
         let dashboardBG = UIColor(cssRGB: "rgb(245, 248, 250)") ?? .white // #f5f8fa canvas
         webView.backgroundColor = dashboardBG
         webView.scrollView.backgroundColor = dashboardBG
-        webView.underPageBackgroundColor = dashboardBG
-
-        let topFiller = UIView(frame: CGRect(x: 0, y: -4000, width: UIScreen.main.bounds.width, height: 4000))
-        topFiller.backgroundColor = .white
-        topFiller.autoresizingMask = [.flexibleWidth]
-        webView.scrollView.insertSubview(topFiller, at: 0)
-        context.coordinator.topFiller = topFiller
+        webView.underPageBackgroundColor = .white // lands at the top first
+        webView.scrollView.delegate = context.coordinator
 
         let refresh = UIRefreshControl()
         refresh.addTarget(context.coordinator, action: #selector(Coordinator.reload(_:)), for: .valueChanged)
@@ -196,10 +191,25 @@ struct ImagoWebView: UIViewRepresentable {
 
     func updateUIView(_ uiView: WKWebView, context: Context) {}
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, UIScrollViewDelegate {
         weak var webView: WKWebView?
-        weak var topFiller: UIView?
         let loadState: LoadState
+
+        // Per-page overscroll colors (read from the DOM in syncPageBackground).
+        var topColor: UIColor = .white
+        var bottomColor: UIColor = UIColor(cssRGB: "rgb(245, 248, 250)") ?? .white
+
+        // Swap the single native overscroll color by position: the top half of
+        // the page shows the header color, the bottom half the canvas color.
+        func scrollViewDidScroll(_ scrollView: UIScrollView) {
+            guard let webView else { return }
+            let maxOffset = max(scrollView.contentSize.height - scrollView.bounds.height, 1)
+            let wantTop = scrollView.contentOffset.y < maxOffset / 2
+            let color = wantTop ? topColor : bottomColor
+            if webView.underPageBackgroundColor != color {
+                webView.underPageBackgroundColor = color
+            }
+        }
 
         // The mayflies play for at least this long even if the page is ready
         // sooner — so it always reads as an intentional entrance, never a
@@ -263,11 +273,12 @@ struct ImagoWebView: UIViewRepresentable {
                 guard parts.count == 2,
                       let topColor = UIColor(cssRGB: parts[0]),
                       let bodyColor = UIColor(cssRGB: parts[1]) else { return }
-                // Bottom (whole native rubber-band) = canvas; TOP filler = header.
-                webView.underPageBackgroundColor = bodyColor
+                guard let self else { return }
+                self.topColor = topColor
+                self.bottomColor = bodyColor
                 webView.backgroundColor = bodyColor
                 webView.scrollView.backgroundColor = bodyColor
-                self?.topFiller?.backgroundColor = topColor
+                self.scrollViewDidScroll(webView.scrollView) // apply for current position
             }
         }
 
