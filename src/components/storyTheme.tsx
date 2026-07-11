@@ -114,6 +114,12 @@ export const storyStyles = `
     line-height: 1.66;
     color: #000000;
     font-feature-settings: "calt" 0, "liga" 0;
+    /* Contain the drop cap's float. On a short paywall preview (one line),
+       the floated first letter is TALLER than its paragraph and overflows the
+       body — its serif feet poked out below the paywall rule and its top-left
+       corner peeked above the fade. flow-root makes the body's height include
+       the full letter, so the fade and rule sit beneath it. */
+    display: flow-root;
   }
   .story-body > p:first-of-type::first-letter {
     float: left;
