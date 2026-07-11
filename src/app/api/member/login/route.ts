@@ -31,11 +31,14 @@ export async function POST(req: Request) {
   }
 
   const apiKey = process.env.GANGREY_RESEND_KEY ?? process.env.RESEND_API_KEY;
-  const from = process.env.NEWSLETTER_FROM;
-  if (!apiKey || !from) {
+  // Login mail comes from the members address (newsletters come from
+  // NEWSLETTER_FROM, submissions from submissions@) — override with
+  // MEMBERS_FROM if it ever needs to change.
+  const from = process.env.MEMBERS_FROM ?? "Gangrey <members@gangrey.org>";
+  if (!apiKey) {
     // Email isn't configured — surface a real error to the admin/dev, not the
     // silent-success path, since nothing would arrive.
-    console.log(`[member-login] missing ${!apiKey ? "GANGREY_RESEND_KEY/RESEND_API_KEY" : "NEWSLETTER_FROM"}`);
+    console.log(`[member-login] missing GANGREY_RESEND_KEY/RESEND_API_KEY`);
     return NextResponse.json({ error: "Login email isn't configured yet." }, { status: 500 });
   }
 
