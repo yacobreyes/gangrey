@@ -748,11 +748,22 @@ export function sqliteAnalyticsTopContent(since: number, until: number, limit = 
 
 // Generic "views grouped by <column>" for referrers/sources/sections/authors/device.
 export function sqliteAnalyticsBreakdown(column: "source" | "section" | "byline" | "device" | "ref_host", since: number, until: number, limit = 12): { key: string; views: number }[] {
-  const rows = db().prepare(
-    `SELECT ${column} k, COUNT(*) v FROM analytics_events
-     WHERE kind='view' AND ts>=? AND ts<? GROUP BY ${column} ORDER BY v DESC LIMIT ?`
-  ).all(since, until, limit) as Row[];
-  return rows.map(r => ({ key: String(r.k ?? "") || "—", views: num(r.v) }));
+  // byline/section are snapshotted into each event at view time, so events
+  // recorded before an author rename (e.g. the archive's "Ben" -> "Ben
+  // Montgomery" cleanup) group separately from newer ones and one person
+  // shows up twice. Group those by the post's CURRENT value instead, keyed by
+  // slug, falling back to the event snapshot for slugs that no longer exist.
+  const rows = (column === "byline" || column === "section"
+    ? db().prepare(
+        `SELECT COALESCE(NULLIF(p.BREAKCOL, ''), e.BREAKCOL) k, COUNT(*) v
+         FROM analytics_events e LEFT JOIN posts p ON p.slug = e.slug
+         WHERE e.kind='view' AND e.ts>=? AND e.ts<? GROUP BY k ORDER BY v DESC LIMIT ?`.replaceAll("BREAKCOL", column)
+      ).all(since, until, limit)
+    : db().prepare(
+        `SELECT BREAKCOL k, COUNT(*) v FROM analytics_events
+         WHERE kind='view' AND ts>=? AND ts<? GROUP BY BREAKCOL ORDER BY v DESC LIMIT ?`.replaceAll("BREAKCOL", column)
+      ).all(since, until, limit)) as Row[];
+  return rows.map(r => ({ key: String(r.k ?? "") || "\u2014", views: num(r.v) }));
 }
 
 // Real-time: distinct sessions active in the last `windowMs`, plus what each is
