@@ -31,19 +31,27 @@ function readingTime(body: unknown[]) {
 }
 
 export default function GangreyArchive({ posts }: { posts: Post[] }) {
+  const allYears = useMemo(
+    () => [...new Set(posts.map(p => new Date(p.date).getUTCFullYear().toString()))].sort((a, b) => +b - +a),
+    [posts]
+  );
   const [query, setQuery] = useState("");
-  const [activeYear, setActiveYear] = useState<string | null>(null);
+  // Opens on the most recent year rather than dumping all 3,000+ posts into
+  // one long scroll (the only way to reach an earlier year used to be
+  // dragging past everything after it).
+  const [activeYear, setActiveYear] = useState<string | null>(allYears[0] ?? null);
+
+  const searchMode = query.trim().length > 0;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return posts.filter(p => {
-      if (activeYear && new Date(p.date).getUTCFullYear().toString() !== activeYear) return false;
-      if (!q) return true;
+      if (!searchMode) return new Date(p.date).getUTCFullYear().toString() === activeYear;
       return p.headline.toLowerCase().includes(q) ||
         (p.byline ?? "").toLowerCase().includes(q) ||
         plainText(p.body).toLowerCase().includes(q);
     });
-  }, [posts, query, activeYear]);
+  }, [posts, query, activeYear, searchMode]);
 
   const byYear: Record<string, Post[]> = {};
   for (const p of filtered) {
@@ -51,19 +59,6 @@ export default function GangreyArchive({ posts }: { posts: Post[] }) {
     (byYear[y] = byYear[y] ?? []).push(p);
   }
   const years = Object.keys(byYear).sort((a, b) => +b - +a);
-  const allYears = [...new Set(posts.map(p => new Date(p.date).getUTCFullYear().toString()))].sort((a,b)=>+b-+a);
-  const countByYear: Record<string, number> = {};
-  for (const p of posts) {
-    const y = new Date(p.date).getUTCFullYear().toString();
-    countByYear[y] = (countByYear[y] ?? 0) + 1;
-  }
-  const searching = query.trim().length > 0 || activeYear !== null;
-  // With 3,000+ posts spanning 11 years, dumping every year into one long
-  // scroll meant the only way to reach, say, 2009 was to drag the scrollbar
-  // past everything else first. Land on the year picker instead; a year's
-  // stories render only once you click it (or search matches across all of
-  // them regardless of year).
-  const browsing = !searching;
 
   return (
     <>
@@ -78,17 +73,6 @@ export default function GangreyArchive({ posts }: { posts: Post[] }) {
         .gr-year-btn:hover { background: #ffffff; border-color: #392a22; }
         .gr-year-btn.active { background: #490000; color: #fff; border-color: #490000; }
         .gr-no-results { font-family: var(--font-headline); font-size: 22px; font-style: italic; color: #000000; margin-top: 48px; }
-
-        .gr-picker { margin-top: 48px; }
-        .gr-picker-hint { font-family: var(--font-subhead); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #392a22; margin: 0 0 20px; }
-        .gr-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
-        .gr-picker-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; background: none; border: 1px solid #b8b8ba; border-radius: 2px; padding: 16px 18px; cursor: pointer; text-align: left; transition: border-color .15s, background .15s; }
-        .gr-picker-btn:hover { border-color: #490000; background: #ffffff; }
-        .gr-picker-year { font-family: var(--font-headline); font-size: 28px; font-weight: 800; color: #490000; letter-spacing: -.02em; line-height: 1; }
-        .gr-picker-count { font-family: var(--font-subhead); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #392a22; }
-        @media (max-width: 900px) {
-          .gr-picker-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
-        }
 
         .gr-year-block { display: grid; grid-template-columns: 110px 1fr; gap: 0 48px; }
         .gr-year-block + .gr-year-block { border-top: 1px solid #b8b8ba; }
@@ -133,44 +117,26 @@ export default function GangreyArchive({ posts }: { posts: Post[] }) {
             <button className="gr-search-clear" onClick={() => setQuery("")} aria-label="Clear search">×</button>
           )}
         </div>
-        {/* The year buttons only need to show once you're past the initial
-            picker — showing them there too would just duplicate it. */}
-        {!browsing && allYears.length > 1 && (
+        {!searchMode && allYears.length > 1 && (
           <nav className="gr-year-nav" aria-label="Filter by year">
-            {activeYear && (
-              <button className="gr-year-btn" onClick={() => setActiveYear(null)}>← All years</button>
-            )}
             {allYears.map(y => (
               <button
                 key={y}
                 className={`gr-year-btn${activeYear === y ? " active" : ""}`}
-                onClick={() => setActiveYear(activeYear === y ? null : y)}
+                onClick={() => setActiveYear(y)}
                 aria-pressed={activeYear === y}
               >{y}</button>
             ))}
           </nav>
         )}
-        {searching && (
+        {searchMode && (
           <span className="gr-search-count">{filtered.length} result{filtered.length !== 1 ? "s" : ""}</span>
         )}
       </div>
 
-      {browsing ? (
-        <div className="gr-picker">
-          <p className="gr-picker-hint">Pick a year to browse — or search above</p>
-          <div className="gr-picker-grid">
-            {allYears.map(y => (
-              <button key={y} className="gr-picker-btn" onClick={() => setActiveYear(y)}>
-                <span className="gr-picker-year">{y}</span>
-                <span className="gr-picker-count">{countByYear[y]} {countByYear[y] === 1 ? "story" : "stories"}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : (
       <div style={{ marginTop: 48 }}>
         {filtered.length === 0
-          ? <p className="gr-no-results">No stories{activeYear ? ` from ${activeYear}` : ""}{query.trim() ? ` matching "${query.trim()}"` : ""}.</p>
+          ? <p className="gr-no-results">No stories{!searchMode && activeYear ? ` from ${activeYear}` : ""}{query.trim() ? ` matching "${query.trim()}"` : ""}.</p>
           : years.map(year => (
             <div key={year} id={`year-${year}`} className="gr-year-block">
               <div className="gr-year-col">
@@ -198,7 +164,6 @@ export default function GangreyArchive({ posts }: { posts: Post[] }) {
           ))
         }
       </div>
-      )}
     </>
   );
 }
