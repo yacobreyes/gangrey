@@ -352,6 +352,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
   }, [form, post._id, imageAssetId, imageCaption, imageAlt, imageCrops, scheduledAt, releaseLockNow, router]);
 
   const revertToVersion = useCallback((i: number) => {
+    if (lockedRef.current) return; // belt-and-braces: never restore in read-only
     const snap = versions[i];
     if (!snap) return;
     if (!confirm("Restore this version? Your current text will be replaced.")) return;
@@ -363,7 +364,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
   const autosaveCount = useRef(0);
   const lastSnapshotAt = useRef(0);
 
-  // Auto-save after 10s of inactivity following a change. Snapshot a version at
+  // Auto-save 3s after you stop typing. Snapshot a version at
   // most once every 20s of continuous editing (plus the server still dedups
   // no-op snapshots) — this keeps a real history without a write on every pause.
   useEffect(() => {
@@ -376,7 +377,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
       const snapshot = now - lastSnapshotAt.current > 20000;
       if (snapshot) lastSnapshotAt.current = now;
       doSave(form.status === "published" ? "published" : "draft", false, snapshot);
-    }, 10000);
+    }, 3000);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, imageAssetId, imageCaption, imageAlt, imageCrops, doSave]);
@@ -984,13 +985,17 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                                   >
                                     Compare changes
                                   </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => { setVersionMenu(null); revertToVersion(i); }}
-                                    style={{ display: "block", width: "100%", background: "none", border: "none", textAlign: "left", padding: "0.6rem 1rem", fontFamily: FONT, fontSize: "0.85rem", color: TEXT_DARK, cursor: "pointer" }}
-                                  >
-                                    Restore this version
-                                  </button>
+                                  {/* Restore is a WRITE (replaces the current text) — hidden
+                                      in read-only; Compare stays since it only reads. */}
+                                  {!readOnly && (
+                                    <button
+                                      type="button"
+                                      onClick={() => { setVersionMenu(null); revertToVersion(i); }}
+                                      style={{ display: "block", width: "100%", background: "none", border: "none", textAlign: "left", padding: "0.6rem 1rem", fontFamily: FONT, fontSize: "0.85rem", color: TEXT_DARK, cursor: "pointer" }}
+                                    >
+                                      Restore this version
+                                    </button>
+                                  )}
                                 </div>
                               )}
                             </div>

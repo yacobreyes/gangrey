@@ -120,10 +120,22 @@ struct ImagoWebView: UIViewRepresentable {
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             webView.scrollView.refreshControl?.endRefreshing()
-            // Match the bottom overscroll to the page's own body color.
-            webView.evaluateJavaScript("getComputedStyle(document.body).backgroundColor") { value, _ in
+            // Match overscroll to the page's effective background, the way
+            // Safari derives it: body if it's opaque, else html, else white.
+            // (A transparent body parsed as alpha-0 used to leave the shell's
+            // white showing through as a band on pull-down.)
+            let js = """
+            (function(){
+              function bg(el){ var c = getComputedStyle(el).backgroundColor;
+                return (c && c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent') ? c : null; }
+              return bg(document.body) || bg(document.documentElement) || 'rgb(255, 255, 255)';
+            })()
+            """
+            webView.evaluateJavaScript(js) { value, _ in
                 guard let rgb = value as? String, let color = UIColor(cssRGB: rgb) else { return }
                 webView.underPageBackgroundColor = color
+                webView.backgroundColor = color
+                webView.scrollView.backgroundColor = color
             }
         }
 

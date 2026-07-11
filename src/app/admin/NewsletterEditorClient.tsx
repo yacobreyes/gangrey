@@ -526,14 +526,14 @@ export default function NewsletterEditorClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-save after 10s of inactivity following a change (matches the story
-  // editor). Uses the cheap signature to detect changes on every render, and
-  // only pays for the expensive portable-text conversion once the debounce fires.
+  // Auto-save 3s after you stop typing (matches the story editor). Uses the
+  // cheap signature to detect changes on every render, and only pays for the
+  // expensive portable-text conversion once the debounce fires.
   useEffect(() => {
     const signature = nlSignature();
     if (signature === nlLastSaved.current) return;
     setNlSaveStatus("unsaved");
-    const timer = setTimeout(() => { nlSave(nlPayload(), signature); }, 10000);
+    const timer = setTimeout(() => { nlSave(nlPayload(), signature); }, 3000);
     return () => clearTimeout(timer);
   }, [nlSignature, nlPayload, nlSave]);
 
@@ -701,6 +701,11 @@ export default function NewsletterEditorClient({
         </div>
       )}
       <style>{`
+        /* Match the body to the editor canvas. Without this the body stayed
+           default white under the #f5f8fa canvas, so overscroll (pull-down)
+           revealed a white band between the header and the content — the
+           dashboard and story editor both pin body for the same reason. */
+        body { background: #f5f8fa !important; }
         .nl-tb-btn { position: relative; }
         .nl-add-zone .nl-add-line, .nl-add-zone .nl-add-label { opacity: 0; transition: opacity 0.12s; }
         .nl-add-zone:hover .nl-add-line, .nl-add-zone:hover .nl-add-label { opacity: 1; }
@@ -980,8 +985,8 @@ export default function NewsletterEditorClient({
               return (
                 <div key={card.id}>
                   {/* Add zone between cards */}
-                  <div className="nl-add-zone" onClick={() => nlAddCardAfter(i - 1)}
-                    style={{ display: "flex", alignItems: "center", gap: "0.6rem", height: 24, cursor: "pointer" }}>
+                  <div className="nl-add-zone" onClick={() => { if (!nlReadOnly) nlAddCardAfter(i - 1); }}
+                    style={{ display: "flex", alignItems: "center", gap: "0.6rem", height: 24, cursor: nlReadOnly ? "default" : "pointer", visibility: nlReadOnly ? "hidden" : "visible" }}>
                     <div className="nl-add-line" style={{ flex: 1, height: 1, background: "#ddd" }} />
                     <span className="nl-add-label" style={{ fontFamily: FONT, fontSize: "0.7rem", color: "#b8b8ba", whiteSpace: "nowrap", padding: "0 0.3rem" }}>+ Add section</span>
                     <div className="nl-add-line" style={{ flex: 1, height: 1, background: "#ddd" }} />
@@ -1025,8 +1030,9 @@ export default function NewsletterEditorClient({
                       </div>
                     )}
 
-                    {/* Card hover toolbar */}
-                    {!nlMovingId && (
+                    {/* Card hover toolbar — all writes (move, retype, delete), so
+                        none of it renders in read-only. */}
+                    {!nlMovingId && !nlReadOnly && (
                       <div className="nl-card-controls" style={{ position: "absolute", top: "-2.2rem", left: 0, right: 0, display: "flex", alignItems: "center", justifyContent: "space-between", zIndex: 10, pointerEvents: "none" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", pointerEvents: "auto" }}>
                           <button type="button" title="Move" onMouseDown={e => { e.preventDefault(); e.stopPropagation(); const r = nlCardRefs.current[card.id]?.getBoundingClientRect(); if (r) nlMoveRectRef.current = { left: r.left, width: r.width }; nlMoveStartYRef.current = e.clientY; setNlMovingId(card.id); }}
@@ -1225,8 +1231,8 @@ export default function NewsletterEditorClient({
             }); })()}
 
             {/* Add zone after last card */}
-            <div className="nl-add-zone" onClick={() => nlAddCardAfter(nlCards.length - 1)}
-              style={{ display: "flex", alignItems: "center", gap: "0.6rem", height: 24, cursor: "pointer", marginTop: "0.5rem" }}>
+            <div className="nl-add-zone" onClick={() => { if (!nlReadOnly) nlAddCardAfter(nlCards.length - 1); }}
+              style={{ display: "flex", alignItems: "center", gap: "0.6rem", height: 24, cursor: nlReadOnly ? "default" : "pointer", visibility: nlReadOnly ? "hidden" : "visible", marginTop: "0.5rem" }}>
               <div className="nl-add-line" style={{ flex: 1, height: 1, background: "#ddd" }} />
               <span className="nl-add-label" style={{ fontFamily: FONT, fontSize: "0.7rem", color: TEXT_MUTED, whiteSpace: "nowrap", padding: "0 0.3rem" }}>+ Add section</span>
               <div className="nl-add-line" style={{ flex: 1, height: 1, background: "#ddd" }} />
