@@ -73,7 +73,25 @@ const DEFAULT_FORM: FormState = {
   body: EMPTY_DOC, status: "draft",
 };
 
-type Panel = "dashboard" | "editor" | "about" | "media" | "comments" | "submissions" | "subscribers" | "users" | "members" | "archive" | "analytics";
+type Panel = "dashboard" | "editor" | "about" | "media" | "comments" | "submissions" | "subscribers" | "users" | "members" | "archive" | "analytics" | "more";
+
+// Mobile bottom-tab-bar mapping: which of the four tabs a panel belongs to.
+// Panels not listed under a main tab are "pushed" screens reached from More.
+const MOBILE_PUSHED: Panel[] = ["comments", "submissions", "archive", "members", "subscribers", "about", "users"];
+function mobileTabFor(panel: Panel): "dashboard" | "media" | "analytics" | "more" {
+  if (panel === "media") return "media";
+  if (panel === "analytics") return "analytics";
+  if (panel === "more" || MOBILE_PUSHED.includes(panel)) return "more";
+  return "dashboard";
+}
+const PANEL_TITLES: Partial<Record<Panel, string>> = {
+  media: "Media Library", comments: "Comments", submissions: "Submissions",
+  about: "About", users: "Users", members: "Subscribers", subscribers: "Subscribers",
+  archive: "Archive", analytics: "Analytics",
+};
+// Card chrome hairline from the mobile design prototype — warmer than RULE,
+// used for the white cards on the #f5f8fa canvas.
+const CARD_LINE = "#e6e4e0";
 
 export type CurrentUser = { name: string; email: string; role: "admin" | "editor" };
 
@@ -149,7 +167,8 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
   const [urlCopied, setUrlCopied] = useState(false);
   const [mediaSearch, setMediaSearch] = useState("");
   const [showPreview, setShowPreview] = useState(false);
-  const [showMobileNav, setShowMobileNav] = useState(false);
+  // Mobile create bottom-sheet (opened by the FAB on the Posts tab).
+  const [showCreateSheet, setShowCreateSheet] = useState(false);
   type AdminComment = { _id: string; name: string; email?: string; text: string; slug: string; approved?: boolean; _createdAt: string };
   const [adminComments, setAdminComments] = useState<AdminComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -385,17 +404,19 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
   if (!auth) {
     return (
       <div style={{ position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#f5f8fa" }}>
-        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "2.5rem 2rem", width: 300, display: "flex", flexDirection: "column", gap: "1.5rem", alignItems: "center", textAlign: "center" }}>
-          <span style={{ fontFamily: FONT, fontSize: "1.6rem", fontWeight: 900, letterSpacing: "-0.02em" }}>
+        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 14, padding: "2.5rem 1.75rem", width: 300, display: "flex", flexDirection: "column", gap: "1.6rem", alignItems: "center", textAlign: "center", boxShadow: "0 8px 28px -12px rgba(0,0,0,0.18)", boxSizing: "border-box" }}>
+          <span style={{ fontFamily: FONT, fontSize: "1.85rem", fontWeight: 900, letterSpacing: "-0.02em" }}>
             <span style={{ color: CRIMSON }}>i</span><span style={{ color: "#000000" }}>mago</span>
           </span>
+          <p style={{ margin: "-1rem 0 0", fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, lineHeight: 1.5 }}>Your newsroom. Anytime. Anywhere.</p>
           <button
             onClick={() => { import("next-auth/react").then(({ signIn }) => signIn("google", { callbackUrl: "/admin/imago" })); }}
-            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.6rem", width: "100%", background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "0.65rem 1rem", fontFamily: FONT, fontSize: "0.9rem", fontWeight: 600, color: TEXT_DARK, cursor: "pointer", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.6rem", width: "100%", background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "0.8rem 1rem", fontFamily: FONT, fontSize: "0.94rem", fontWeight: 600, color: TEXT_DARK, cursor: "pointer", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
           >
             <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v8.51h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.14z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.55 10.78l7.98-6.19z"/><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.55 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/></svg>
             Continue with Google
           </button>
+          <p style={{ margin: 0, fontFamily: FONT, fontSize: "0.68rem", color: BORDER }}>Editors &amp; staff only</p>
         </div>
       </div>
     );
@@ -438,7 +459,8 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
         .post-row:last-child { border-bottom: none; }
         @media (max-width: 700px) {
           .admin-sidebar { display: none; }
-          .admin-main { padding: 0.75rem; }
+          /* Bottom padding clears the fixed tab bar (and the FAB above it). */
+          .admin-main { padding: 0.75rem 0.9rem calc(96px + var(--safe-bottom, 0px)); }
           .post-row { padding: 0.75rem 1rem; }
         }
       `}</style>
@@ -596,84 +618,44 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
 
           {/* Top bar — mobile */}
           {isMobile && (
-            <div style={{ position: "sticky", top: 0, zIndex: 200, background: "white", borderBottom: `1px solid ${BORDER}`, paddingTop: "var(--safe-top)" }}>
-              {/* Row 1: menu | logo | + new */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 1rem", height: 52, boxSizing: "border-box" }}>
-                <button onClick={() => setShowMobileNav(true)} style={{ background: "none", border: "none", cursor: "pointer", color: TEXT_DARK, padding: 0, display: "flex", alignItems: "center" }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-                </button>
-                <span style={{ fontFamily: FONT, fontSize: "1.1rem", fontWeight: 900, color: TEXT_DARK, letterSpacing: "-0.02em" }}>
-                  <span style={{ color: CRIMSON }}>i</span><span style={{ color: "#000000" }}>mago</span>
-                </span>
-                {activePanel === "dashboard" ? (
-                  <div ref={!createMenuRef.current ? createMenuRef : undefined} style={{ position: "relative" }}>
-                    <button onClick={() => setShowCreateMenu(v => !v)}
-                      style={{ background: CRIMSON, color: "white", border: "none", borderRadius: 20, padding: "0.35rem 0.85rem", fontFamily: FONT, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer" }}>
-                      + New
-                    </button>
-                    {showCreateMenu && (
-                      <div style={{ position: "absolute", top: "calc(100% + 0.4rem)", right: 0, background: "white", border: `1px solid ${BORDER}`, borderRadius: 6, boxShadow: "0 4px 16px rgba(0,0,0,0.1)", minWidth: 140, zIndex: 300, overflow: "hidden" }}>
-                        <button onClick={() => { setShowCreateMenu(false); if (isDirty && !confirm("Discard unsaved changes?")) return; setShowNlTypeModal(true); }} style={{ display: "flex", alignItems: "center", gap: "0.55rem", width: "100%", textAlign: "left", padding: "0.6rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: TEXT_DARK, background: "none", border: "none", cursor: "pointer" }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: TEXT_MUTED }}><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2 6 12 13 22 6"/></svg>
-                          Newsletter
-                        </button>
-                        <button onClick={() => { setShowCreateMenu(false); if (isDirty && !confirm("Discard unsaved changes?")) return; startNew(); }} style={{ display: "flex", alignItems: "center", gap: "0.55rem", width: "100%", textAlign: "left", padding: "0.6rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: TEXT_DARK, background: "none", border: "none", cursor: "pointer" }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: TEXT_MUTED }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
-                          Story
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <span style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, color: TEXT_MUTED }}>
-                    {activePanel === "media" ? "Media Library" : activePanel === "about" ? "About" : activePanel === "comments" ? "Comments" : activePanel === "submissions" ? "Submissions" : activePanel === "users" ? "Users" : activePanel === "members" ? "Subscribers" : activePanel === "archive" ? "Archive" : activePanel === "analytics" ? "Analytics" : ""}
+            <div style={{ position: "sticky", top: 0, zIndex: 200, background: "white", borderBottom: `1px solid ${CARD_LINE}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)", paddingTop: "var(--safe-top)" }}>
+              {MOBILE_PUSHED.includes(activePanel) ? (
+                /* Pushed panel: back chevron + centered title */
+                <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0 0.75rem", height: 48, boxSizing: "border-box" }}>
+                  <button onClick={() => tryNav("more")} style={{ display: "flex", alignItems: "center", gap: 2, background: "none", border: "none", color: CRIMSON, fontFamily: FONT, fontSize: "0.94rem", fontWeight: 600, cursor: "pointer", padding: "0.25rem 0.35rem" }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    Back
+                  </button>
+                  <span style={{ fontFamily: FONT, fontSize: "1rem", fontWeight: 700, color: TEXT_DARK, marginLeft: "auto", marginRight: "auto", transform: "translateX(-22px)" }}>{PANEL_TITLES[activePanel] ?? ""}</span>
+                </div>
+              ) : (
+                /* Main tab: wordmark left, contextual title right */
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 1.1rem", height: 48, boxSizing: "border-box" }}>
+                  <span style={{ fontFamily: FONT, fontSize: "1.35rem", fontWeight: 900, color: TEXT_DARK, letterSpacing: "-0.02em" }}>
+                    <span style={{ color: CRIMSON }}>i</span><span style={{ color: "#000000" }}>mago</span>
                   </span>
-                )}
-              </div>
+                  <span style={{ fontFamily: FONT, fontSize: "0.82rem", fontWeight: 600, color: TEXT_MUTED }}>{PANEL_TITLES[activePanel] ?? ""}</span>
+                </div>
+              )}
               {/* Row 2: search (dashboard + archive) */}
               {(activePanel === "dashboard" || activePanel === "archive") && (
-                <div style={{ padding: "0 1rem 0.6rem" }}>
+                <div style={{ padding: "0 0.9rem 0.6rem" }}>
                   <div style={{ position: "relative" }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" style={{ position: "absolute", left: "0.65rem", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input placeholder={activePanel === "archive" ? "Search the archive" : "Search for stories and newsletters"} value={query} onChange={e => setQuery(e.target.value)} style={{ fontFamily: FONT, fontSize: "0.85rem", padding: "0.42rem 0.8rem 0.42rem 2.1rem", border: `1px solid ${BORDER}`, borderRadius: 20, background: "#ffffff", color: TEXT_DARK, outline: "none", width: "100%", boxSizing: "border-box" as const }} />
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9b9893" strokeWidth="2" strokeLinecap="round" style={{ position: "absolute", left: "0.75rem", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input placeholder={activePanel === "archive" ? "Search the archive" : "Search stories and newsletters"} value={query} onChange={e => setQuery(e.target.value)} style={{ fontFamily: FONT, fontSize: "0.88rem", padding: "0.58rem 0.8rem 0.58rem 2.25rem", border: "1px solid #dedcd8", borderRadius: 22, background: "#ffffff", color: TEXT_DARK, outline: "none", width: "100%", boxSizing: "border-box" as const }} />
                   </div>
                 </div>
               )}
               {/* Row 3: tabs (dashboard only) */}
               {activePanel === "dashboard" && (
-                <div style={{ display: "flex", borderTop: `1px solid ${BORDER}` }}>
+                <div style={{ display: "flex" }}>
                   {(["drafts", "scheduled", "published"] as const).map(tab => (
-                    <button key={tab} onClick={() => setPostTab(tab)} style={{ flex: 1, background: "none", border: "none", borderBottom: `2px solid ${postTab === tab ? CRIMSON : "transparent"}`, padding: "0.6rem 0", fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: postTab === tab ? CRIMSON : TEXT_MUTED, cursor: "pointer" }}>
-                      {tab === "drafts" ? "Drafts" : tab === "scheduled" ? "Sched." : "Published"}
+                    <button key={tab} onClick={() => setPostTab(tab)} style={{ flex: 1, background: "none", border: "none", borderBottom: `2px solid ${postTab === tab ? CRIMSON : "transparent"}`, padding: "0.65rem 0", fontFamily: FONT, fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: postTab === tab ? CRIMSON : TEXT_MUTED, cursor: "pointer" }}>
+                      {tab === "drafts" ? "Drafts" : tab === "scheduled" ? "Scheduled" : "Published"}
                     </button>
                   ))}
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Mobile drawer */}
-          {showMobileNav && (
-            <div style={{ position: "fixed", inset: 0, zIndex: 300 }} onClick={() => setShowMobileNav(false)}>
-              <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)" }} />
-              <div style={{ position: "absolute", top: 0, left: 0, width: 260, height: "100%", background: "white", display: "flex", flexDirection: "column", overflowY: "auto", boxSizing: "border-box", boxShadow: "2px 0 12px rgba(0,0,0,0.15)", paddingTop: "var(--safe-top)" }} onClick={e => e.stopPropagation()}>
-                <div style={{ padding: "1rem 1.25rem", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontFamily: FONT, fontSize: "1rem", fontWeight: 900, color: TEXT_DARK }}><span style={{ color: CRIMSON }}>i</span><span style={{ color: "#000000" }}>mago</span></span>
-                  <button onClick={() => setShowMobileNav(false)} style={{ background: "none", border: "none", cursor: "pointer", color: TEXT_MUTED, padding: 0, display: "flex" }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  </button>
-                </div>
-                <div style={{ padding: "0.75rem", flex: 1 }}>
-                  {([["dashboard", "Posts"], ["media", "Media Library"], ["archive", "Archive"], ["comments", "Comments"], ["analytics", "Analytics"], ["submissions", "Submissions"], ...(isAdmin ? [["members", "Subscribers"], ["about", "About"], ["users", "Users"]] as [Panel, string][] : [])] as [Panel, string][]).map(([panel, label]) => (
-                    <button key={panel} onClick={() => { tryNav(panel); setShowMobileNav(false); }} style={{ display: "block", width: "100%", background: activePanel === panel ? "#ffffff" : "none", border: "none", textAlign: "left", padding: "0.75rem", fontFamily: FONT, fontSize: "1rem", fontWeight: activePanel === panel ? 700 : 500, color: activePanel === panel ? CRIMSON : TEXT_DARK, cursor: "pointer", borderRadius: 6, marginBottom: "0.1rem" }}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <div style={{ padding: "1rem 1.25rem", borderTop: `1px solid ${BORDER}` }}>
-                  <button onClick={signOutEverywhere} style={{ background: "none", border: "none", fontFamily: FONT, fontSize: "0.88rem", color: TEXT_MUTED, cursor: "pointer", padding: 0 }}>Sign out</button>
-                </div>
-              </div>
             </div>
           )}
 
@@ -730,12 +712,14 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                         )}
                       </div>
                     </div>
-                    {/* Table header */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 120px", padding: "0.4rem 1rem" }}>
-                      {["Name", "Type", "Date"].map(h => (
-                        <span key={h} style={{ fontFamily: FONT, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: TEXT_MUTED }}>{h}</span>
-                      ))}
-                    </div>
+                    {/* Table header (desktop only — mobile uses cards) */}
+                    {!isMobile && (
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 120px", padding: "0.4rem 1rem" }}>
+                        {["Name", "Type", "Date"].map(h => (
+                          <span key={h} style={{ fontFamily: FONT, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: TEXT_MUTED }}>{h}</span>
+                        ))}
+                      </div>
+                    )}
                     {/* Rows */}
                     {isArchive && archiveLoading && !archiveLoaded ? (
                       <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "3rem", textAlign: "center", marginTop: "0.25rem" }}>
@@ -744,6 +728,61 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                     ) : total === 0 ? (
                       <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "3rem", textAlign: "center", marginTop: "0.25rem" }}>
                         <p style={{ fontFamily: FONT, color: TEXT_MUTED, margin: 0 }}>{query ? `No results for "${query}"` : `No ${label}s yet.`}</p>
+                      </div>
+                    ) : isMobile ? (
+                      /* Mobile: white post cards with a status dot, meta line, and
+                         date/views column (from the mobile design prototype). */
+                      <div style={{ marginTop: "0.25rem" }}>
+                        {(() => {
+                          const dotColor: Record<string, string> = { draft: "#c9a227", scheduled: CRIMSON, published: "#1a7f37", trashed: TEXT_MUTED };
+                          const card = (opts: { key: string; onClick: () => void; isNl?: boolean; title: React.ReactNode; meta: string; lock?: LockHolder; date: string; views?: number }) => (
+                            <div key={opts.key} onClick={opts.onClick}
+                              style={{ background: "white", border: `1px solid ${CARD_LINE}`, borderRadius: 12, padding: "0.8rem 0.9rem", marginBottom: 9, display: "flex", alignItems: "flex-start", gap: 11, cursor: "pointer", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
+                              <span style={{ width: 9, height: 9, borderRadius: "50%", marginTop: 5, flexShrink: 0, background: dotColor[isArchive ? "published" : postTab === "drafts" ? "draft" : postTab === "scheduled" ? "scheduled" : "published"] }} />
+                              <span style={{ flex: 1, minWidth: 0 }}>
+                                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                  {opts.isNl && <span style={{ fontFamily: FONT, fontSize: "0.56rem", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: CRIMSON, background: "#f3e9e9", borderRadius: 4, padding: "2px 5px", flexShrink: 0 }}>Newsletter</span>}
+                                  <span style={{ fontFamily: FONT, fontSize: "0.94rem", fontWeight: 600, color: TEXT_DARK, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{opts.title}</span>
+                                </span>
+                                <span style={{ display: "block", fontFamily: FONT, fontSize: "0.75rem", color: "#7a6f68", marginTop: 3 }}>{opts.meta}</span>
+                                {opts.lock && (
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontFamily: FONT, fontSize: "0.7rem", color: CRIMSON, marginTop: 5, fontWeight: 600 }}>
+                                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: CRIMSON }} />{opts.lock.name} is editing
+                                  </span>
+                                )}
+                              </span>
+                              <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                                <span style={{ fontFamily: FONT, fontSize: "0.7rem", color: "#a29a93", whiteSpace: "nowrap" }}>{opts.date}</span>
+                                {typeof opts.views === "number" && opts.views > 0 && (
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontFamily: FONT, fontSize: "0.7rem", color: "#7a6f68", fontWeight: 600 }}>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    {opts.views.toLocaleString()}
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          );
+                          return (
+                            <>
+                              {sortedNl.map(n => card({
+                                key: n._id, onClick: () => openNewsletter(n), isNl: true,
+                                title: n.subject || <span style={{ color: TEXT_MUTED, fontWeight: 400 }}>Untitled newsletter</span>,
+                                meta: n.author || "Newsletter draft", lock: activeLocks[n._id],
+                                date: (n.createdAt ?? n.updatedAt ?? "").slice(0, 10) || "—",
+                              }))}
+                              {sortedPosts.map(post => card({
+                                key: post._id, onClick: () => startEdit(post),
+                                title: post.headline || <span style={{ color: TEXT_MUTED, fontWeight: 400 }}>No headline</span>,
+                                meta: [post.section, post.byline].filter(Boolean).join(" · ") || " ",
+                                lock: activeLocks[post._id], date: post.date,
+                                views: postTab === "published" || isArchive ? viewCounts[post.slug] : undefined,
+                              }))}
+                              {archiveOverflow > 0 && (
+                                <p style={{ fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, margin: 0, padding: "0.85rem 1rem", textAlign: "center" }}>Showing first {sortedPosts.length} of {sortedPosts.length + archiveOverflow}. Search to narrow results.</p>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     ) : (
                       <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, overflow: "hidden", marginTop: "0.25rem" }}>
@@ -818,6 +857,48 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
 
           {activePanel === "analytics" && <AnalyticsPanel />}
           {activePanel === "submissions" && <SubmissionsPanel />}
+
+          {/* MORE (mobile hub): profile card + the destinations that don't get
+              their own bottom tab, then Sign out. */}
+          {activePanel === "more" && (
+            <div style={{ maxWidth: 700 }}>
+              {currentUser && (
+                <div style={{ background: "white", border: `1px solid ${CARD_LINE}`, borderRadius: 14, padding: "1rem", display: "flex", alignItems: "center", gap: 13, marginBottom: 18 }}>
+                  <div style={{ width: 46, height: 46, borderRadius: "50%", background: CRIMSON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT, fontSize: "1.05rem", fontWeight: 800, flexShrink: 0 }}>
+                    {currentUser.name.split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase() || "?"}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: FONT, fontSize: "0.94rem", fontWeight: 700, color: TEXT_DARK }}>{currentUser.name}</div>
+                    <div style={{ fontFamily: FONT, fontSize: "0.78rem", color: "#7a6f68", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentUser.email}</div>
+                  </div>
+                  {isAdmin && <span style={{ fontFamily: FONT, fontSize: "0.62rem", fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: CRIMSON }}>Admin</span>}
+                </div>
+              )}
+              <div style={{ background: "white", border: `1px solid ${CARD_LINE}`, borderRadius: 14, overflow: "hidden" }}>
+                {([
+                  ["comments", "Comments", <svg key="c" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>],
+                  ["submissions", "Submissions", <svg key="s" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>],
+                  ["archive", "Archive", <svg key="ar" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>],
+                  ...(isAdmin ? [
+                    ["members", "Subscribers", <svg key="m" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>],
+                    ["about", "About", <svg key="ab" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.6" fill="currentColor" stroke="none"/></svg>],
+                    ["users", "Users", <svg key="u" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>],
+                  ] as [Panel, string, React.ReactNode][] : []),
+                ] as [Panel, string, React.ReactNode][]).map(([panel, label, icon], i, arr) => (
+                  <button key={panel} onClick={() => tryNav(panel)} style={{ display: "flex", alignItems: "center", gap: 2, width: "100%", background: "none", border: "none", borderBottom: i < arr.length - 1 ? "1px solid #f0eee9" : "none", padding: "0.9rem 0.9rem", cursor: "pointer" }}>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 30, color: CRIMSON, flexShrink: 0 }}>{icon}</span>
+                    <span style={{ flex: 1, textAlign: "left", fontFamily: FONT, fontSize: "0.94rem", color: TEXT_DARK }}>{label}</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c3bdb6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
+                ))}
+              </div>
+              <button onClick={signOutEverywhere} style={{ width: "100%", marginTop: 18, background: "white", border: `1px solid ${CARD_LINE}`, borderRadius: 14, padding: "0.9rem", fontFamily: FONT, fontSize: "0.94rem", fontWeight: 600, color: CRIMSON, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Sign out
+              </button>
+              <p style={{ textAlign: "center", fontFamily: FONT, fontSize: "0.7rem", color: BORDER, marginTop: 20 }}>Imago for Gangrey</p>
+            </div>
+          )}
 
           {/* MEMBERS & SUBSCRIBERS (admin only) — one unified audience list */}
           {activePanel === "members" && isAdmin && (
@@ -923,13 +1004,18 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                       <button type="button" onClick={() => setMediaPickerOpen(true)} disabled={mediaUploading} style={{ background: CRIMSON, color: "white", border: "none", borderRadius: 4, padding: "0.5rem 1rem", fontFamily: FONT, fontSize: "0.85rem", fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>{mediaUploading ? "Uploading…" : "+ Upload"}</button>
                     </div>
                     {mediaLoading ? <p style={{ fontFamily: FONT, color: TEXT_MUTED }}>Loading…</p> : filtered.length === 0 ? <p style={{ fontFamily: FONT, color: TEXT_MUTED }}>{mediaSearch ? "No results." : "No images in library yet."}</p> : (
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: "0.5rem" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fill, minmax(120px, 1fr))", gap: isMobile ? "10px" : "0.5rem" }}>
                         {filtered.map(asset => (
                           <div key={asset._id}
                             onClick={() => { setInspectAsset(asset); setInspectAltText(asset.altText ?? ""); setUrlCopied(false); }}
-                            style={{ cursor: "pointer", borderRadius: 4, overflow: "hidden", border: `2px solid ${inspectAsset?._id === asset._id ? CRIMSON : BORDER}`, background: "white", transition: "border-color 0.1s" }}>
+                            style={isMobile
+                              ? { cursor: "pointer", borderRadius: 10, overflow: "hidden", border: `1px solid ${CARD_LINE}`, background: "white" }
+                              : { cursor: "pointer", borderRadius: 4, overflow: "hidden", border: `2px solid ${inspectAsset?._id === asset._id ? CRIMSON : BORDER}`, background: "white", transition: "border-color 0.1s" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={`${asset.url}?w=280&h=160&fit=crop&auto=format`} alt="" style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block" }} />
+                            <img src={`${asset.url}?w=280&h=160&fit=crop&auto=format`} alt="" style={{ width: "100%", aspectRatio: isMobile ? "16/10" : "16/9", objectFit: "cover", display: "block" }} />
+                            {isMobile && (
+                              <p style={{ margin: 0, padding: "7px 9px", fontFamily: FONT, fontSize: "0.69rem", color: "#7a6f68", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{asset.title || asset.originalFilename || "Untitled"}</p>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -1116,6 +1202,60 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
         </div>
         </div>{/* end admin-right */}
       </div>{/* end admin-layout */}
+
+      {/* Mobile bottom tab bar — Posts · Media · Analytics · More */}
+      {isMobile && (
+        <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 290, background: "rgba(255,255,255,0.94)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderTop: `1px solid ${CARD_LINE}`, display: "flex", padding: "8px 6px calc(10px + var(--safe-bottom, 0px))" }}>
+          {([
+            ["dashboard", "Posts", <svg key="p" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>],
+            ["media", "Media", <svg key="m" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>],
+            ["analytics", "Analytics", <svg key="a" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>],
+            ["more", "More", <svg key="mo" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>],
+          ] as [Panel, string, React.ReactNode][]).map(([panel, label, icon]) => {
+            const on = mobileTabFor(activePanel) === panel;
+            return (
+              <button key={panel} onClick={() => tryNav(panel)} style={{ flex: 1, background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, cursor: "pointer", padding: "4px 0" }}>
+                <span style={{ color: on ? CRIMSON : "#9b9893", display: "flex" }}>{icon}</span>
+                <span style={{ fontFamily: FONT, fontSize: "0.66rem", fontWeight: on ? 700 : 500, color: on ? CRIMSON : "#9b9893" }}>{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Mobile FAB — create (Posts tab only) */}
+      {isMobile && activePanel === "dashboard" && (
+        <button onClick={() => setShowCreateSheet(true)} aria-label="Create new"
+          style={{ position: "fixed", right: 18, bottom: "calc(78px + var(--safe-bottom, 0px))", zIndex: 291, width: 56, height: 56, borderRadius: "50%", background: CRIMSON, color: "white", border: "none", boxShadow: "0 8px 22px -6px rgba(73,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      )}
+
+      {/* Mobile create bottom sheet */}
+      {isMobile && showCreateSheet && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 950, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "flex-end" }} onClick={() => setShowCreateSheet(false)}>
+          <div style={{ width: "100%", background: "white", borderRadius: "22px 22px 0 0", padding: "10px 16px calc(24px + var(--safe-bottom, 0px))", boxSizing: "border-box" }} onClick={e => e.stopPropagation()}>
+            <div style={{ width: 38, height: 5, background: "#dedcd8", borderRadius: 3, margin: "4px auto 16px" }} />
+            <p style={{ margin: "0 0 4px", fontFamily: FONT, fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "#a29a93" }}>Create new</p>
+            <button onClick={() => { setShowCreateSheet(false); if (isDirty && !confirm("Discard unsaved changes?")) return; startNew(); }}
+              style={{ display: "flex", alignItems: "center", gap: 13, width: "100%", background: "none", border: "none", borderBottom: "1px solid #f0eee9", padding: "15px 4px", cursor: "pointer" }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CRIMSON} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+              <span style={{ flex: 1, textAlign: "left" }}>
+                <span style={{ display: "block", fontFamily: FONT, fontSize: "0.97rem", fontWeight: 600, color: TEXT_DARK }}>Story</span>
+                <span style={{ display: "block", fontFamily: FONT, fontSize: "0.75rem", color: "#7a6f68" }}>A reported piece, essay, or memoir</span>
+              </span>
+            </button>
+            <button onClick={() => { setShowCreateSheet(false); if (isDirty && !confirm("Discard unsaved changes?")) return; setShowNlTypeModal(true); }}
+              style={{ display: "flex", alignItems: "center", gap: 13, width: "100%", background: "none", border: "none", padding: "15px 4px", cursor: "pointer" }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CRIMSON} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2 6 12 13 22 6"/></svg>
+              <span style={{ flex: 1, textAlign: "left" }}>
+                <span style={{ display: "block", fontFamily: FONT, fontSize: "0.97rem", fontWeight: 600, color: TEXT_DARK }}>Newsletter</span>
+                <span style={{ display: "block", fontFamily: FONT, fontSize: "0.75rem", color: "#7a6f68" }}>The Dispatch, or a Classics issue</span>
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Right-click context menu */}
       {contextMenu && (
