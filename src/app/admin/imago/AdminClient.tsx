@@ -1045,16 +1045,40 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
           {/* COMMENTS */}
           {activePanel === "comments" && (
             <div style={{ maxWidth: 700 }}>
-              <h2 style={{ fontFamily: FONT, fontSize: "1.2rem", color: TEXT_DARK, margin: "0 0 1.25rem" }}>Comments</h2>
+              {!isMobile && <h2 style={{ fontFamily: FONT, fontSize: "1.2rem", color: TEXT_DARK, margin: "0 0 1.25rem" }}>Comments</h2>}
               {commentsLoading ? (
                 <p style={{ fontFamily: FONT, color: TEXT_MUTED }}>Loading…</p>
               ) : adminComments.length === 0 ? (
-                <p style={{ fontFamily: FONT, color: TEXT_MUTED }}>No comments yet.</p>
+                <p style={{ fontFamily: FONT, color: TEXT_MUTED, textAlign: isMobile ? "center" : "left", padding: isMobile ? "2.5rem 0" : 0, fontStyle: isMobile ? "italic" : "normal" }}>No comments to review.</p>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? "0.6rem" : "0.75rem" }}>
                   {/* Pending (unapproved) comments first so they're easy to action. */}
                   {[...adminComments].sort((a, b) => Number(a.approved !== false) - Number(b.approved !== false)).map(c => {
                     const pending = c.approved === false;
+                    if (isMobile) return (
+                      <div key={c._id} style={{ background: "white", border: `1px solid ${CARD_LINE}`, borderRadius: 12, padding: "0.9rem", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
+                        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 6 }}>
+                          <span style={{ fontFamily: FONT, fontSize: "0.88rem", fontWeight: 700, color: TEXT_DARK }}>{c.name}</span>
+                          <span style={{ fontFamily: FONT, fontSize: "0.7rem", color: "#a29a93" }}>{new Date(c._createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                        </div>
+                        <p style={{ margin: "0 0 5px", fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, lineHeight: 1.5 }}>{c.text}</p>
+                        <p style={{ margin: "0 0 11px", fontFamily: FONT, fontSize: "0.75rem", color: "#7a6f68" }}>on <a href={`/stories/${c.slug}`} target="_blank" rel="noreferrer" style={{ color: CRIMSON, textDecoration: "none" }}>{c.slug}</a></p>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          {pending ? (
+                            <button
+                              onClick={() => { startTransition(async () => { await fetch("/api/comments", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c._id, approved: true }) }); setAdminComments(prev => prev.map(x => x._id === c._id ? { ...x, approved: true } : x)); }); }}
+                              style={{ flex: 1, background: "#1a7f37", color: "white", border: "none", borderRadius: 7, padding: "0.5rem", fontFamily: FONT, fontSize: "0.82rem", fontWeight: 700, cursor: "pointer" }}
+                            >Approve</button>
+                          ) : (
+                            <span style={{ flex: 1, textAlign: "center", background: "#f2fbf5", color: "#1a7f37", borderRadius: 7, padding: "0.5rem", fontFamily: FONT, fontSize: "0.82rem", fontWeight: 700 }}>✓ Approved</span>
+                          )}
+                          <button
+                            onClick={() => { if (!confirm("Delete this comment? This cannot be undone.")) return; startTransition(async () => { await fetch("/api/comments", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c._id }) }); setAdminComments(prev => prev.filter(x => x._id !== c._id)); }); }}
+                            style={{ background: "white", color: CRIMSON, border: "1px solid #e6c9c9", borderRadius: 7, padding: "0.5rem 0.9rem", fontFamily: FONT, fontSize: "0.82rem", fontWeight: 700, cursor: "pointer" }}
+                          >Delete</button>
+                        </div>
+                      </div>
+                    );
                     return (
                     <div key={c._id} style={{ background: pending ? "#fff8f0" : "white", border: `1px solid ${pending ? "#e6c9a8" : BORDER}`, borderRadius: 4, padding: "0.85rem 1rem", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
                       <div style={{ minWidth: 0 }}>

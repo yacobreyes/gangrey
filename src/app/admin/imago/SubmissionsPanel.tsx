@@ -58,8 +58,10 @@ export default function SubmissionsPanel() {
 
   return (
     <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 0 3rem" }}>
+      {/* The mobile header already titles the panel — keep just the blurb there. */}
+      <style>{`@media (max-width: 700px) { .sub-h2 { display: none; } }`}</style>
       <div style={{ margin: "0 0 0.5rem" }}>
-        <h2 style={{ fontFamily: FONT, fontSize: "1.15rem", fontWeight: 700, color: TEXT_DARK, margin: 0 }}>Submissions</h2>
+        <h2 className="sub-h2" style={{ fontFamily: FONT, fontSize: "1.15rem", fontWeight: 700, color: TEXT_DARK, margin: 0 }}>Submissions</h2>
         <p style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, margin: "0.25rem 0 0" }}>Stories sent in through the submission portal.</p>
       </div>
 
@@ -158,7 +160,7 @@ function SubmissionCard({ sub, open, onToggle, onChanged }: { sub: SubmissionRow
   }
 
   return (
-    <div style={{ border: `1px solid ${BORDER}`, borderRadius: 6, background: "#fff", overflow: "hidden" }}>
+    <div style={{ border: "1px solid #e6e4e0", borderRadius: 10, background: "#fff", overflow: "hidden", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
       {/* Header row */}
       <button onClick={onToggle} style={{ display: "flex", alignItems: "center", gap: "0.9rem", width: "100%", textAlign: "left", background: "none", border: "none", padding: "0.9rem 1.1rem", cursor: "pointer" }}>
         <span style={{ width: 8, height: 8, borderRadius: "50%", background: STATUS_COLOR[sub.status], flexShrink: 0 }} />

@@ -71,13 +71,16 @@ export default function AnalyticsPanel() {
   const today = todayStr();
   const yesterday = shiftDate(today, -1);
 
-  const card: React.CSSProperties = { background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "1.1rem 1.25rem" };
+  const card: React.CSSProperties = { background: "white", border: "1px solid #e6e4e0", borderRadius: 12, padding: "1.1rem 1.25rem", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" };
   const h2: React.CSSProperties = { fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: TEXT_MUTED, margin: "0 0 0.9rem" };
 
   return (
     <div style={{ maxWidth: 980 }}>
+      {/* The mobile header already titles the panel "Analytics" — repeating an
+          h1 under it wastes a screen line, so the title row is desktop-only. */}
+      <style>{`@media (max-width: 700px) { .an-title { display: none; } }`}</style>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem", flexWrap: "wrap", gap: "0.75rem" }}>
-        <div>
+        <div className="an-title">
           <h1 style={{ fontFamily: FONT, fontSize: "1.4rem", fontWeight: 800, color: TEXT_DARK, margin: 0 }}>Analytics</h1>
           <p style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, margin: "0.25rem 0 0" }}>Your traffic, engagement, and what&apos;s trending. All self-hosted.</p>
         </div>
