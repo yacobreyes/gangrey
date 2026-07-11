@@ -62,6 +62,17 @@ function SeoCount({ value, ideal, min }: { value: string; ideal: number; min?: n
   );
 }
 
+// datetime-local input value ("YYYY-MM-DDTHH:mm", viewer-local) from a stored
+// UTC ISO timestamp — slicing the ISO string would show UTC wall time, and a
+// re-confirmed schedule would then shift by the timezone offset.
+function isoToLocalInput(v?: string): string {
+  if (!v) return "";
+  const d = new Date(v);
+  if (isNaN(+d)) return v.slice(0, 16);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 function formatTime(iso: string) {
   const d = new Date(iso);
   return d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
@@ -173,7 +184,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
   const [versionMenu, setVersionMenu] = useState<number | null>(null);
   const [compareVersion, setCompareVersion] = useState<number | null>(null);
   const [showScheduler, setShowScheduler] = useState(false);
-  const [scheduledAt, setScheduledAt] = useState(post.scheduledAt?.slice(0, 16) ?? "");
+  const [scheduledAt, setScheduledAt] = useState(isoToLocalInput(post.scheduledAt));
   const [versions, setVersions] = useState<PostVersion[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
