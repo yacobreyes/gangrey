@@ -129,9 +129,12 @@ export default function GangreyArchive({ posts }: { posts: Post[] }) {
             ))}
           </nav>
         )}
-        {searchMode && (
-          <span className="gr-search-count">{filtered.length} result{filtered.length !== 1 ? "s" : ""}</span>
-        )}
+        {/* Was only shown while actively searching before today's year-picker
+            change; now a year is always active, so show it for that view too
+            (as "N stories" rather than "N results" outside of a search). */}
+        <span className="gr-search-count">
+          {filtered.length} {searchMode ? `result${filtered.length !== 1 ? "s" : ""}` : `stor${filtered.length !== 1 ? "ies" : "y"}`}
+        </span>
       </div>
 
       <div style={{ marginTop: 48 }}>
