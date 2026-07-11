@@ -178,27 +178,18 @@ struct ImagoWebView: UIViewRepresentable {
         // WKWebView UA lacks the Version/Safari tokens and can trip that.
         webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"
 
-        // Split overscroll: TOP white (the header), BOTTOM blue-gray (the
-        // canvas). WKWebView has ONE native overscroll color at a time
-        // (underPageBackgroundColor — WebKit paints it inside the content
-        // layer, so filler subviews behind the page can never show through).
-        // The switch is driven by KVO on contentOffset — NOT the scroll
-        // view's delegate (WKWebView owns that and may replace it, which is
-        // why delegate-based switching never fired) and NOT DOM color reads
-        // (React's first frame is a placeholder, so reads race hydration).
-        // The admin's colors are known constants, keyed off the URL in
-        // applyColors(for:).
-        webView.underPageBackgroundColor = .white // lands at the top first
-        context.coordinator.offsetObservation = webView.scrollView.observe(\.contentOffset, options: [.new]) { [weak coordinator = context.coordinator] scrollView, _ in
-            coordinator?.applyOverscrollColor(scrollView)
-        }
+        // Overscroll is plain white at both ends, matching mobile web (the
+        // pages pin their html background to white, and WebKit paints
+        // underPageBackgroundColor for the native rubber-band).
+        webView.backgroundColor = .white
+        webView.scrollView.backgroundColor = .white
+        webView.underPageBackgroundColor = .white
 
         let refresh = UIRefreshControl()
         refresh.addTarget(context.coordinator, action: #selector(Coordinator.reload(_:)), for: .valueChanged)
         webView.scrollView.refreshControl = refresh
 
         context.coordinator.webView = webView
-        context.coordinator.applyColors(for: HOME_URL)
         webView.load(URLRequest(url: HOME_URL))
         return webView
     }
@@ -208,42 +199,6 @@ struct ImagoWebView: UIViewRepresentable {
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         weak var webView: WKWebView?
         let loadState: LoadState
-        var offsetObservation: NSKeyValueObservation?
-
-        // Per-page overscroll colors — hardcoded constants keyed off the URL,
-        // no DOM reads. Admin headers are always white; the canvas is #f5f8fa
-        // on the dashboard/newsletter and white in the story editor.
-        private static let canvasGray = UIColor(cssRGB: "rgb(245, 248, 250)") ?? .white // #f5f8fa
-        var topColor: UIColor = .white
-        var bottomColor: UIColor = Coordinator.canvasGray
-
-        func applyColors(for url: URL?) {
-            topColor = .white
-            let path = url?.path ?? ""
-            // Story editor pages are white top to bottom; everything else in
-            // the admin sits on the blue-gray canvas.
-            bottomColor = path.contains("/admin/imago/posts/") ? .white : Coordinator.canvasGray
-            if let webView {
-                webView.backgroundColor = bottomColor
-                webView.scrollView.backgroundColor = bottomColor
-                applyOverscrollColor(webView.scrollView)
-            }
-        }
-
-        // Swap the single native overscroll color by position: the top half of
-        // the page shows the header color, the bottom half the canvas color.
-        // Called from the KVO observation on contentOffset.
-        func applyOverscrollColor(_ scrollView: UIScrollView) {
-            guard let webView else { return }
-            let maxOffset = max(scrollView.contentSize.height - scrollView.bounds.height, 1)
-            let wantTop = scrollView.contentOffset.y < maxOffset / 2
-            let color = wantTop ? topColor : bottomColor
-            if webView.underPageBackgroundColor != color {
-                webView.underPageBackgroundColor = color
-            }
-        }
-
-        deinit { offsetObservation?.invalidate() }
 
         // The mayflies play for at least this long even if the page is ready
         // sooner — so it always reads as an intentional entrance, never a
@@ -289,13 +244,8 @@ struct ImagoWebView: UIViewRepresentable {
             webView?.reload()
         }
 
-        func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
-            applyColors(for: webView.url)
-        }
-
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             webView.scrollView.refreshControl?.endRefreshing()
-            applyColors(for: webView.url)
             // Give the first paint a beat before marking ready, so the dashboard
             // doesn't flash in half-rendered under the fade.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
