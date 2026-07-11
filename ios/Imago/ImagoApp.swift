@@ -243,11 +243,17 @@ struct ImagoWebView: UIViewRepresentable {
         // Run on BOTH didCommit (first render — kills the white band before the
         // user sees it) and didFinish (final, if body bg loads late).
         private func syncPageBackground(_ webView: WKWebView) {
+            // Read the effective background of whatever sits at the very TOP of
+            // the page (the sticky header — white on the dashboard), not the
+            // body: overscroll should continue the header you're pulling down,
+            // not the gray canvas underneath it. Falls back to body → html →
+            // white.
             let js = """
             (function(){
-              function bg(el){ var c = getComputedStyle(el).backgroundColor;
-                return (c && c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent') ? c : null; }
-              return bg(document.body) || bg(document.documentElement) || 'rgb(255, 255, 255)';
+              function bgUp(el){ while(el){ var c = getComputedStyle(el).backgroundColor;
+                if (c && c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent') return c; el = el.parentElement; } return null; }
+              var topEl = document.elementFromPoint(Math.floor(window.innerWidth/2), 8);
+              return (topEl && bgUp(topEl)) || bgUp(document.body) || bgUp(document.documentElement) || 'rgb(255, 255, 255)';
             })()
             """
             webView.evaluateJavaScript(js) { value, _ in
