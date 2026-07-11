@@ -53,7 +53,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
   return new NextResponse(new Uint8Array(fs.readFileSync(file)), {
     headers: {
       "Content-Type": MIME[ext] ?? "application/octet-stream",
-      "Cache-Control": "public, max-age=3600",
+      // Member-gated: must never be cached publicly or served without a
+      // revalidation request — a cached copy would bypass the 302-to-subscribe
+      // gate entirely (browsers kept serving pages cached before the gate).
+      "Cache-Control": "private, no-cache",
       "X-Robots-Tag": "noindex, nofollow",
     },
   });
