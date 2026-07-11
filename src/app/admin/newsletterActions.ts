@@ -219,6 +219,9 @@ export async function saveNewsletter(payload: NlPayload): Promise<{ id: string; 
     wordCount: payload.wordCount ?? 0,
     cards: payload.cards ?? [],
     status: payload.status ?? existing?.status ?? "draft",
+    // Who scheduled it — shown in the editor's view-mode banner. Cleared
+    // whenever the newsletter isn't scheduled.
+    scheduledBy: (payload.status ?? existing?.status) === "scheduled" ? fullName(me) : null,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
     lastEditedBy: fullName(me),

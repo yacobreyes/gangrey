@@ -59,6 +59,13 @@ function formatVersionTime(iso: string) {
   return d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
 }
 
+function formatScheduledTime(v?: string) {
+  if (!v) return "its scheduled time";
+  const d = new Date(v);
+  if (isNaN(+d)) return "its scheduled time";
+  return d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
 function formatFindContentDate(date?: string) {
   if (!date) return "";
   const d = date.length === 10 ? new Date(`${date}T12:00:00`) : new Date(date);
@@ -75,6 +82,7 @@ export type InitialNewsletter = {
   author: string;
   status: "draft" | "published" | "scheduled";
   scheduledAt: string;
+  scheduledBy?: string;
   cards: StoredCard[];
   volume: string;
   issue: string;
@@ -581,8 +589,21 @@ export default function NewsletterEditorClient({
   async function scheduleNewsletter() {
     if (!nlScheduledAt) return;
     setNlStatus("scheduled");
-    await nlSave({ ...nlPayload(), status: "scheduled", scheduledAt: nlScheduledAt });
     setShowNlScheduler(false);
+    // Match the story editor: schedule, then drop straight to the dashboard's
+    // Scheduled tab. Fire the save and lock release together, then navigate.
+    await nlSave({ ...nlPayload(), status: "scheduled", scheduledAt: nlScheduledAt });
+    releaseLockNow();
+    router.push("/admin/imago?tab=scheduled");
+  }
+
+  // From the scheduled view-mode banner: drop the schedule back to a draft and
+  // enter edit mode so the newsletter can be changed.
+  function unscheduleNlToEdit() {
+    setViewMode(false);
+    setNlStatus("draft");
+    setNlScheduledAt("");
+    nlSave({ ...nlPayload(), status: "draft", scheduledAt: undefined }).catch(() => {});
   }
 
   async function removeNewsletter() {
@@ -689,15 +710,17 @@ export default function NewsletterEditorClient({
           fontFamily: FONT, fontSize: "0.9rem", color: TEXT_DARK,
         }}>
           <span>
-            {viewLockHolder
-              ? `${viewLockHolder.name} is currently editing this. Do you want to kick them out?`
-              : "You’re viewing this newsletter. Do you want to make changes?"}
+            {nlStatus === "scheduled"
+              ? `This newsletter was scheduled${initial?.scheduledBy ? ` by ${initial.scheduledBy}` : ""} for ${formatScheduledTime(nlScheduledAt)}.`
+              : viewLockHolder
+                ? `${viewLockHolder.name} is currently editing this. Do you want to kick them out?`
+                : "You’re viewing this newsletter. Do you want to make changes?"}
           </span>
-          <button type="button" onClick={() => { setViewMode(false); if (viewLockHolder) setTimeout(takeOver, 100); }} style={{
+          <button type="button" onClick={nlStatus === "scheduled" ? unscheduleNlToEdit : () => { setViewMode(false); if (viewLockHolder) setTimeout(takeOver, 100); }} style={{
             background: CRIMSON, color: "#fff", border: "none", borderRadius: 22,
             padding: "0.5rem 1.25rem", fontFamily: FONT, fontSize: "0.85rem", fontWeight: 600,
             cursor: "pointer", whiteSpace: "nowrap",
-          }}>{viewLockHolder ? "Kick them out" : "Start editing"}</button>
+          }}>{nlStatus === "scheduled" ? "Unschedule to edit" : viewLockHolder ? "Kick them out" : "Start editing"}</button>
         </div>
       )}
       <style>{`
