@@ -169,46 +169,58 @@ struct ImagoWebView: UIViewRepresentable {
         // canvas). WKWebView has ONE native overscroll color at a time
         // (underPageBackgroundColor — WebKit paints it inside the content
         // layer, so filler subviews behind the page can never show through).
-        // Instead, the scroll delegate switches that color live by position:
-        // top half of the page → header color, bottom half → canvas color.
-        // Rubber-banding only happens at the extremes, so each end always
-        // shows its own color. Per-page colors are read in syncPageBackground.
-        let dashboardBG = UIColor(cssRGB: "rgb(245, 248, 250)") ?? .white // #f5f8fa canvas
-        webView.backgroundColor = dashboardBG
-        webView.scrollView.backgroundColor = dashboardBG
+        // The switch is driven by KVO on contentOffset — NOT the scroll
+        // view's delegate (WKWebView owns that and may replace it, which is
+        // why delegate-based switching never fired) and NOT DOM color reads
+        // (React's first frame is a placeholder, so reads race hydration).
+        // The admin's colors are known constants, keyed off the URL in
+        // applyColors(for:).
         webView.underPageBackgroundColor = .white // lands at the top first
-        webView.scrollView.delegate = context.coordinator
+        context.coordinator.offsetObservation = webView.scrollView.observe(\.contentOffset, options: [.new]) { [weak coordinator = context.coordinator] scrollView, _ in
+            coordinator?.applyOverscrollColor(scrollView)
+        }
 
         let refresh = UIRefreshControl()
         refresh.addTarget(context.coordinator, action: #selector(Coordinator.reload(_:)), for: .valueChanged)
         webView.scrollView.refreshControl = refresh
 
         context.coordinator.webView = webView
+        context.coordinator.applyColors(for: HOME_URL)
         webView.load(URLRequest(url: HOME_URL))
         return webView
     }
 
     func updateUIView(_ uiView: WKWebView, context: Context) {}
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, UIScrollViewDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         weak var webView: WKWebView?
         let loadState: LoadState
+        var offsetObservation: NSKeyValueObservation?
 
-        // Per-page overscroll colors (read from the DOM in syncPageBackground).
+        // Per-page overscroll colors — hardcoded constants keyed off the URL,
+        // no DOM reads. Admin headers are always white; the canvas is #f5f8fa
+        // on the dashboard/newsletter and white in the story editor.
+        private static let canvasGray = UIColor(cssRGB: "rgb(245, 248, 250)") ?? .white // #f5f8fa
         var topColor: UIColor = .white
-        var bottomColor: UIColor = UIColor(cssRGB: "rgb(245, 248, 250)") ?? .white
+        var bottomColor: UIColor = Coordinator.canvasGray
 
-        // Re-read the page colors as a drag begins: at load time React is often
-        // still showing its placeholder (the dashboard hydrates a plain #f5f8fa
-        // frame before the white header exists), so colors captured at
-        // didFinish can be stale. One JS eval per gesture is negligible.
-        func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
-            if let webView { syncPageBackground(webView) }
+        func applyColors(for url: URL?) {
+            topColor = .white
+            let path = url?.path ?? ""
+            // Story editor pages are white top to bottom; everything else in
+            // the admin sits on the blue-gray canvas.
+            bottomColor = path.contains("/admin/imago/posts/") ? .white : Coordinator.canvasGray
+            if let webView {
+                webView.backgroundColor = bottomColor
+                webView.scrollView.backgroundColor = bottomColor
+                applyOverscrollColor(webView.scrollView)
+            }
         }
 
         // Swap the single native overscroll color by position: the top half of
         // the page shows the header color, the bottom half the canvas color.
-        func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        // Called from the KVO observation on contentOffset.
+        func applyOverscrollColor(_ scrollView: UIScrollView) {
             guard let webView else { return }
             let maxOffset = max(scrollView.contentSize.height - scrollView.bounds.height, 1)
             let wantTop = scrollView.contentOffset.y < maxOffset / 2
@@ -217,6 +229,8 @@ struct ImagoWebView: UIViewRepresentable {
                 webView.underPageBackgroundColor = color
             }
         }
+
+        deinit { offsetObservation?.invalidate() }
 
         // The mayflies play for at least this long even if the page is ready
         // sooner — so it always reads as an intentional entrance, never a
@@ -262,51 +276,13 @@ struct ImagoWebView: UIViewRepresentable {
             webView?.reload()
         }
 
-        // Match the web view + overscroll to the page's effective background,
-        // the way Safari derives it: body if opaque, else html, else white.
-        // Run on BOTH didCommit (first render — kills the white band before the
-        // user sees it) and didFinish (final, if body bg loads late).
-        private func syncPageBackground(_ webView: WKWebView) {
-            // Read two colors: TOP = the header (element at the top-center of the
-            // viewport, so the top overscroll continues what you're pulling
-            // down); BOTTOM = the body/canvas (for the bottom rubber-band).
-            let js = """
-            (function(){
-              function bgUp(el){ while(el){ var c = getComputedStyle(el).backgroundColor;
-                if (c && c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent') return c; el = el.parentElement; } return null; }
-              var topEl = document.elementFromPoint(Math.floor(window.innerWidth/2), 8);
-              var body = bgUp(document.body) || bgUp(document.documentElement) || 'rgb(255, 255, 255)';
-              var top = (topEl && bgUp(topEl)) || body;
-              return top + '|' + body;
-            })()
-            """
-            webView.evaluateJavaScript(js) { [weak self] value, _ in
-                guard let s = value as? String else { return }
-                let parts = s.components(separatedBy: "|")
-                guard parts.count == 2,
-                      let topColor = UIColor(cssRGB: parts[0]),
-                      let bodyColor = UIColor(cssRGB: parts[1]) else { return }
-                guard let self else { return }
-                self.topColor = topColor
-                self.bottomColor = bodyColor
-                webView.backgroundColor = bodyColor
-                webView.scrollView.backgroundColor = bodyColor
-                self.scrollViewDidScroll(webView.scrollView) // apply for current position
-            }
-        }
-
         func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
-            syncPageBackground(webView)
+            applyColors(for: webView.url)
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             webView.scrollView.refreshControl?.endRefreshing()
-            syncPageBackground(webView)
-            // Again after hydration: the dashboard's first frame is a plain
-            // placeholder; the real header (white) exists ~a second later.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self, weak webView] in
-                if let webView { self?.syncPageBackground(webView) }
-            }
+            applyColors(for: webView.url)
             // Give the first paint a beat before marking ready, so the dashboard
             // doesn't flash in half-rendered under the fade.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
