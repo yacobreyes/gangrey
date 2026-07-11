@@ -121,6 +121,9 @@ function migrate(d: any) {
   ensureColumn(d, "posts", "pinned_top", "INTEGER DEFAULT 0");
   // Per-story override to let an individual Archive post out of the paywall.
   ensureColumn(d, "posts", "archive_free", "INTEGER DEFAULT 0");
+  // Who scheduled a scheduled story — shown in the editor's view-mode banner
+  // ("This story was scheduled by X for ..."). Cleared when unscheduled.
+  ensureColumn(d, "posts", "scheduled_by", "TEXT");
 }
 
 function ensureColumn(d: any, table: string, col: string, decl: string) {
@@ -145,6 +148,7 @@ function rowToPost(r: PostRow): SanityPost {
     status: r.status ?? "draft",
     access: r.access ?? "free",
     scheduledAt: r.scheduled_at ?? undefined,
+    scheduledBy: r.scheduled_by ?? undefined,
     body: JSON.parse(r.body || "[]"),
     // Local images are plain {src,...}; components using Sanity's urlFor need
     // the asset guard, so we surface src via image.url and leave asset unset.
@@ -311,21 +315,21 @@ export function sqliteGetPost(slug: string): SanityPost | null {
 export function sqliteSavePost(doc: {
   _id: string; slug: string; section: string; headline: string; subheadline: string;
   byline: string; date: string; status: string; access: string;
-  scheduledAt?: string | null; body: unknown; image?: { src: string; caption?: string; alt?: string; crops?: unknown } | null;
+  scheduledAt?: string | null; scheduledBy?: string | null; body: unknown; image?: { src: string; caption?: string; alt?: string; crops?: unknown } | null;
   seoHeadline?: string | null; socialHeadline?: string | null; socialDescription?: string | null;
   readingTime?: number | null; sortOrder?: number | null; lastEditedBy?: string;
 }): void {
   const now = new Date().toISOString();
   db().prepare(`
     INSERT INTO posts (id, slug, section, headline, subheadline, byline, date, status, access,
-      scheduled_at, body, image, seo_headline, social_headline, social_description,
+      scheduled_at, scheduled_by, body, image, seo_headline, social_headline, social_description,
       reading_time, sort_order, created_at, updated_at, last_edited_by, last_edited_at)
     VALUES (@id, @slug, @section, @headline, @subheadline, @byline, @date, @status, @access,
-      @scheduledAt, @body, @image, @seoHeadline, @socialHeadline, @socialDescription,
+      @scheduledAt, @scheduledBy, @body, @image, @seoHeadline, @socialHeadline, @socialDescription,
       @readingTime, @sortOrder, @now, @now, @lastEditedBy, @now)
     ON CONFLICT(id) DO UPDATE SET
       slug=@slug, section=@section, headline=@headline, subheadline=@subheadline,
-      byline=@byline, date=@date, status=@status, access=@access, scheduled_at=@scheduledAt,
+      byline=@byline, date=@date, status=@status, access=@access, scheduled_at=@scheduledAt, scheduled_by=@scheduledBy,
       body=@body, image=@image, seo_headline=@seoHeadline, social_headline=@socialHeadline,
       social_description=@socialDescription, reading_time=@readingTime, sort_order=@sortOrder,
       updated_at=@now, last_edited_by=@lastEditedBy, last_edited_at=@now
@@ -334,6 +338,7 @@ export function sqliteSavePost(doc: {
     subheadline: doc.subheadline ?? "", byline: doc.byline ?? "", date: doc.date ?? "",
     status: doc.status ?? "draft", access: doc.access ?? "free",
     scheduledAt: doc.scheduledAt ?? null,
+    scheduledBy: doc.scheduledBy ?? null,
     body: JSON.stringify(doc.body ?? []),
     image: doc.image ? JSON.stringify(doc.image) : null,
     seoHeadline: doc.seoHeadline ?? null, socialHeadline: doc.socialHeadline ?? null,
@@ -378,7 +383,13 @@ export function sqliteReplaceArchive(
 }
 
 export function sqliteSetStatus(id: string, status: string): void {
-  db().prepare(`UPDATE posts SET status = ?, updated_at = ? WHERE id = ?`).run(status, new Date().toISOString(), id);
+  // Leaving the scheduled state clears the schedule stamp — a stale
+  // scheduled_at on a draft would read as still-scheduled in the editor.
+  if (status === "scheduled") {
+    db().prepare(`UPDATE posts SET status = ?, updated_at = ? WHERE id = ?`).run(status, new Date().toISOString(), id);
+  } else {
+    db().prepare(`UPDATE posts SET status = ?, scheduled_at = NULL, scheduled_by = NULL, updated_at = ? WHERE id = ?`).run(status, new Date().toISOString(), id);
+  }
 }
 
 // --- Versions ---------------------------------------------------------------

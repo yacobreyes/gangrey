@@ -620,6 +620,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
           <div style={{ position: "relative" }}>
             <button
               type="button"
+              aria-label="More actions"
               disabled={readOnly}
               onClick={() => setShowEllipsis(v => !v)}
               style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 20, width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: readOnly ? "default" : "pointer", color: TEXT_MUTED, opacity: readOnly ? 0.5 : 1 }}

@@ -207,6 +207,7 @@ export async function savePost(formData: FormData) {
       _id: doc._id as string, slug, section, headline: sq(headline) as string,
       subheadline: sq(subheadline) as string, byline: sq(byline) as string,
       date, status, access, scheduledAt,
+      scheduledBy: status === "scheduled" ? fullName(me) : null,
       body: straightBody,
       // Local backend stores images as plain src paths; the Sanity asset-ref
       // pipeline doesn't apply. (Media uploads on sqlite land in /public/media.)
