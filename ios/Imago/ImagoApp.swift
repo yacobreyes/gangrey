@@ -67,7 +67,6 @@ struct ContentView: View {
                     .transition(.opacity)
             }
         }
-        .animation(.easeOut(duration: 0.6), value: loadState.loading)
     }
 }
 
@@ -238,7 +237,13 @@ struct ImagoWebView: UIViewRepresentable {
             if minTimeElapsed && pageLoaded { forceDismiss() }
         }
         private func forceDismiss() {
-            if loadState.loading { loadState.loading = false }
+            // Explicit withAnimation: the flag flips from a navigation callback
+            // (outside any SwiftUI transaction), so without this the splash
+            // snaps away instead of fading into the dashboard.
+            guard loadState.loading else { return }
+            withAnimation(.easeInOut(duration: 1.0)) {
+                loadState.loading = false
+            }
         }
         private func markPageLoaded() {
             pageLoaded = true
