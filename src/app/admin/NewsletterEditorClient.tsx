@@ -590,9 +590,9 @@ export default function NewsletterEditorClient({
     if (!nlScheduledAt) return;
     setNlStatus("scheduled");
     setShowNlScheduler(false);
-    // Match the story editor: schedule, then drop straight to the dashboard's
-    // Scheduled tab. Fire the save and lock release together, then navigate.
-    await nlSave({ ...nlPayload(), status: "scheduled", scheduledAt: nlScheduledAt });
+    // Match the story editor: fire the save in the background and go straight
+    // to the dashboard's Scheduled tab — no lingering in the editor.
+    nlSave({ ...nlPayload(), status: "scheduled", scheduledAt: nlScheduledAt }).catch(() => {});
     releaseLockNow();
     router.push("/admin/imago?tab=scheduled");
   }
