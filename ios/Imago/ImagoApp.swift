@@ -71,64 +71,60 @@ struct ContentView: View {
     }
 }
 
-// One drifting mayfly (ported from the old Efemera IntroAnimation: slow
-// left-to-right drift with a gentle vertical bob, random size/opacity).
-private struct Fly: Identifiable {
-    let id = UUID()
-    let baseX: Double       // -0.2…1.1 starting fraction across the width
+// One drifting mayfly — parameters matched to the OG Efemera IntroAnimation:
+// brisk left-to-right drift (crossing in ~2.5–5s), wrap-around respawn, and a
+// gentle sine wander in y. The art is pre-rotated to face the travel direction.
+private struct Fly {
+    let baseX: Double       // starting fraction across the width
     let y: Double           // 0…1 vertical baseline
     let size: CGFloat       // points
-    let driftDur: Double    // seconds to cross (long → slow, graceful)
-    let bob: CGFloat        // vertical bob amplitude, points
-    let bobDur: Double      // bob period
+    let speed: Double       // fraction of width per second (OG: 0.35–0.8%/frame @60fps)
+    let amp: Double         // sine wander amplitude, fraction of height
+    let omega: Double       // wander angular speed, rad/s
+    let phase: Double
     let opacity: Double
 }
 
+// Drawn in a single Canvas per frame — 35 small image blits is trivial GPU
+// work, and there is no implicit-animation state to misbehave. (The previous
+// version attached two implicit animations per fly and triggered both in one
+// transaction; SwiftUI cross-applied them, so the repeat-forever bob infected
+// the drift and flies ping-ponged across the screen.)
 struct MayflyLoadingView: View {
-    private let flies: [Fly] = (0..<26).map { _ in
-        Fly(baseX: .random(in: -0.2...1.1),
-            y: .random(in: 0.05...0.92),
-            size: .random(in: 34...74),
-            driftDur: .random(in: 9...16),   // > splash length, so no reset-pop
-            bob: .random(in: 10...26),
-            bobDur: .random(in: 2.6...5.0),
-            opacity: .random(in: 0.4...0.95))
+    private let start = Date()
+    private let flies: [Fly] = (0..<35).map { _ in
+        Fly(baseX: .random(in: 0...1.3),
+            y: .random(in: 0.04...0.92),
+            size: .random(in: 32...72),
+            speed: .random(in: 0.21...0.48),
+            amp: .random(in: 0.01...0.07),
+            omega: .random(in: 1.2...3.6),
+            phase: .random(in: 0...(2 * .pi)),
+            opacity: .random(in: 0.45...0.95))
     }
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                Color.black
-                ForEach(flies) { FlyView(fly: $0, canvas: geo.size) }
+        TimelineView(.animation) { timeline in
+            let t = timeline.date.timeIntervalSince(start)
+            Canvas { ctx, size in
+                ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(.black))
+                let img = ctx.resolve(Image("mayfly"))
+                let aspect = img.size.height / max(img.size.width, 1)
+                for f in flies {
+                    // Wrap x across [−0.15, 1.15] so flies enter and exit off-screen.
+                    let xf = (f.baseX + f.speed * t).truncatingRemainder(dividingBy: 1.3) - 0.15
+                    let yf = f.y + f.amp * sin(f.omega * t + f.phase)
+                    var layer = ctx
+                    layer.opacity = f.opacity
+                    let w = f.size, h = f.size * aspect
+                    layer.draw(img, in: CGRect(x: CGFloat(xf) * size.width - w / 2,
+                                               y: CGFloat(yf) * size.height - h / 2,
+                                               width: w, height: h))
+                }
             }
         }
         .ignoresSafeArea()
-    }
-}
-
-// Each fly runs two Core-Animation-backed implicit animations (GPU, no
-// per-frame CPU): a single linear horizontal drift and a repeating vertical
-// bob. Scoped by state value so they don't interfere.
-private struct FlyView: View {
-    let fly: Fly
-    let canvas: CGSize
-    @State private var drift = false
-    @State private var bob = false
-
-    var body: some View {
-        let startX = fly.baseX * canvas.width
-        let endX = startX + canvas.width * 1.4 + 120   // drift off the right edge
-        Image("mayfly")
-            .resizable()
-            .scaledToFit()
-            .frame(width: fly.size, height: fly.size)
-            .rotationEffect(.degrees(90)) // point in the direction of travel
-            .opacity(fly.opacity)
-            .offset(y: bob ? fly.bob : -fly.bob)
-            .animation(.easeInOut(duration: fly.bobDur).repeatForever(autoreverses: true), value: bob)
-            .position(x: drift ? endX : startX, y: fly.y * canvas.height)
-            .animation(.linear(duration: fly.driftDur), value: drift)
-            .onAppear { drift = true; bob = true }
+        .background(Color.black.ignoresSafeArea())
     }
 }
 
