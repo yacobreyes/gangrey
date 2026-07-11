@@ -41,16 +41,87 @@ struct ImagoApp: App {
     }
 }
 
+// Drives the mayfly splash: true until the first page finishes loading.
+final class LoadState: ObservableObject {
+    @Published var loading = true
+}
+
 struct ContentView: View {
+    @StateObject private var loadState = LoadState()
+
     var body: some View {
-        // Full-bleed, page-owned layout: the web view covers the whole screen
-        // and the PAGE handles the notch — the site declares viewport-fit=cover
-        // and stretches its admin headers by env(safe-area-inset-top), so the
-        // header background runs to the physical top and nothing can scroll
-        // out above it. No native strips or overlays.
-        ImagoWebView()
-            .ignoresSafeArea()
-            .background(Color.white)
+        ZStack {
+            // Full-bleed, page-owned layout: the web view covers the whole screen
+            // and the PAGE handles the notch — the site declares viewport-fit=cover
+            // and stretches its admin headers by env(safe-area-inset-top), so the
+            // header background runs to the physical top and nothing can scroll
+            // out above it. No native strips or overlays.
+            ImagoWebView(loadState: loadState)
+                .ignoresSafeArea()
+                .background(Color.white)
+
+            // Efemera's mayfly entrance, reborn as the loading screen: white
+            // mayflies drifting across black while the web view fetches.
+            if loadState.loading {
+                MayflyLoadingView()
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeOut(duration: 0.6), value: loadState.loading)
+    }
+}
+
+// A single drifting mayfly's parameters (ported from the old Efemera
+// IntroAnimation: left-to-right drift with a sine wobble, random size/opacity).
+private struct Fly: Identifiable {
+    let id = UUID()
+    let baseX: Double       // 0…1.2 starting phase across the width
+    let y: Double           // 0…1 vertical position
+    let size: CGFloat       // points
+    let speed: Double       // fraction of width per second
+    let phase: Double       // wobble phase offset
+    let wobbleAmp: Double   // fraction of height
+    let wobbleSpeed: Double
+    let opacity: Double
+}
+
+struct MayflyLoadingView: View {
+    private let start = Date()
+    @State private var flies: [Fly] = (0..<34).map { _ in
+        Fly(baseX: .random(in: 0...1.2),
+            y: .random(in: 0.05...0.9),
+            size: .random(in: 30...66),
+            speed: .random(in: 0.035...0.085),
+            phase: .random(in: 0...(2 * .pi)),
+            wobbleAmp: .random(in: 0.008...0.035),
+            wobbleSpeed: .random(in: 0.6...1.6),
+            opacity: .random(in: 0.4...0.95))
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            TimelineView(.animation) { timeline in
+                let t = timeline.date.timeIntervalSince(start)
+                ZStack {
+                    Color.black
+                    ForEach(flies) { f in
+                        // Wrap x across the width (with a margin so flies enter
+                        // and exit off-screen); wobble y with a sine.
+                        let xFrac = (f.baseX + f.speed * t).truncatingRemainder(dividingBy: 1.2) - 0.1
+                        let yFrac = f.y + sin(t * f.wobbleSpeed + f.phase) * f.wobbleAmp
+                        Image("mayfly")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: f.size, height: f.size)
+                            .rotationEffect(.degrees(90)) // point in the direction of travel
+                            .opacity(f.opacity)
+                            .position(x: CGFloat(xFrac) * geo.size.width,
+                                      y: CGFloat(yFrac) * geo.size.height)
+                    }
+                }
+            }
+        }
+        .ignoresSafeArea()
     }
 }
 
@@ -70,7 +141,9 @@ private func isInAppHost(_ host: String) -> Bool {
 }
 
 struct ImagoWebView: UIViewRepresentable {
-    func makeCoordinator() -> Coordinator { Coordinator() }
+    let loadState: LoadState
+
+    func makeCoordinator() -> Coordinator { Coordinator(loadState: loadState) }
 
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
@@ -113,6 +186,23 @@ struct ImagoWebView: UIViewRepresentable {
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         weak var webView: WKWebView?
+        let loadState: LoadState
+
+        init(loadState: LoadState) {
+            self.loadState = loadState
+            super.init()
+            // Safety net: never let the splash stick if a load hangs or the
+            // delegate callbacks don't fire.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
+                self?.dismissSplash()
+            }
+        }
+
+        // First load done → fade the mayflies out. Idempotent; later navigations
+        // (which also fire didFinish) just no-op.
+        private func dismissSplash() {
+            if loadState.loading { loadState.loading = false }
+        }
 
         @objc func reload(_ sender: UIRefreshControl) {
             webView?.reload()
@@ -120,6 +210,11 @@ struct ImagoWebView: UIViewRepresentable {
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             webView.scrollView.refreshControl?.endRefreshing()
+            // Give the first paint a beat before uncovering, so the dashboard
+            // doesn't flash in half-rendered under the fade.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+                self?.dismissSplash()
+            }
             // Match overscroll to the page's effective background, the way
             // Safari derives it: body if it's opaque, else html, else white.
             // (A transparent body parsed as alpha-0 used to leave the shell's
@@ -141,6 +236,11 @@ struct ImagoWebView: UIViewRepresentable {
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
             webView.scrollView.refreshControl?.endRefreshing()
+            dismissSplash() // don't strand the user behind the splash on a failed load
+        }
+
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            dismissSplash()
         }
 
         // WKWebView drops JavaScript alert()/confirm()/prompt() unless the
