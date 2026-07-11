@@ -204,6 +204,39 @@ export default function NewsletterEditorClient({
   const [nlClassics] = useState(initial?.classics ?? newIsClassics);
   const [nlCards, setNlCards] = useState<NlEditorCard[]>(() => cardsFromStored(initial?.cards ?? [], nlClassics));
   const [nlVersions, setNlVersions] = useState<NlVersion[]>(initialVersions);
+
+  // Live "watch over the shoulder" sync (parity with the story editor): while
+  // in view mode, poll the newsletter every 3s and mirror the current editor's
+  // changes. Cards only re-map when their stored content actually changes, so
+  // the read-only view doesn't remount its editors on every tick.
+  const lastSyncSig = useRef(JSON.stringify(initial?.cards ?? []));
+  useEffect(() => {
+    if (!viewMode) return;
+    let alive = true;
+    const sync = async () => {
+      try {
+        const r = await fetch(`/api/newsletter?id=${encodeURIComponent(newsletterId)}`, { cache: "no-store" });
+        if (!r.ok || !alive) return;
+        const { draft } = await r.json();
+        if (!draft || !alive) return;
+        setNlSubject(draft.subject ?? "");
+        setNlPreview(draft.preview ?? "");
+        setNlAuthor(draft.author ?? "Yacob Reyes");
+        setNlVolume(draft.volume ?? "");
+        setNlIssue(draft.issue ?? "");
+        setNlIntro(draft.intro ?? "");
+        if (draft.status === "draft" || draft.status === "published" || draft.status === "scheduled") setNlStatus(draft.status);
+        const sig = JSON.stringify(draft.cards ?? []);
+        if (sig !== lastSyncSig.current) {
+          lastSyncSig.current = sig;
+          setNlCards(cardsFromStored((draft.cards ?? []) as StoredCard[], nlClassics));
+        }
+      } catch { /* transient — retry next tick */ }
+    };
+    sync();
+    const iv = setInterval(sync, 3000);
+    return () => { alive = false; clearInterval(iv); };
+  }, [viewMode, newsletterId, nlClassics]);
   const [nlVersionMenu, setNlVersionMenu] = useState<string | null>(null);
   const [nlCompare, setNlCompare] = useState<string | null>(null);
   const [nlSaveStatus, setNlSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
