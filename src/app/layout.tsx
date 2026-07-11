@@ -69,6 +69,19 @@ export default function RootLayout({
         <link rel="preload" as="image" href="/Wordmark.png?v=7" fetchPriority="high" />
       </head>
       <body>
+        {/* Tells Google (and anything else reading schema.org data) what image
+            represents the brand, so it stops guessing off page content — that
+            guess was landing on the header wordmark, rendered as a small,
+            gray, illegible thumbnail in search results. logo-square.png is
+            the black-bubble G, solid black corner to corner: reads cleanly at
+            any size search engines choose to render it. */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "Gangrey",
+          url: siteUrl,
+          logo: `${siteUrl}/logo-square.png`,
+        }) }} />
         {gaId && <GoogleAnalytics gaId={gaId} />}
         <SessionProviderWrapper>{children}</SessionProviderWrapper>
       </body>
