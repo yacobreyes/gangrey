@@ -198,6 +198,14 @@ struct ImagoWebView: UIViewRepresentable {
         var topColor: UIColor = .white
         var bottomColor: UIColor = UIColor(cssRGB: "rgb(245, 248, 250)") ?? .white
 
+        // Re-read the page colors as a drag begins: at load time React is often
+        // still showing its placeholder (the dashboard hydrates a plain #f5f8fa
+        // frame before the white header exists), so colors captured at
+        // didFinish can be stale. One JS eval per gesture is negligible.
+        func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+            if let webView { syncPageBackground(webView) }
+        }
+
         // Swap the single native overscroll color by position: the top half of
         // the page shows the header color, the bottom half the canvas color.
         func scrollViewDidScroll(_ scrollView: UIScrollView) {
@@ -294,6 +302,11 @@ struct ImagoWebView: UIViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             webView.scrollView.refreshControl?.endRefreshing()
             syncPageBackground(webView)
+            // Again after hydration: the dashboard's first frame is a plain
+            // placeholder; the real header (white) exists ~a second later.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self, weak webView] in
+                if let webView { self?.syncPageBackground(webView) }
+            }
             // Give the first paint a beat before marking ready, so the dashboard
             // doesn't flash in half-rendered under the fade.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
