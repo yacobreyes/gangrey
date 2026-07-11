@@ -170,8 +170,13 @@ struct ImagoWebView: UIViewRepresentable {
         // could paint OVER the page's own fixed-position header on scroll,
         // since it lives outside the WKWebView's content layer entirely. One
         // uniform, page-driven color has no such layering risk.)
-        webView.backgroundColor = .white
-        webView.underPageBackgroundColor = .white
+        // Seed with the dashboard's color (the landing page) rather than white,
+        // so there's no white flash/band while the first page loads, before
+        // didCommit/didFinish read the page's real background.
+        let dashboardBG = UIColor(cssRGB: "rgb(245, 248, 250)") ?? .white // #f5f8fa
+        webView.backgroundColor = dashboardBG
+        webView.scrollView.backgroundColor = dashboardBG
+        webView.underPageBackgroundColor = dashboardBG
 
         let refresh = UIRefreshControl()
         refresh.addTarget(context.coordinator, action: #selector(Coordinator.reload(_:)), for: .valueChanged)
@@ -188,37 +193,49 @@ struct ImagoWebView: UIViewRepresentable {
         weak var webView: WKWebView?
         let loadState: LoadState
 
+        // The mayflies play for at least this long even if the page is ready
+        // sooner — so it always reads as an intentional entrance, never a
+        // half-second flash. Dismissal waits for BOTH this and the page load.
+        private static let minSplashSeconds = 3.0
+        private var minTimeElapsed = false
+        private var pageLoaded = false
+
         init(loadState: LoadState) {
             self.loadState = loadState
             super.init()
+            DispatchQueue.main.asyncAfter(deadline: .now() + Coordinator.minSplashSeconds) { [weak self] in
+                self?.minTimeElapsed = true
+                self?.maybeDismiss()
+            }
             // Safety net: never let the splash stick if a load hangs or the
             // delegate callbacks don't fire.
             DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
-                self?.dismissSplash()
+                self?.forceDismiss()
             }
         }
 
-        // First load done → fade the mayflies out. Idempotent; later navigations
-        // (which also fire didFinish) just no-op.
-        private func dismissSplash() {
+        // Fade the mayflies out once the animation has had its full run AND the
+        // page is ready. Idempotent; later navigations just no-op.
+        private func maybeDismiss() {
+            if minTimeElapsed && pageLoaded { forceDismiss() }
+        }
+        private func forceDismiss() {
             if loadState.loading { loadState.loading = false }
+        }
+        private func markPageLoaded() {
+            pageLoaded = true
+            maybeDismiss()
         }
 
         @objc func reload(_ sender: UIRefreshControl) {
             webView?.reload()
         }
 
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            webView.scrollView.refreshControl?.endRefreshing()
-            // Give the first paint a beat before uncovering, so the dashboard
-            // doesn't flash in half-rendered under the fade.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
-                self?.dismissSplash()
-            }
-            // Match overscroll to the page's effective background, the way
-            // Safari derives it: body if it's opaque, else html, else white.
-            // (A transparent body parsed as alpha-0 used to leave the shell's
-            // white showing through as a band on pull-down.)
+        // Match the web view + overscroll to the page's effective background,
+        // the way Safari derives it: body if opaque, else html, else white.
+        // Run on BOTH didCommit (first render — kills the white band before the
+        // user sees it) and didFinish (final, if body bg loads late).
+        private func syncPageBackground(_ webView: WKWebView) {
             let js = """
             (function(){
               function bg(el){ var c = getComputedStyle(el).backgroundColor;
@@ -234,13 +251,27 @@ struct ImagoWebView: UIViewRepresentable {
             }
         }
 
+        func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+            syncPageBackground(webView)
+        }
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            webView.scrollView.refreshControl?.endRefreshing()
+            syncPageBackground(webView)
+            // Give the first paint a beat before marking ready, so the dashboard
+            // doesn't flash in half-rendered under the fade.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+                self?.markPageLoaded()
+            }
+        }
+
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
             webView.scrollView.refreshControl?.endRefreshing()
-            dismissSplash() // don't strand the user behind the splash on a failed load
+            forceDismiss() // don't strand the user behind the splash on a failed load
         }
 
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-            dismissSplash()
+            forceDismiss()
         }
 
         // WKWebView drops JavaScript alert()/confirm()/prompt() unless the

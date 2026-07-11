@@ -538,6 +538,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
         );
       })()}
       <style>{`
+        html { background: white !important; }
         body { background: white !important; }
         .tb-btn { position: relative; }
         .tb-btn::after {

@@ -410,6 +410,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
   return (
     <>
       <style>{`
+        html { background: #f5f8fa !important; }
         body { background: #f5f8fa !important; }
         .admin-layout { display: flex; min-height: 100vh; }
         .admin-sidebar {

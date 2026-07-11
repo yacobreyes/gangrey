@@ -705,6 +705,7 @@ export default function NewsletterEditorClient({
            default white under the #f5f8fa canvas, so overscroll (pull-down)
            revealed a white band between the header and the content — the
            dashboard and story editor both pin body for the same reason. */
+        html { background: #f5f8fa !important; }
         body { background: #f5f8fa !important; }
         .nl-tb-btn { position: relative; }
         .nl-add-zone .nl-add-line, .nl-add-zone .nl-add-label { opacity: 0; transition: opacity 0.12s; }
