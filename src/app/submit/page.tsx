@@ -52,7 +52,7 @@ export default function SubmitPage() {
           <p style={{ margin: "0 0 18px" }}>Paste the full text into the submission form. A cover letter is welcome but not required.</p>
 
           <h3 style={GUIDE_LABEL}>Eligibility</h3>
-          <p style={{ margin: "0 0 18px" }}>We don&apos;t accept AI-generated writing. All work should be your own.</p>
+          <p style={{ margin: "0 0 18px" }}>We do not accept AI-generated writing. All work should be your own.</p>
 
           <h3 style={GUIDE_LABEL}>Simultaneous submissions</h3>
           <p style={{ margin: "0 0 18px" }}>Simultaneous submissions are welcome. Just let us know if the piece is placed elsewhere.</p>
