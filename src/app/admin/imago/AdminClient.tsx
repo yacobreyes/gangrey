@@ -259,12 +259,25 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
     if (isAdmin && usersData.length === 0) {
       listUsers().then(setUsersData).catch(() => {});
     }
+    fetch("/api/comments/all").then(r => r.json()).then(data => { if (Array.isArray(data)) setAdminComments(data); }).catch(() => {});
+
+    // The panels are code-split (next/dynamic) so first paint is light, but
+    // that made every first tab switch wait on a chunk download — which reads
+    // as "glitchy". Warm the chunks in the background once the dashboard is
+    // idle so switching panels is instant.
+    const preload = setTimeout(() => {
+      import("./AnalyticsPanel").catch(() => {});
+      import("./SubmissionsPanel").catch(() => {});
+      import("./AudiencePanel").catch(() => {});
+      import("./UsersPanel").catch(() => {});
+      import("@/components/RichBodyEditor").catch(() => {});
+    }, 1200);
 
     // A Save & Exit fires the Sanity write in the background and navigates
     // immediately, so the first refreshPosts() above may land before the write
     // completes. A second pass a few seconds later catches the in-flight save.
     const t = setTimeout(refreshPosts, 3000);
-    return () => clearTimeout(t);
+    return () => { clearTimeout(t); clearTimeout(preload); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -734,11 +747,13 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                          date/views column (from the mobile design prototype). */
                       <div style={{ marginTop: "0.25rem" }}>
                         {(() => {
-                          const dotColor: Record<string, string> = { draft: "#c9a227", scheduled: CRIMSON, published: "#1a7f37", trashed: TEXT_MUTED };
+                          // Dots mark items with a live state: yellow = scheduled,
+                          // green = published. Drafts get no dot.
+                          const dot = isArchive || postTab === "published" ? "#1a7f37" : postTab === "scheduled" ? "#c9a227" : null;
                           const card = (opts: { key: string; onClick: () => void; isNl?: boolean; title: React.ReactNode; meta: string; lock?: LockHolder; date: string; views?: number }) => (
                             <div key={opts.key} onClick={opts.onClick}
                               style={{ background: "white", border: `1px solid ${CARD_LINE}`, borderRadius: 12, padding: "0.8rem 0.9rem", marginBottom: 9, display: "flex", alignItems: "flex-start", gap: 11, cursor: "pointer", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
-                              <span style={{ width: 9, height: 9, borderRadius: "50%", marginTop: 5, flexShrink: 0, background: dotColor[isArchive ? "published" : postTab === "drafts" ? "draft" : postTab === "scheduled" ? "scheduled" : "published"] }} />
+                              {dot && <span style={{ width: 9, height: 9, borderRadius: "50%", marginTop: 5, flexShrink: 0, background: dot }} />}
                               <span style={{ flex: 1, minWidth: 0 }}>
                                 <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                   {opts.isNl && <span style={{ fontFamily: FONT, fontSize: "0.56rem", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: CRIMSON, background: "#f3e9e9", borderRadius: 4, padding: "2px 5px", flexShrink: 0 }}>Newsletter</span>}
