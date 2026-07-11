@@ -1265,18 +1265,12 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
             <button onClick={() => { setShowCreateSheet(false); if (isDirty && !confirm("Discard unsaved changes?")) return; startNew(); }}
               style={{ display: "flex", alignItems: "center", gap: 13, width: "100%", background: "none", border: "none", borderBottom: "1px solid #f0eee9", padding: "15px 4px", cursor: "pointer" }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CRIMSON} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
-              <span style={{ flex: 1, textAlign: "left" }}>
-                <span style={{ display: "block", fontFamily: FONT, fontSize: "0.97rem", fontWeight: 600, color: TEXT_DARK }}>Story</span>
-                <span style={{ display: "block", fontFamily: FONT, fontSize: "0.75rem", color: "#7a6f68" }}>A reported piece, essay, or memoir</span>
-              </span>
+              <span style={{ flex: 1, textAlign: "left", fontFamily: FONT, fontSize: "0.97rem", fontWeight: 600, color: TEXT_DARK }}>Story</span>
             </button>
             <button onClick={() => { setShowCreateSheet(false); if (isDirty && !confirm("Discard unsaved changes?")) return; setShowNlTypeModal(true); }}
               style={{ display: "flex", alignItems: "center", gap: 13, width: "100%", background: "none", border: "none", padding: "15px 4px", cursor: "pointer" }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CRIMSON} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2 6 12 13 22 6"/></svg>
-              <span style={{ flex: 1, textAlign: "left" }}>
-                <span style={{ display: "block", fontFamily: FONT, fontSize: "0.97rem", fontWeight: 600, color: TEXT_DARK }}>Newsletter</span>
-                <span style={{ display: "block", fontFamily: FONT, fontSize: "0.75rem", color: "#7a6f68" }}>The Dispatch, or a Classics issue</span>
-              </span>
+              <span style={{ flex: 1, textAlign: "left", fontFamily: FONT, fontSize: "0.97rem", fontWeight: 600, color: TEXT_DARK }}>Newsletter</span>
             </button>
           </div>
         </div>
