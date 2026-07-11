@@ -90,19 +90,15 @@ struct ImagoWebView: UIViewRepresentable {
         // WKWebView UA lacks the Version/Safari tokens and can trip that.
         webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"
 
-        // Split overscroll top vs bottom:
-        //  - TOP: a white filler view sitting just above the content. Pull down
-        //    and it's revealed — the same white as Imago's header band.
-        //  - BOTTOM: underPageBackgroundColor follows the page's real body
-        //    color (read per-page in didFinish), so the bottom rubber-band
-        //    matches whatever page you're on (dashboard #f5f8fa, editors white).
-        let topFiller = UIView(frame: CGRect(x: 0, y: -3000, width: UIScreen.main.bounds.width, height: 3000))
-        topFiller.backgroundColor = .white
-        topFiller.autoresizingMask = [.flexibleWidth]
-        webView.scrollView.addSubview(topFiller)
-
+        // Overscroll (top AND bottom rubber-band) follows the page's own body
+        // color — set here as white for the first paint, then corrected per-page
+        // in didFinish. (A previous version tried to split top-white/bottom-page
+        // via a raw UIView pinned above the scroll content; that native subview
+        // could paint OVER the page's own fixed-position header on scroll,
+        // since it lives outside the WKWebView's content layer entirely. One
+        // uniform, page-driven color has no such layering risk.)
         webView.backgroundColor = .white
-        webView.underPageBackgroundColor = .white // bottom, until the page's color is read
+        webView.underPageBackgroundColor = .white
 
         let refresh = UIRefreshControl()
         refresh.addTarget(context.coordinator, action: #selector(Coordinator.reload(_:)), for: .valueChanged)
