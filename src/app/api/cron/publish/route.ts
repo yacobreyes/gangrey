@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 // Self-hosted (SQLite) scheduled-publish pass: flip due scheduled posts to
 // published and send any due scheduled newsletters. Mirrors the Sanity path
 // below. Driven by a system cron hitting this endpoint (see SELFHOST.md).
-async function runSqlite(): Promise<{ published: number; newslettersSent: number }> {
+async function runSqlite(): Promise<{ published: number; newslettersSent: number; newsletterErrors?: string[] }> {
   const now = Date.now();
 
   const duePosts = sqliteAllPostsAdminLight().filter(
@@ -24,12 +24,16 @@ async function runSqlite(): Promise<{ published: number; newslettersSent: number
     n => n.status === "scheduled" && n.scheduledAt && new Date(n.scheduledAt).getTime() <= now
   );
   let newslettersSent = 0;
+  // Surface failures in the response (and thus publish-cron.log) — a silent
+  // ok:false left a due newsletter stuck in Scheduled with no trace of why.
+  const newsletterErrors: string[] = [];
   for (const nl of dueNewsletters) {
-    const r = await deliverNewsletter(nl._id).catch(() => ({ ok: false }));
+    const r = await deliverNewsletter(nl._id).catch((e): { ok: boolean; error?: string } => ({ ok: false, error: String(e) }));
     if (r.ok) newslettersSent++;
+    else newsletterErrors.push(`${nl._id}: ${("error" in r && r.error) || "unknown error"}`);
   }
 
-  return { published: duePosts.length, newslettersSent };
+  return { published: duePosts.length, newslettersSent, ...(newsletterErrors.length ? { newsletterErrors } : {}) };
 }
 
 async function sanityMutate(mutations: unknown[]) {

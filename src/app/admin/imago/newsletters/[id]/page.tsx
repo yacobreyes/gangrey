@@ -49,7 +49,7 @@ export default async function EditNewsletterPage({ params, searchParams }: { par
         preview: draft.preview ?? "",
         author: draft.author ?? "Yacob Reyes",
         status: draft.status ?? "draft",
-        scheduledAt: draft.scheduledAt ? String(draft.scheduledAt).slice(0, 16) : "",
+        scheduledAt: draft.scheduledAt ? String(draft.scheduledAt) : "",
         scheduledBy: draft.scheduledBy ?? "",
         cards: Array.isArray(draft.cards) ? draft.cards : [],
         volume: draft.volume ?? "",

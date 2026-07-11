@@ -59,6 +59,16 @@ function formatVersionTime(iso: string) {
   return d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
 }
 
+// datetime-local input value ("YYYY-MM-DDTHH:mm", viewer-local) from a stored
+// UTC ISO timestamp. Falls back to a plain slice for legacy naive values.
+function isoToLocalInput(v?: string): string {
+  if (!v) return "";
+  const d = new Date(v);
+  if (isNaN(+d)) return v.slice(0, 16);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 function formatScheduledTime(v?: string) {
   if (!v) return "its scheduled time";
   const d = new Date(v);
@@ -186,7 +196,7 @@ export default function NewsletterEditorClient({
   const [nlIssue, setNlIssue] = useState(initial?.issue ?? "");
   const [nlIntro, setNlIntro] = useState(initial?.intro ?? "");
   const [nlStatus, setNlStatus] = useState<"draft" | "published" | "scheduled">(initial?.status ?? "draft");
-  const [nlScheduledAt, setNlScheduledAt] = useState(initial?.scheduledAt ?? "");
+  const [nlScheduledAt, setNlScheduledAt] = useState(isoToLocalInput(initial?.scheduledAt));
   // Gangrey Classics issues are archive-only reprints — the card-type picker
   // is locked to Archive for them (see the pill row below). Existing docs
   // carry their own `classics` flag; brand-new ones take it from the
@@ -592,7 +602,9 @@ export default function NewsletterEditorClient({
     setShowNlScheduler(false);
     // Match the story editor: fire the save in the background and go straight
     // to the dashboard's Scheduled tab — no lingering in the editor.
-    nlSave({ ...nlPayload(), status: "scheduled", scheduledAt: nlScheduledAt }).catch(() => {});
+    // Store real UTC — the naive datetime-local string would be parsed in the
+    // SERVER's timezone by the publish cron and fire hours off.
+    nlSave({ ...nlPayload(), status: "scheduled", scheduledAt: new Date(nlScheduledAt).toISOString() }).catch(() => {});
     releaseLockNow();
     router.push("/admin/imago?tab=scheduled");
   }
