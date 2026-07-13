@@ -102,7 +102,7 @@ export default function AnalyticsPanel() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem", flexWrap: "wrap", gap: "0.75rem" }}>
         <div className="an-title">
           <h1 style={{ fontFamily: "var(--font-headline)", fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.02em", color: TEXT_DARK, margin: 0 }}>Analytics</h1>
-          <p style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, margin: "0.25rem 0 0" }}>Your traffic, engagement, and what&apos;s trending. All self-hosted.</p>
+          <p style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, margin: "0.35rem 0 0" }}>Your traffic and engagement. All self-hosted.</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
           {/* Author filter — narrows the whole panel to one writer. */}
@@ -149,6 +149,20 @@ export default function AnalyticsPanel() {
               </>
             )}
           </div>
+          <div style={{ display: "flex", gap: 4, background: "#f4f4f5", borderRadius: 8, padding: 3 }}>
+            {RANGES.map(([k, label]) => (
+              <button key={k} onClick={() => { setDate(null); setRange(k); }} style={{
+                border: "none", borderRadius: 6, padding: "0.35rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer",
+                background: !date && range === k ? "white" : "transparent", color: !date && range === k ? CRIMSON : TEXT_MUTED, boxShadow: !date && range === k ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
+              }}>{label}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Day drill-down (Today / Yesterday / any date) — its own quiet row so
+          the header stays as the prototype has it: author pill + range chips. */}
+      <div style={{ display: "flex", justifyContent: "flex-end", margin: "-0.5rem 0 1rem" }}>
           {/* Day picker: Today / Yesterday / any date, with prev-next arrows —
               answers "how did I do on [day]" the way Parse.ly's date nav does. */}
           <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#f4f4f5", borderRadius: 8, padding: 3 }}>
@@ -171,17 +185,7 @@ export default function AnalyticsPanel() {
               </button>
             </div>
           </div>
-          <div style={{ display: "flex", gap: 4, background: "#f4f4f5", borderRadius: 8, padding: 3 }}>
-            {RANGES.map(([k, label]) => (
-              <button key={k} onClick={() => { setDate(null); setRange(k); }} style={{
-                border: "none", borderRadius: 6, padding: "0.35rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer",
-                background: !date && range === k ? "white" : "transparent", color: !date && range === k ? CRIMSON : TEXT_MUTED, boxShadow: !date && range === k ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
-              }}>{label}</button>
-            ))}
-          </div>
-        </div>
       </div>
-
       {author && (
         <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: "-0.5rem 0 1rem" }}>
           Showing analytics for <span style={{ fontWeight: 700, color: CRIMSON }}>{author}</span>
