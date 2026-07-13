@@ -116,17 +116,17 @@ export default function UsersPanel({ currentEmail, initialUsers = [] }: { curren
       {loading ? (
         <p style={{ fontFamily: FONT, color: TEXT_MUTED }}>Loading…</p>
       ) : users.length === 0 ? (
-        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "3rem", textAlign: "center" }}>
+        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "3rem", textAlign: "center" }}>
           <p style={{ fontFamily: FONT, color: TEXT_MUTED, margin: 0 }}>No users yet. Add your team.</p>
         </div>
       ) : (
-        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, overflow: "hidden" }}>
+        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
           {users.map(u => (
-            <div key={u._id} style={{ display: "flex", alignItems: "center", gap: "0.85rem", padding: "0.75rem 1.1rem", borderBottom: `1px solid ${BORDER}`, opacity: u.active ? 1 : 0.5 }}>
+            <div key={u._id} style={{ display: "flex", alignItems: "center", gap: "0.85rem", padding: "0.75rem 1.1rem", borderBottom: "1px solid #eee", opacity: u.active ? 1 : 0.5 }}>
               {u.photoUrl
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img src={u.photoUrl} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                : <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#e9e9ea", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, color: TEXT_MUTED }}>{(u.firstName?.[0] ?? u.email[0] ?? "?").toUpperCase()}</div>}
+                : <div style={{ width: 36, height: 36, borderRadius: "50%", background: u.active ? CRIMSON : "#e9e9ea", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 800, color: u.active ? "white" : TEXT_MUTED }}>{[u.firstName, u.lastName].filter(Boolean).map(w => w![0]).slice(0,2).join("").toUpperCase() || (u.email[0] ?? "?").toUpperCase()}</div>}
               <div style={{ minWidth: 0, flex: 1 }}>
                 <p style={{ fontFamily: FONT, fontSize: "0.9rem", fontWeight: 600, color: TEXT_DARK, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {[u.firstName, u.lastName].filter(Boolean).join(" ") || u.email}

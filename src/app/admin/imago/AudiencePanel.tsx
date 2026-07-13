@@ -159,17 +159,17 @@ export default function AudiencePanel({
       {loading ? (
         <p style={{ fontFamily: FONT, color: TEXT_MUTED }}>Loading…</p>
       ) : rows.length === 0 ? (
-        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "3rem", textAlign: "center" }}>
+        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "3rem", textAlign: "center" }}>
           <p style={{ fontFamily: FONT, color: TEXT_MUTED, margin: 0 }}>No one yet.</p>
         </div>
       ) : (
-        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, overflow: "hidden" }}>
+        <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
           {rows.map(row => {
             const m = row.member;
             const active = m ? isActiveMember(m) : false;
             const former = m ? !active : false;
             return (
-              <div key={row.email} style={{ display: "flex", alignItems: "center", gap: "0.85rem", padding: "0.7rem 1.1rem", borderBottom: `1px solid ${BORDER}`, opacity: former && !row.subscriber ? 0.6 : 1 }}>
+              <div key={row.email} style={{ display: "flex", alignItems: "center", gap: "0.85rem", padding: "0.7rem 1.1rem", borderBottom: "1px solid #eee", opacity: former && !row.subscriber ? 0.6 : 1 }}>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <p style={{ fontFamily: FONT, fontSize: "0.9rem", fontWeight: 600, color: TEXT_DARK, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.email}</p>
                   {/* One quiet status line. Active is the norm, so only exceptions

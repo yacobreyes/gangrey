@@ -837,7 +837,8 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                                 onCtx: e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, kind: "post", post }); },
                                 title: post.headline || <span style={{ color: TEXT_MUTED, fontWeight: 400 }}>No headline</span>,
                                 meta: lockLine(activeLocks[post._id], "editing", [post.section, post.byline].filter(Boolean).join(" \u00b7 ") || "\u00a0"),
-                                date: post.date,
+                                // Archive rows show just the year; live posts keep their full date.
+                                date: isArchive ? (post.date || "").slice(0, 4) : post.date,
                               }))}
                               {archiveOverflow > 0 && (
                                 <div style={{ padding: "0.85rem 1rem", textAlign: "center" }}>
