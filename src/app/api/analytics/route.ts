@@ -49,16 +49,27 @@ export async function GET(req: NextRequest) {
   }
   const prevSince = since - (until - since); // equal-length prior window, for deltas
 
+  // Optional author filter: every number on the panel narrows to stories whose
+  // current byline matches (see AUTHOR_COND in sqlite.ts). The `authors`
+  // breakdown itself stays UNFILTERED so the picker always lists everyone.
+  const author = (req.nextUrl.searchParams.get("author") ?? "").trim() || undefined;
+
   // Headline titles so the UI can label slugs without a second round-trip.
   const titleBySlug: Record<string, string> = {};
   for (const p of sqliteAllPostsAdminLight()) titleBySlug[p.slug] = p.headline;
 
-  const overview = sqliteAnalyticsOverview(since, until);
-  const prev = sqliteAnalyticsOverview(prevSince, since);
+  const overview = sqliteAnalyticsOverview(since, until, author);
+  const prev = sqliteAnalyticsOverview(prevSince, since, author);
   const pctDelta = (cur: number, was: number) => was > 0 ? Math.round(((cur - was) / was) * 100) : (cur > 0 ? 100 : 0);
+
+  const authorStoryCount = author
+    ? sqliteAllPostsAdminLight().filter(p => (p.byline ?? "").trim() === author).length
+    : 0;
 
   return NextResponse.json({
     range: rangeKey,
+    author: author ?? null,
+    authorStoryCount,
     overview: {
       ...overview,
       viewsDelta: pctDelta(overview.views, prev.views),
@@ -66,20 +77,20 @@ export async function GET(req: NextRequest) {
       engagedDelta: pctDelta(overview.avgEngagedMs, prev.avgEngagedMs),
     },
     since, until, buckets,
-    series: sqliteAnalyticsSeries(since, until, buckets),
+    series: sqliteAnalyticsSeries(since, until, buckets, author),
     // Same bucket count over the immediately-prior equal-length window, so the
     // chart can overlay day-over-day / week-over-week / month-over-month.
-    prevSeries: sqliteAnalyticsSeries(prevSince, since, buckets),
+    prevSeries: sqliteAnalyticsSeries(prevSince, since, buckets, author),
     // Only surface stories that still exist (a slug in titleBySlug) — otherwise
     // rows from deleted/renamed posts show a bare slug and 404 on click.
-    top: sqliteAnalyticsTopContent(since, until, 40).filter(t => t.slug in titleBySlug).slice(0, 20).map(t => ({ ...t, title: titleBySlug[t.slug] })),
-    sources: sqliteAnalyticsBreakdown("source", since, until, 10),
-    sections: sqliteAnalyticsBreakdown("section", since, until, 10),
-    authors: sqliteAnalyticsBreakdown("byline", since, until, 10),
-    devices: sqliteAnalyticsBreakdown("device", since, until, 5),
-    trending: sqliteAnalyticsTrending(16).filter(t => t.slug in titleBySlug).slice(0, 8).map(t => ({ ...t, title: titleBySlug[t.slug] })),
+    top: sqliteAnalyticsTopContent(since, until, 40, author).filter(t => t.slug in titleBySlug).slice(0, 20).map(t => ({ ...t, title: titleBySlug[t.slug] })),
+    sources: sqliteAnalyticsBreakdown("source", since, until, 10, author),
+    sections: sqliteAnalyticsBreakdown("section", since, until, 10, author),
+    authors: sqliteAnalyticsBreakdown("byline", since, until, 50),
+    devices: sqliteAnalyticsBreakdown("device", since, until, 5, author),
+    trending: sqliteAnalyticsTrending(16, author).filter(t => t.slug in titleBySlug).slice(0, 8).map(t => ({ ...t, title: titleBySlug[t.slug] })),
     realtime: (() => {
-      const rt = sqliteAnalyticsRealtime();
+      const rt = sqliteAnalyticsRealtime(undefined, author);
       return { active: rt.active, reading: rt.reading.filter(r => r.slug in titleBySlug).map(r => ({ ...r, title: titleBySlug[r.slug] })) };
     })(),
   });

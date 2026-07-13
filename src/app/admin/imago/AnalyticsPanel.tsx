@@ -9,6 +9,8 @@ type Bd = { key: string; views: number };
 type Top = { slug: string; title: string; section: string; byline: string; views: number; visitors: number; avgEngagedMs: number };
 type Data = {
   range: string;
+  author?: string | null;
+  authorStoryCount?: number;
   since: number; until: number; buckets: number;
   overview: { views: number; visitors: number; engagedMs: number; avgEngagedMs: number; viewsDelta: number; visitorsDelta: number; engagedDelta: number };
   series: number[];
@@ -55,19 +57,31 @@ export default function AnalyticsPanel() {
   const [date, setDate] = useState<string | null>(null);
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
+  // Author filter: narrows every number on the panel to one writer's stories.
+  const [author, setAuthor] = useState<string | null>(null);
+  const [authorMenuOpen, setAuthorMenuOpen] = useState(false);
+  const [authorQuery, setAuthorQuery] = useState("");
+  // The picker's option list — captured from responses so it stays complete
+  // (the API's `authors` breakdown is always unfiltered).
+  const [authorOptions, setAuthorOptions] = useState<Bd[]>([]);
 
-  const load = useCallback((r: string, d: string | null, quiet = false) => {
+  const load = useCallback((r: string, d: string | null, a: string | null, quiet = false) => {
     if (!quiet) setLoading(true);
     // Send the viewer's tz offset so the server computes day windows in local time.
     const tz = new Date().getTimezoneOffset();
-    const qs = (d ? `date=${d}` : `range=${r}`) + `&tz=${tz}`;
-    fetch(`/api/analytics?${qs}`).then(res => res.json()).then(res => { if (!res.error) setData(res); }).catch(() => {}).finally(() => setLoading(false));
+    const qs = (d ? `date=${d}` : `range=${r}`) + `&tz=${tz}` + (a ? `&author=${encodeURIComponent(a)}` : "");
+    fetch(`/api/analytics?${qs}`).then(res => res.json()).then(res => {
+      if (!res.error) {
+        setData(res);
+        if (Array.isArray(res.authors)) setAuthorOptions(res.authors);
+      }
+    }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { load(range, date); }, [range, date, load]);
+  useEffect(() => { load(range, date, author); }, [range, date, author, load]);
   // Live-refresh the realtime numbers every 20s without a full spinner. Only
   // meaningful when viewing today/rolling ranges — still harmless on a past day.
-  useEffect(() => { const t = setInterval(() => load(range, date, true), 20_000); return () => clearInterval(t); }, [range, date, load]);
+  useEffect(() => { const t = setInterval(() => load(range, date, author, true), 20_000); return () => clearInterval(t); }, [range, date, author, load]);
 
   const today = todayStr();
   const yesterday = shiftDate(today, -1);
@@ -86,6 +100,50 @@ export default function AnalyticsPanel() {
           <p style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, margin: "0.25rem 0 0" }}>Your traffic, engagement, and what&apos;s trending. All self-hosted.</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+          {/* Author filter — narrows the whole panel to one writer. */}
+          <div style={{ position: "relative" }}>
+            <button onClick={() => { setAuthorMenuOpen(v => !v); setAuthorQuery(""); }}
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "white", border: `1px solid ${author ? CRIMSON : BORDER}`, borderRadius: 9, padding: "0.42rem 0.7rem 0.42rem 0.8rem", fontFamily: FONT, fontSize: "0.82rem", fontWeight: 600, color: author ? CRIMSON : TEXT_MUTED, cursor: "pointer", whiteSpace: "nowrap" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              {author ?? "All authors"}
+              {author ? (
+                <span onClick={e => { e.stopPropagation(); setAuthor(null); setAuthorMenuOpen(false); }}
+                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 16, height: 16, borderRadius: "50%", color: CRIMSON, fontSize: "1rem", lineHeight: 1, marginLeft: "0.1rem" }}>×</span>
+              ) : (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              )}
+            </button>
+            {authorMenuOpen && (
+              <>
+                <div style={{ position: "fixed", inset: 0, zIndex: 70 }} onClick={() => setAuthorMenuOpen(false)} />
+                <div style={{ position: "absolute", top: "calc(100% + 0.4rem)", right: 0, zIndex: 80, background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.14)", width: 250, overflow: "hidden" }}>
+                  <div style={{ padding: "0.6rem 0.7rem", borderBottom: "1px solid #eee", position: "relative" }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={BORDER} strokeWidth="2" strokeLinecap="round" style={{ position: "absolute", left: "1.15rem", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input autoFocus value={authorQuery} onChange={e => setAuthorQuery(e.target.value)} placeholder="Search authors"
+                      style={{ width: "100%", boxSizing: "border-box", fontFamily: FONT, fontSize: "0.85rem", padding: "0.4rem 0.5rem 0.4rem 1.7rem", border: `1px solid ${BORDER}`, borderRadius: 6, outline: "none", color: TEXT_DARK }} />
+                  </div>
+                  <div style={{ maxHeight: 230, overflowY: "auto", padding: "0.3rem" }}>
+                    {(() => {
+                      const q = authorQuery.trim().toLowerCase();
+                      const opts = authorOptions.filter(a => a.key !== "—" && (!q || a.key.toLowerCase().includes(q)));
+                      if (!opts.length) return <div style={{ padding: "0.7rem 0.6rem", fontFamily: FONT, fontSize: "0.82rem", color: BORDER }}>No authors match.</div>;
+                      return opts.map(a => (
+                        <button key={a.key} onClick={() => { setAuthor(a.key); setAuthorMenuOpen(false); }}
+                          style={{ display: "flex", alignItems: "center", gap: "0.6rem", width: "100%", background: "none", border: "none", borderRadius: 6, padding: "0.5rem 0.6rem", cursor: "pointer", textAlign: "left" }}
+                          onMouseEnter={e => (e.currentTarget.style.background = "#f7f7f7")} onMouseLeave={e => (e.currentTarget.style.background = "none")}>
+                          <span style={{ width: 26, height: 26, borderRadius: "50%", background: CRIMSON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT, fontSize: "0.66rem", fontWeight: 800, flexShrink: 0 }}>
+                            {a.key.split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase()}
+                          </span>
+                          <span style={{ flex: 1, minWidth: 0, fontFamily: FONT, fontSize: "0.86rem", color: TEXT_DARK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.key}</span>
+                          <span style={{ fontFamily: FONT, fontSize: "0.74rem", color: BORDER, flexShrink: 0 }}>{fmtN(a.views)}</span>
+                        </button>
+                      ));
+                    })()}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
           {/* Day picker: Today / Yesterday / any date, with prev-next arrows —
               answers "how did I do on [day]" the way Parse.ly's date nav does. */}
           <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#f4f4f5", borderRadius: 8, padding: 3 }}>
@@ -119,6 +177,12 @@ export default function AnalyticsPanel() {
         </div>
       </div>
 
+      {author && (
+        <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: "-0.5rem 0 1rem" }}>
+          Showing analytics for <span style={{ fontWeight: 700, color: CRIMSON }}>{author}</span>
+          {data?.authorStoryCount ? <> &middot; {data.authorStoryCount.toLocaleString()} {data.authorStoryCount === 1 ? "story" : "stories"}</> : null}
+        </p>
+      )}
       {loading && !data ? (
         <p style={{ fontFamily: FONT, color: TEXT_MUTED }}>Loading…</p>
       ) : !data ? (
