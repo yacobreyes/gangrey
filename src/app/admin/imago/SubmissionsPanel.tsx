@@ -57,7 +57,7 @@ export default function SubmissionsPanel() {
   );
 
   return (
-    <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 0 3rem" }}>
+    <div style={{ padding: "0 0 3rem" }}>
       {/* The mobile header already titles the panel — keep just the blurb there. */}
       <style>{`@media (max-width: 700px) { .sub-h2 { display: none; } }`}</style>
       <div style={{ margin: "0 0 0.5rem" }}>

@@ -918,7 +918,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
 
           {/* ABOUT EDITOR — admin only */}
           {activePanel === "about" && isAdmin && (
-            <form onSubmit={e => { e.preventDefault(); const fd = new FormData(); fd.set("body", JSON.stringify(tiptapToPortableText(aboutDoc))); startTransition(async () => { try { await saveAbout(fd); setSuccess("Saved!"); setTimeout(() => setSuccess(""), 2000); } catch (err: any) { setError(err.message); } }); }} style={{ maxWidth: 600, background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+            <form onSubmit={e => { e.preventDefault(); const fd = new FormData(); fd.set("body", JSON.stringify(tiptapToPortableText(aboutDoc))); startTransition(async () => { try { await saveAbout(fd); setSuccess("Saved!"); setTimeout(() => setSuccess(""), 2000); } catch (err: any) { setError(err.message); } }); }} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.04)", padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
               <h1 className="admin-h1" style={{ margin: 0 }}>About Page</h1>
               <div style={{ border: `1px solid ${BORDER}`, borderRadius: 4, overflow: "hidden" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.1rem", padding: "0.35rem 0.5rem", background: "#ffffff", borderBottom: `1px solid ${BORDER}` }}>
@@ -1072,7 +1072,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
 
           {/* COMMENTS */}
           {activePanel === "comments" && (
-            <div style={{ maxWidth: 700 }}>
+            <div>
               {!isMobile && (
                 <div style={{ margin: "0 0 1.2rem" }}>
                   <h1 className="admin-h1">Comments</h1>
