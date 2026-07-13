@@ -124,7 +124,7 @@ export default function AudiencePanel({
   const paidCount = members.filter(isActiveMember).length;
 
   return (
-    <div style={{ maxWidth: 720 }}>
+    <div>
       <style>{`@media (max-width: 700px) { .aud-h1 { display: none; } }`}</style>
       <h1 className="aud-h1" style={{ fontFamily: "var(--font-headline)", fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.02em", color: TEXT_DARK, margin: 0 }}>Subscribers</h1>
       <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: "0.35rem 0 1.25rem" }}>

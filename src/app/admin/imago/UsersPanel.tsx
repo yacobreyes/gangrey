@@ -101,7 +101,7 @@ export default function UsersPanel({ currentEmail, initialUsers = [] }: { curren
   }
 
   return (
-    <div style={{ maxWidth: 760 }}>
+    <div>
       <style>{`@media (max-width: 700px) { .usr-h1 { display: none; } }`}</style>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", marginBottom: "1.25rem" }}>
         <div>

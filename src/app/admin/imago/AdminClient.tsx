@@ -468,7 +468,8 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
         .admin-right { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: visible; }
         .admin-mobile-bar { display: flex; align-items: center; justify-content: space-between; background: white; padding: 0 2rem; position: sticky; top: 0; z-index: 200; border-bottom: 1px solid ${BORDER}; box-shadow: 0 1px 4px rgba(0,0,0,0.08); height: 52px; box-sizing: border-box; }
         .admin-main { background: #f5f8fa; overflow-y: auto; padding: 2rem 2.5rem; flex: 1; display: flex; flex-direction: column; align-items: stretch; }
-        .admin-main > * { width: 100%; }
+        /* Every panel shares one centered column with even gutters on each side. */
+        .admin-main > * { width: 100%; max-width: 1040px; margin-left: auto; margin-right: auto; }
         .admin-group { font-size: .62rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: ${BORDER}; padding: 1.1rem 0.7rem 0.4rem; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
         .admin-nav-btn { display: flex; align-items: center; gap: 0.7rem; width: 100%; background: none; border: none; text-align: left; padding: 0.6rem 0.7rem; font-family: ${FONT}; font-size: 0.9rem; font-weight: 500; color: ${TEXT_DARK}; cursor: pointer; border-radius: 9px; white-space: nowrap; overflow: hidden; margin-bottom: 2px; }
         .admin-nav-btn:hover { background: #f7f7f7; }
@@ -868,7 +869,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
           {/* MORE (mobile hub): profile card + the destinations that don't get
               their own bottom tab, then Sign out. */}
           {activePanel === "more" && (
-            <div style={{ maxWidth: 700 }}>
+            <div>
               {currentUser && (
                 <div style={{ background: "white", border: `1px solid ${CARD_LINE}`, borderRadius: 14, padding: "1rem", display: "flex", alignItems: "center", gap: 13, marginBottom: 18 }}>
                   <div style={{ width: 46, height: 46, borderRadius: "50%", background: CRIMSON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT, fontSize: "1.05rem", fontWeight: 800, flexShrink: 0 }}>

@@ -104,7 +104,7 @@ export default function AnalyticsPanel() {
   const h2: React.CSSProperties = { fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: TEXT_MUTED, margin: "0 0 0.9rem" };
 
   return (
-    <div style={{ maxWidth: 980 }}>
+    <div>
       {/* The mobile header already titles the panel "Analytics" — repeating an
           h1 under it wastes a screen line, so the title row is desktop-only. */}
       <style>{`@media (max-width: 700px) {
