@@ -577,6 +577,19 @@ export default function NewsletterEditorClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // A brand-new newsletter only lives in the URL until something persists it.
+  // The story editor stubs an untitled draft on mount so it shows on the
+  // dashboard immediately; mirror that here — otherwise a new newsletter that
+  // you open and Save & Exit without tripping autosave never appears.
+  const nlStubbed = useRef(false);
+  useEffect(() => {
+    if (nlStubbed.current || !isNew || nlLockedRef.current) return;
+    nlStubbed.current = true;
+    const payload = nlPayload();
+    nlSave(payload, nlSignature());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Auto-save 3s after you stop typing (matches the story editor). Uses the
   // cheap signature to detect changes on every render, and only pays for the
   // expensive portable-text conversion once the debounce fires.
@@ -1190,7 +1203,7 @@ export default function NewsletterEditorClient({
                         )}
                         <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={60} 
                           onChange={doc => nlUpdateCard(card.id, { doc })}
-                          onEditor={ed => { nlEditors.current[card.id] = ed; }}
+                          onEditor={ed => { nlEditors.current[card.id] = ed; if (ed) setNlActiveEditor(prev => prev && !prev.isDestroyed ? prev : ed); }}
                           onToolbar={tb => { nlToolbars.current[card.id] = tb; }} />
                         {nlCardDraftRow(card, "left")}
                       </div>
@@ -1218,7 +1231,7 @@ export default function NewsletterEditorClient({
                         <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.1rem", lineHeight: 1.72 }}>
                           <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} 
                             onChange={doc => nlUpdateCard(card.id, { doc })}
-                            onEditor={ed => { nlEditors.current[card.id] = ed; }}
+                            onEditor={ed => { nlEditors.current[card.id] = ed; if (ed) setNlActiveEditor(prev => prev && !prev.isDestroyed ? prev : ed); }}
                             onToolbar={tb => { nlToolbars.current[card.id] = tb; }} />
                         </div>
                         {/* Optional attached photo */}
@@ -1281,7 +1294,7 @@ export default function NewsletterEditorClient({
                             <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.1rem", lineHeight: 1.72, textAlign: "justify" }}>
                               <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} 
                                 onChange={doc => nlUpdateCard(card.id, { doc })}
-                                onEditor={ed => { nlEditors.current[card.id] = ed; }}
+                                onEditor={ed => { nlEditors.current[card.id] = ed; if (ed) setNlActiveEditor(prev => prev && !prev.isDestroyed ? prev : ed); }}
                                 onToolbar={tb => { nlToolbars.current[card.id] = tb; }} />
                             </div>
                             {nlCardDraftRow(card, "left")}
