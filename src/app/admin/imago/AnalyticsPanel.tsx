@@ -97,7 +97,7 @@ export default function AnalyticsPanel() {
         .an-title { display: none; }
         /* The author pill sits at the LEFT edge on mobile (the title row is
            hidden), so a right-anchored menu hangs off-screen — anchor left. */
-        .an-author-menu { left: 0; right: auto !important; }
+        .an-author-menu { left: 0; right: auto !important; width: min(250px, calc(100vw - 2rem)) !important; }
       }`}</style>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem", flexWrap: "wrap", gap: "0.75rem" }}>
         <div className="an-title">
@@ -239,6 +239,7 @@ export default function AnalyticsPanel() {
               <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: FONT }}>
                 <thead>
                   <tr style={{ textAlign: "left", color: TEXT_MUTED, fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    <th style={{ padding: "0 0 0.5rem" }} aria-hidden="true"></th>
                     <th style={{ padding: "0 0 0.5rem" }}>Story</th>
                     <th style={{ padding: "0 0.5rem 0.5rem", textAlign: "right" }}>Views</th>
                     <th style={{ padding: "0 0.5rem 0.5rem", textAlign: "right" }}>Visitors</th>
@@ -246,8 +247,11 @@ export default function AnalyticsPanel() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.top.length === 0 ? <tr><td colSpan={4}><Empty /></td></tr> : data.top.map(t => (
+                  {data.top.length === 0 ? <tr><td colSpan={5}><Empty /></td></tr> : data.top.map((t, i) => (
                     <tr key={t.slug} style={{ borderTop: `1px solid ${BORDER}` }}>
+                      <td style={{ padding: "0.55rem 0.5rem 0.55rem 0", width: 24, verticalAlign: "top" }}>
+                        <span style={{ fontFamily: FONT, fontSize: "0.78rem", fontWeight: 800, color: TEXT_MUTED }}>{i + 1}</span>
+                      </td>
                       <td style={{ padding: "0.55rem 0.5rem 0.55rem 0", maxWidth: 340 }}>
                         <a href={`/stories/${t.slug}`} target="_blank" rel="noreferrer" style={{ color: TEXT_DARK, fontWeight: 600, fontSize: "0.86rem", textDecoration: "none", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</a>
                         <span style={{ color: TEXT_MUTED, fontSize: "0.7rem" }}>{t.section || "—"}{t.byline ? ` · ${t.byline}` : ""}</span>
