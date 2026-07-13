@@ -44,6 +44,12 @@ function fmtDur(ms: number): string {
   return `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`;
 }
 function fmtN(n: number): string { return n.toLocaleString("en-US"); }
+// Abbreviated ("24.3k", "1.2m") for the compact mobile KPI cards.
+function fmtCompact(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}m`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
+  return String(n);
+}
 function delta(d: number) {
   const up = d >= 0;
   // Brand-only palette: EARTH for up, CRIMSON for down (no green/red).
@@ -64,6 +70,14 @@ export default function AnalyticsPanel() {
   // The picker's option list — captured from responses so it stays complete
   // (the API's `authors` breakdown is always unfiltered).
   const [authorOptions, setAuthorOptions] = useState<Bd[]>([]);
+  // Compact 2x2 KPI layout + shorter chart on phones (the mobile prototype).
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 700);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const load = useCallback((r: string, d: string | null, a: string | null, quiet = false) => {
     if (!quiet) setLoading(true);
@@ -198,17 +212,27 @@ export default function AnalyticsPanel() {
         <p style={{ fontFamily: FONT, color: TEXT_MUTED }}>No analytics yet — data appears as readers visit.</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {/* Realtime + KPIs */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem" }}>
-            <div style={card}>
-              <div style={{ ...h2, display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: CRIMSON, display: "inline-block" }} />Active now</div>
-              <div style={{ fontFamily: FONT, fontSize: "2rem", fontWeight: 800, color: CRIMSON, lineHeight: 1 }}>{fmtN(data.realtime.active)}</div>
-              <div style={{ fontFamily: FONT, fontSize: "0.75rem", color: TEXT_MUTED, marginTop: 4 }}>readers in the last 5 min</div>
+          {/* Realtime + KPIs — compact 2x2 on phones (no deltas, abbreviated
+              numbers, short labels), full cards with deltas on desktop. */}
+          {isMobile ? (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.7rem" }}>
+              <MiniKpi label="Active now" value={fmtN(data.realtime.active)} dot card={card} />
+              <MiniKpi label="Views" value={fmtCompact(data.overview.views)} card={card} />
+              <MiniKpi label="Visitors" value={fmtCompact(data.overview.visitors)} card={card} />
+              <MiniKpi label="Engaged" value={fmtDur(data.overview.avgEngagedMs)} card={card} />
             </div>
-            <Kpi title="Views" value={fmtN(data.overview.views)} d={data.overview.viewsDelta} card={card} h2={h2} compareLabel={date ? "vs. day before" : "vs. previous period"} />
-            <Kpi title="Visitors" value={fmtN(data.overview.visitors)} d={data.overview.visitorsDelta} card={card} h2={h2} compareLabel={date ? "vs. day before" : "vs. previous period"} />
-            <Kpi title="Avg. engaged time" value={fmtDur(data.overview.avgEngagedMs)} d={data.overview.engagedDelta} card={card} h2={h2} compareLabel={date ? "vs. day before" : "vs. previous period"} />
-          </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem" }}>
+              <div style={card}>
+                <div style={{ ...h2, display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: CRIMSON, display: "inline-block" }} />Active now</div>
+                <div style={{ fontFamily: FONT, fontSize: "2rem", fontWeight: 800, color: CRIMSON, lineHeight: 1 }}>{fmtN(data.realtime.active)}</div>
+                <div style={{ fontFamily: FONT, fontSize: "0.75rem", color: TEXT_MUTED, marginTop: 4 }}>readers in the last 5 min</div>
+              </div>
+              <Kpi title="Views" value={fmtN(data.overview.views)} d={data.overview.viewsDelta} card={card} h2={h2} compareLabel={date ? "vs. day before" : "vs. previous period"} />
+              <Kpi title="Visitors" value={fmtN(data.overview.visitors)} d={data.overview.visitorsDelta} card={card} h2={h2} compareLabel={date ? "vs. day before" : "vs. previous period"} />
+              <Kpi title="Avg. engaged time" value={fmtDur(data.overview.avgEngagedMs)} d={data.overview.engagedDelta} card={card} h2={h2} compareLabel={date ? "vs. day before" : "vs. previous period"} />
+            </div>
+          )}
 
           {/* Time series */}
           <div style={card}>
@@ -216,7 +240,7 @@ export default function AnalyticsPanel() {
               <span>Views {date ? "by hour" : "over time"}</span>
               {date && <span style={{ color: TEXT_DARK, fontWeight: 700, letterSpacing: 0, textTransform: "none", fontSize: "0.78rem" }}>{fmtDateLabel(date)}</span>}
             </div>
-            <Series data={data} onPickDate={setDate} />
+            <Series data={data} onPickDate={setDate} mobileChart={isMobile} />
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1rem" }}>
@@ -283,6 +307,17 @@ export default function AnalyticsPanel() {
   );
 }
 
+function MiniKpi({ label, value, dot = false, card }: { label: string; value: string; dot?: boolean; card: React.CSSProperties }) {
+  return (
+    <div style={{ ...card, padding: "0.9rem 1rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: FONT, fontSize: "0.66rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: TEXT_MUTED, marginBottom: "0.4rem" }}>
+        {dot && <span style={{ width: 7, height: 7, borderRadius: "50%", background: CRIMSON, display: "inline-block" }} />}{label}
+      </div>
+      <div style={{ fontFamily: FONT, fontSize: "1.7rem", fontWeight: 800, color: dot ? CRIMSON : TEXT_DARK, lineHeight: 1 }}>{value}</div>
+    </div>
+  );
+}
+
 function Kpi({ title, value, d, card, h2, compareLabel }: { title: string; value: string; d: number; card: React.CSSProperties; h2: React.CSSProperties; compareLabel: string }) {
   return (
     <div style={card}>
@@ -300,7 +335,7 @@ function Kpi({ title, value, d, card, h2, compareLabel }: { title: string; value
 // day / week-over-week / month-over-month" is something you can actually see
 // rather than infer from a KPI percentage. Each bucket shows this-period
 // (solid crimson) beside the same bucket from the prior period (light grey).
-function Series({ data, onPickDate }: { data: Data; onPickDate: (d: string) => void }) {
+function Series({ data, onPickDate, mobileChart = false }: { data: Data; onPickDate: (d: string) => void; mobileChart?: boolean }) {
   const { series: values, since, until, buckets } = data;
   const [hover, setHover] = useState<number | null>(null);
   // Clicking a bar pins its tooltip open (essential on touch, where there's no
@@ -343,7 +378,7 @@ function Series({ data, onPickDate }: { data: Data; onPickDate: (d: string) => v
             {!hourly && <div style={{ color: "#a8a29b", marginTop: 2 }}>Click to open this day</div>}
           </div>
         )}
-        <div style={{ display: "flex", alignItems: "flex-end", gap: buckets > 30 ? 1 : 3, height: 130 }}>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: buckets > 30 ? 1 : 3, height: mobileChart ? 90 : 130 }}>
           {values.map((v, i) => (
             <div key={i} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
               onClick={() => {
