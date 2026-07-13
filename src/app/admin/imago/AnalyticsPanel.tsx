@@ -44,7 +44,8 @@ function fmtDur(ms: number): string {
 function fmtN(n: number): string { return n.toLocaleString("en-US"); }
 function delta(d: number) {
   const up = d >= 0;
-  return <span style={{ fontSize: "0.72rem", fontWeight: 700, color: up ? "#1a7f37" : "#b3261e" }}>{up ? "▲" : "▼"} {Math.abs(d)}%</span>;
+  // Brand-only palette: EARTH for up, CRIMSON for down (no green/red).
+  return <span style={{ fontSize: "0.72rem", fontWeight: 700, color: up ? TEXT_MUTED : CRIMSON }}>{up ? "▲" : "▼"} {Math.abs(d)}%</span>;
 }
 
 export default function AnalyticsPanel() {
@@ -71,7 +72,7 @@ export default function AnalyticsPanel() {
   const today = todayStr();
   const yesterday = shiftDate(today, -1);
 
-  const card: React.CSSProperties = { background: "white", border: "1px solid #e6e4e0", borderRadius: 12, padding: "1.1rem 1.25rem", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" };
+  const card: React.CSSProperties = { background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "1.1rem 1.25rem", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" };
   const h2: React.CSSProperties = { fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: TEXT_MUTED, margin: "0 0 0.9rem" };
 
   return (
@@ -81,7 +82,7 @@ export default function AnalyticsPanel() {
       <style>{`@media (max-width: 700px) { .an-title { display: none; } }`}</style>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem", flexWrap: "wrap", gap: "0.75rem" }}>
         <div className="an-title">
-          <h1 style={{ fontFamily: FONT, fontSize: "1.4rem", fontWeight: 800, color: TEXT_DARK, margin: 0 }}>Analytics</h1>
+          <h1 style={{ fontFamily: "var(--font-headline)", fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.02em", color: TEXT_DARK, margin: 0 }}>Analytics</h1>
           <p style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, margin: "0.25rem 0 0" }}>Your traffic, engagement, and what&apos;s trending. All self-hosted.</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
@@ -126,9 +127,9 @@ export default function AnalyticsPanel() {
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           {/* Realtime + KPIs */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem" }}>
-            <div style={{ ...card, borderColor: "#c8e6d0", background: "#f2fbf5" }}>
-              <div style={h2}>● Active now</div>
-              <div style={{ fontFamily: FONT, fontSize: "2rem", fontWeight: 800, color: "#1a7f37", lineHeight: 1 }}>{fmtN(data.realtime.active)}</div>
+            <div style={card}>
+              <div style={{ ...h2, display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: CRIMSON, display: "inline-block" }} />Active now</div>
+              <div style={{ fontFamily: FONT, fontSize: "2rem", fontWeight: 800, color: CRIMSON, lineHeight: 1 }}>{fmtN(data.realtime.active)}</div>
               <div style={{ fontFamily: FONT, fontSize: "0.75rem", color: TEXT_MUTED, marginTop: 4 }}>readers in the last 5 min</div>
             </div>
             <Kpi title="Views" value={fmtN(data.overview.views)} d={data.overview.viewsDelta} card={card} h2={h2} compareLabel={date ? "vs. day before" : "vs. previous period"} />

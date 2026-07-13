@@ -61,7 +61,7 @@ export default function SubmissionsPanel() {
       {/* The mobile header already titles the panel — keep just the blurb there. */}
       <style>{`@media (max-width: 700px) { .sub-h2 { display: none; } }`}</style>
       <div style={{ margin: "0 0 0.5rem" }}>
-        <h2 className="sub-h2" style={{ fontFamily: FONT, fontSize: "1.15rem", fontWeight: 700, color: TEXT_DARK, margin: 0 }}>Submissions</h2>
+        <h2 className="sub-h2" style={{ fontFamily: "var(--font-headline)", fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.02em", color: TEXT_DARK, margin: 0 }}>Submissions</h2>
         <p style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, margin: "0.25rem 0 0" }}>Stories sent in through the submission portal.</p>
       </div>
 
@@ -249,7 +249,7 @@ function SubmissionCard({ sub, open, onToggle, onChanged }: { sub: SubmissionRow
 function btn(color: string, filled: boolean, busy: boolean): React.CSSProperties {
   return {
     fontFamily: FONT, fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.04em",
-    padding: "0.5rem 1rem", borderRadius: 4, cursor: busy ? "default" : "pointer",
+    padding: "0.5rem 1.1rem", borderRadius: 20, cursor: busy ? "default" : "pointer",
     border: `1px solid ${color}`,
     background: filled ? color : "#fff",
     color: filled ? "#fff" : color,

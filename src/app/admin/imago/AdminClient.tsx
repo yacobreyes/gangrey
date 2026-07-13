@@ -443,27 +443,30 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
         body { background: #f5f8fa !important; }
         .admin-layout { display: flex; min-height: 100vh; }
         .admin-sidebar {
-          width: ${sidebarOpen ? "220px" : "60px"};
-          min-width: ${sidebarOpen ? "220px" : "60px"};
+          width: ${sidebarOpen ? "248px" : "66px"};
+          min-width: ${sidebarOpen ? "248px" : "66px"};
           background: white;
           border-right: 1px solid ${BORDER};
           display: flex;
           flex-direction: column;
           transition: width 0.2s ease, min-width 0.2s ease;
-          overflow: hidden;
           position: relative;
           z-index: 10;
           overflow: visible;
         }
         .admin-right { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: visible; }
         .admin-mobile-bar { display: flex; align-items: center; justify-content: space-between; background: white; padding: 0 2rem; position: sticky; top: 0; z-index: 200; border-bottom: 1px solid ${BORDER}; box-shadow: 0 1px 4px rgba(0,0,0,0.08); height: 52px; box-sizing: border-box; }
-        .admin-main { background: #f5f8fa; overflow-y: auto; padding: 2rem; flex: 1; display: flex; flex-direction: column; align-items: stretch; }
-        .admin-main > * { max-width: 900px; width: 100%; margin-left: auto; margin-right: auto; }
-        .admin-nav-btn { display: flex; align-items: center; gap: 0.75rem; width: 100%; background: none; border: none; text-align: left; padding: 0.65rem 0.85rem; font-family: ${FONT}; font-size: 0.88rem; font-weight: 500; color: ${TEXT_DARK}; cursor: pointer; border-radius: 6px; white-space: nowrap; overflow: hidden; }
-        .admin-nav-btn:hover { background: #ffffff; color: ${CRIMSON}; }
-        .admin-nav-btn.active { background: #ffffff; color: ${CRIMSON}; font-weight: 700; border-left: 3px solid ${CRIMSON}; padding-left: calc(0.85rem - 3px); }
-        .post-row { padding: 0.85rem 1.25rem; border-bottom: 1px solid ${BORDER}; display: flex; align-items: center; gap: 1rem; cursor: pointer; }
-        .post-row:hover { background: #ffffff; }
+        .admin-main { background: #f5f8fa; overflow-y: auto; padding: 2rem 2.5rem; flex: 1; display: flex; flex-direction: column; align-items: stretch; }
+        .admin-main > * { width: 100%; }
+        .admin-group { font-size: .62rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: ${BORDER}; padding: 1.1rem 0.7rem 0.4rem; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+        .admin-nav-btn { display: flex; align-items: center; gap: 0.7rem; width: 100%; background: none; border: none; text-align: left; padding: 0.6rem 0.7rem; font-family: ${FONT}; font-size: 0.9rem; font-weight: 500; color: ${TEXT_DARK}; cursor: pointer; border-radius: 9px; white-space: nowrap; overflow: hidden; margin-bottom: 2px; }
+        .admin-nav-btn:hover { background: #f7f7f7; }
+        .admin-nav-btn.active { background: #f5f8fa; color: ${CRIMSON}; font-weight: 700; box-shadow: inset 3px 0 0 ${CRIMSON}; }
+        .admin-h1 { font-family: var(--font-headline); font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; color: ${TEXT_DARK}; margin: 0; }
+        .admin-sub { font-family: ${FONT}; font-size: 0.9rem; color: ${TEXT_MUTED}; margin: 0.35rem 0 0; }
+        .post-row { padding: 1rem 1.25rem; border-bottom: 1px solid #e6e6e8; display: flex; align-items: center; gap: 1rem; cursor: pointer; background: white; }
+        .post-row:hover { background: #f7f7f7; }
+        .post-row:hover .prow-chev { opacity: 1; transform: translateX(0); }
         .post-row:last-child { border-bottom: none; }
         @media (max-width: 700px) {
           .admin-sidebar { display: none; }
@@ -522,42 +525,70 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
       <div className="admin-layout">
         {/* Collapsible sidebar */}
         <div className="admin-sidebar">
-          {/* Logo */}
-          <div style={{ padding: "0 0.75rem", display: "flex", alignItems: "center", justifyContent: sidebarOpen ? "flex-start" : "center", borderBottom: `1px solid ${BORDER}`, height: 52, boxSizing: "border-box", flexShrink: 0 }}>
-            <span style={{ fontFamily: FONT, fontSize: "1.05rem", fontWeight: 900, color: TEXT_DARK, letterSpacing: "-0.02em" }}>
-              {sidebarOpen ? <><span style={{ color: CRIMSON }}>i</span><span style={{ color: "#000000" }}>mago</span></> : <span style={{ color: CRIMSON }}>i</span>}
-            </span>
+          {/* Logo row: crimson mayfly mark + astoria wordmark */}
+          <div style={{ padding: sidebarOpen ? "0 1.35rem" : 0, display: "flex", alignItems: "center", justifyContent: sidebarOpen ? "flex-start" : "center", gap: sidebarOpen ? 11 : 0, borderBottom: `1px solid ${BORDER}`, height: 64, boxSizing: "border-box", flexShrink: 0 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/imago-mayfly.png" alt="" style={{ height: 23, width: "auto", display: "block", flexShrink: 0 }} />
+            {sidebarOpen && (
+              <span style={{ fontFamily: "var(--font-headline)", fontSize: "1.55rem", fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1, whiteSpace: "nowrap" }}>
+                <span style={{ color: CRIMSON }}>i</span><span style={{ color: "#000000" }}>mago</span>
+              </span>
+            )}
           </div>
-          {/* Nav items */}
-          <div style={{ flex: 1, padding: "0.5rem 0.4rem", overflowY: "auto", overflowX: "hidden" }}>
+          {/* Grouped nav */}
+          <div style={{ flex: 1, padding: "0.35rem 0.7rem", overflowY: "auto", overflowX: "hidden" }}>
             {([
-              ["dashboard", "Posts", <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>],
-              ["media", "Media Library", <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>],
-              ["archive", "Archive", <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>],
-              ["comments", "Comments", <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>],
-              ["analytics", "Analytics", <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>],
-              ["submissions", "Submissions", <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>],
-              // About, Subscribers, and Users are admin-only — editors don't see them.
-              ...(isAdmin ? [
-                ["members", "Subscribers", <svg key="m" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>],
-                ["about", "About", <svg key="a" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.5" fill="currentColor" stroke="none"/></svg>],
-                ["users", "Users", <svg key="u" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>],
-              ] as [Panel, string, React.ReactNode][] : []),
-            ] as [Panel, string, React.ReactNode][]).map(([panel, label, icon]) => (
-              <button key={panel} onClick={() => tryNav(panel)} className={`admin-nav-btn${activePanel === panel ? " active" : ""}`} title={!sidebarOpen ? label : undefined}>
-                <span style={{ flexShrink: 0, display: "flex", alignItems: "center" }}>{icon}</span>
-                {sidebarOpen && <span>{label}</span>}
-              </button>
+              ["Content", null, [
+                ["dashboard", "Posts", <svg key="p" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>],
+                ["media", "Media Library", <svg key="me" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>],
+                ["archive", "Archive", <svg key="ar" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>],
+              ]],
+              ["Newsroom", null, [
+                ["comments", "Comments", <svg key="c" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>],
+                ["submissions", "Submissions", <svg key="s" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>],
+                ["analytics", "Analytics", <svg key="an" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>],
+              ]],
+              ...(isAdmin ? [["Admin only", "lock", [
+                ["members", "Subscribers", <svg key="m" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>],
+                ["about", "About", <svg key="a" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.5" fill="currentColor" stroke="none"/></svg>],
+                ["users", "Users", <svg key="u" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>],
+              ]]] as [string, string | null, [Panel, string, React.ReactNode][]][] : []),
+            ] as [string, string | null, [Panel, string, React.ReactNode][]][]).map(([group, badge, items]) => (
+              <div key={group}>
+                {sidebarOpen && (
+                  <div className="admin-group">
+                    <span>{group}</span>
+                    {badge === "lock" && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={BORDER} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
+                  </div>
+                )}
+                {items.map(([panel, label, icon]) => (
+                  <button key={panel} onClick={() => tryNav(panel)} className={`admin-nav-btn${activePanel === panel ? " active" : ""}`} title={!sidebarOpen ? label : undefined} style={!sidebarOpen ? { justifyContent: "center", paddingLeft: 0, paddingRight: 0 } : undefined}>
+                    <span style={{ flexShrink: 0, display: "flex", alignItems: "center", color: activePanel === panel ? CRIMSON : TEXT_MUTED }}>{icon}</span>
+                    {sidebarOpen && <span style={{ flex: 1 }}>{label}</span>}
+                  </button>
+                ))}
+              </div>
             ))}
           </div>
-          {/* Sign out */}
-          <div style={{ padding: "0.75rem 0.4rem", borderTop: `1px solid ${BORDER}` }}>
-            <button onClick={signOutEverywhere} className="admin-nav-btn" title={!sidebarOpen ? "Sign out" : undefined}>
-              <span style={{ flexShrink: 0, display: "flex", alignItems: "center" }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-              </span>
-              {sidebarOpen && <span>Sign out</span>}
-            </button>
+          {/* Footer: current user + sign out */}
+          <div style={{ padding: "0.7rem", borderTop: `1px solid ${BORDER}` }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: sidebarOpen ? "flex-start" : "center", gap: 10, padding: "0.5rem 0.55rem", borderRadius: 10 }}>
+              <div style={{ width: 34, height: 34, borderRadius: "50%", background: CRIMSON, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT, fontSize: "0.8rem", fontWeight: 800, flexShrink: 0 }}>
+                {(currentUser?.name ?? "?").split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase()}
+              </div>
+              {sidebarOpen && (
+                <>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: FONT, fontSize: "0.82rem", fontWeight: 700, color: TEXT_DARK, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{currentUser?.name ?? ""}</div>
+                    <div style={{ fontFamily: FONT, fontSize: "0.68rem", color: TEXT_MUTED }}>{isAdmin ? "Admin" : "Editor"}</div>
+                  </div>
+                  <button onClick={signOutEverywhere} title="Sign out" style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex", color: BORDER }}
+                    onMouseEnter={e => (e.currentTarget.style.color = CRIMSON)} onMouseLeave={e => (e.currentTarget.style.color = BORDER)}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -572,57 +603,8 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
               {sidebarOpen ? <polyline points="15 18 9 12 15 6"/> : <polyline points="9 18 15 12 9 6"/>}
             </svg>
           </button>
-          {/* Top bar — desktop */}
-          {!isMobile && (
-            <div className="admin-mobile-bar">
-              {/* Left: search */}
-              <div style={{ width: 260, flexShrink: 0 }}>
-                {(activePanel === "dashboard" || activePanel === "archive") && (
-                  <div style={{ position: "relative" }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" style={{ position: "absolute", left: "0.65rem", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input placeholder={activePanel === "archive" ? "Search the archive" : "Search for stories and newsletters"} value={query} onChange={e => setQuery(e.target.value)} style={{ fontFamily: FONT, fontSize: "0.82rem", padding: "0.38rem 0.8rem 0.38rem 2.1rem", border: `1px solid ${BORDER}`, borderRadius: 20, background: "#ffffff", color: TEXT_DARK, outline: "none", width: "100%", boxSizing: "border-box" as const }} />
-                  </div>
-                )}
-              </div>
-              {/* Center: tabs */}
-              <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: "0.25rem" }}>
-                {activePanel === "dashboard" && (["drafts", "scheduled", "published"] as const).map(tab => (
-                  <button key={tab} onClick={() => setPostTab(tab)} style={{ background: "none", border: "none", borderBottom: `2px solid ${postTab === tab ? CRIMSON : "transparent"}`, padding: "0.4rem 1rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: postTab === tab ? CRIMSON : TEXT_MUTED, cursor: "pointer", whiteSpace: "nowrap" }}>
-                    {tab === "drafts" ? "Drafts" : tab === "scheduled" ? "Scheduled" : "Published"}
-                  </button>
-                ))}
-              </div>
-              {/* Right: Create new (dashboard only) or panel title */}
-              <div style={{ width: 260, flexShrink: 0, display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
-                {activePanel === "dashboard" ? (
-                  <div ref={createMenuRef} style={{ position: "relative" }}>
-                    <button onClick={() => setShowCreateMenu(v => !v)}
-                      style={{ background: CRIMSON, color: "white", border: "none", borderRadius: 20, padding: "0.4rem 0.9rem", fontFamily: FONT, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
-                      + Create new
-                    </button>
-                    {showCreateMenu && (
-                      <div style={{ position: "absolute", top: "calc(100% + 0.4rem)", right: 0, background: "white", border: `1px solid ${BORDER}`, borderRadius: 6, boxShadow: "0 4px 16px rgba(0,0,0,0.1)", minWidth: 150, zIndex: 100, overflow: "hidden" }}>
-                        <button onClick={() => { setShowCreateMenu(false); if (isDirty && !confirm("Discard unsaved changes?")) return; setShowNlTypeModal(true); }} style={{ display: "flex", alignItems: "center", gap: "0.55rem", width: "100%", textAlign: "left", padding: "0.6rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: TEXT_DARK, background: "none", border: "none", cursor: "pointer" }}
-                          onMouseEnter={e => { e.currentTarget.style.background = "#ffffff"; }} onMouseLeave={e => { e.currentTarget.style.background = "none"; }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: TEXT_MUTED }}><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2 6 12 13 22 6"/></svg>
-                          Newsletter
-                        </button>
-                        <button onClick={() => { setShowCreateMenu(false); if (isDirty && !confirm("Discard unsaved changes?")) return; startNew(); }} style={{ display: "flex", alignItems: "center", gap: "0.55rem", width: "100%", textAlign: "left", padding: "0.6rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: TEXT_DARK, background: "none", border: "none", cursor: "pointer" }}
-                          onMouseEnter={e => { e.currentTarget.style.background = "#ffffff"; }} onMouseLeave={e => { e.currentTarget.style.background = "none"; }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: TEXT_MUTED }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
-                          Story
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <span style={{ fontFamily: FONT, fontSize: "1rem", fontWeight: 700, color: TEXT_DARK }}>
-                    {activePanel === "media" ? "Media Library" : activePanel === "comments" ? "Comments" : activePanel === "submissions" ? "Submissions" : activePanel === "about" ? "About" : activePanel === "users" ? "Users" : activePanel === "members" ? "Subscribers" : activePanel === "archive" ? "Archive" : activePanel === "analytics" ? "Analytics" : ""}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Desktop: no top bar — each panel renders its own astoria header
+              in the content area (search + Create live there on the dashboard). */}
 
           {/* Top bar — mobile */}
           {isMobile && (
@@ -639,8 +621,12 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
               ) : (
                 /* Main tab: wordmark left, contextual title right */
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 1.1rem", height: 48, boxSizing: "border-box" }}>
-                  <span style={{ fontFamily: FONT, fontSize: "1.35rem", fontWeight: 900, color: TEXT_DARK, letterSpacing: "-0.02em" }}>
-                    <span style={{ color: CRIMSON }}>i</span><span style={{ color: "#000000" }}>mago</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/imago-mayfly.png" alt="" style={{ height: 18, width: "auto", display: "block" }} />
+                    <span style={{ fontFamily: "var(--font-headline)", fontSize: "1.4rem", fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1 }}>
+                      <span style={{ color: CRIMSON }}>i</span><span style={{ color: "#000000" }}>mago</span>
+                    </span>
                   </span>
                   <span style={{ fontFamily: FONT, fontSize: "0.82rem", fontWeight: 600, color: TEXT_MUTED }}>{PANEL_TITLES[activePanel] ?? ""}</span>
                 </div>
@@ -671,7 +657,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
 
           {/* DASHBOARD + ARCHIVE (share the same list rendering) */}
           {(activePanel === "dashboard" || activePanel === "archive") && (
-            <div style={{ maxWidth: 900 }}>
+            <div>
 
               {/* Count + sort row */}
               {(() => {
@@ -700,148 +686,151 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                 const sortedPosts = isArchive ? sortedPostsAll.slice(0, ARCHIVE_CAP) : sortedPostsAll;
                 const archiveOverflow = isArchive ? Math.max(0, sortedPostsAll.length - ARCHIVE_CAP) : 0;
                 const sortLabel = sortBy === "lastEdited" ? "Last edited" : "Date created";
+                const sortMenu = (
+                  <div ref={sortMenuRef} style={{ position: "relative" }}>
+                    <button onClick={() => setShowSortMenu(v => !v)} style={{ display: "flex", alignItems: "center", gap: "0.35rem", background: "none", border: "none", cursor: "pointer", fontFamily: FONT, fontSize: "0.8rem", color: TEXT_MUTED, padding: "0.25rem 0.5rem" }}>
+                      Sort by: {sortLabel}
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={TEXT_MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    {showSortMenu && (
+                      <div style={{ position: "absolute", right: 0, top: "100%", background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", zIndex: 20, minWidth: 160, overflow: "hidden" }}>
+                        {(["lastEdited", "dateCreated"] as const).map(opt => (
+                          <button key={opt} onClick={() => { setSortBy(opt); setShowSortMenu(false); }} style={{ display: "block", width: "100%", textAlign: "left", background: sortBy === opt ? "#f7f7f7" : "none", border: "none", cursor: "pointer", fontFamily: FONT, fontSize: "0.82rem", color: TEXT_DARK, padding: "0.55rem 0.85rem" }}>
+                            {opt === "lastEdited" ? "Last edited" : "Date created"}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
                 return (
                   <>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
-                      <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: 0, paddingLeft: "1rem" }}>{total} {total === 1 ? label : label + "s"}</p>
-                      <div ref={sortMenuRef} style={{ position: "relative" }}>
-                        <button onClick={() => setShowSortMenu(v => !v)} style={{ display: "flex", alignItems: "center", gap: "0.35rem", background: "none", border: "none", cursor: "pointer", fontFamily: FONT, fontSize: "0.8rem", color: TEXT_MUTED, padding: "0.25rem 0.5rem" }}>
-                          Sort by: {sortLabel}
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={TEXT_MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                        </button>
-                        {showSortMenu && (
-                          <div style={{ position: "absolute", right: 0, top: "100%", background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", zIndex: 20, minWidth: 160 }}>
-                            {(["lastEdited", "dateCreated"] as const).map(opt => (
-                              <button key={opt} onClick={() => { setSortBy(opt); setShowSortMenu(false); }} style={{ display: "block", width: "100%", textAlign: "left", background: sortBy === opt ? "#ffffff" : "none", border: "none", cursor: "pointer", fontFamily: FONT, fontSize: "0.82rem", color: TEXT_DARK, padding: "0.55rem 0.85rem" }}>
-                                {opt === "lastEdited" ? "Last edited" : "Date created"}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {/* Table header (desktop only — mobile uses cards) */}
+                    {/* Desktop: astoria panel header with dateline, search, Create */}
                     {!isMobile && (
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 120px", padding: "0.4rem 1rem" }}>
-                        {["Name", "Type", "Date"].map(h => (
-                          <span key={h} style={{ fontFamily: FONT, fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: TEXT_MUTED }}>{h}</span>
-                        ))}
+                      <div style={{ marginBottom: "1.1rem" }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem" }}>
+                          <div>
+                            <h1 className="admin-h1">{isArchive ? "Archive" : "Posts"}</h1>
+                            <p className="admin-sub">{isArchive
+                              ? `${(sortedPostsAll.length).toLocaleString()} archive pieces. Search to narrow.`
+                              : new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</p>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", position: "relative" }}>
+                            <div style={{ position: "relative" }}>
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={BORDER} strokeWidth="2" strokeLinecap="round" style={{ position: "absolute", left: "0.7rem", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                              <input placeholder={isArchive ? "Search the archive" : "Search stories"} value={query} onChange={e => setQuery(e.target.value)} style={{ fontFamily: FONT, fontSize: "0.85rem", padding: "0.5rem 0.9rem 0.5rem 2.2rem", border: `1px solid ${BORDER}`, borderRadius: 10, background: "white", color: TEXT_DARK, outline: "none", width: 210, boxSizing: "border-box" as const }} />
+                            </div>
+                            {!isArchive && (
+                              <div ref={createMenuRef} style={{ position: "relative" }}>
+                                <button onClick={() => setShowCreateMenu(v => !v)}
+                                  style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: CRIMSON, color: "white", border: "none", borderRadius: 20, padding: "0.55rem 1.15rem", fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                  Create
+                                </button>
+                                {showCreateMenu && (
+                                  <div style={{ position: "absolute", top: "calc(100% + 0.5rem)", right: 0, background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.14)", minWidth: 190, zIndex: 100, overflow: "hidden" }}>
+                                    <button onClick={() => { setShowCreateMenu(false); if (isDirty && !confirm("Discard unsaved changes?")) return; startNew(); }} style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", textAlign: "left", padding: "0.8rem 1rem", fontFamily: FONT, fontSize: "0.92rem", fontWeight: 600, color: TEXT_DARK, background: "none", border: "none", borderBottom: "1px solid #eee", cursor: "pointer" }}
+                                      onMouseEnter={e => { e.currentTarget.style.background = "#f7f7f7"; }} onMouseLeave={e => { e.currentTarget.style.background = "none"; }}>
+                                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={CRIMSON} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                      Story
+                                    </button>
+                                    <button onClick={() => { setShowCreateMenu(false); if (isDirty && !confirm("Discard unsaved changes?")) return; setShowNlTypeModal(true); }} style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", textAlign: "left", padding: "0.8rem 1rem", fontFamily: FONT, fontSize: "0.92rem", fontWeight: 600, color: TEXT_DARK, background: "none", border: "none", cursor: "pointer" }}
+                                      onMouseEnter={e => { e.currentTarget.style.background = "#f7f7f7"; }} onMouseLeave={e => { e.currentTarget.style.background = "none"; }}>
+                                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={CRIMSON} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2 6 12 13 22 6"/></svg>
+                                      Newsletter
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "1.6rem", marginTop: "1.4rem", borderBottom: `1px solid ${BORDER}` }}>
+                          {!isArchive && (["drafts", "scheduled", "published"] as const).map(tab => (
+                            <button key={tab} onClick={() => setPostTab(tab)} style={{ background: "none", border: "none", borderBottom: `2px solid ${postTab === tab ? CRIMSON : "transparent"}`, marginBottom: -1, padding: "0.7rem 0.1rem", fontFamily: FONT, fontSize: "0.85rem", fontWeight: postTab === tab ? 700 : 600, color: postTab === tab ? CRIMSON : TEXT_MUTED, cursor: "pointer" }}>
+                              {tab === "drafts" ? "Drafts" : tab === "scheduled" ? "Scheduled" : "Published"}
+                            </button>
+                          ))}
+                          <div style={{ marginLeft: "auto", paddingBottom: "0.4rem" }}>{sortMenu}</div>
+                        </div>
+                      </div>
+                    )}
+                    {/* Mobile: count + sort row */}
+                    {isMobile && (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+                        <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: 0, paddingLeft: "0.25rem" }}>{total} {total === 1 ? label : label + "s"}</p>
+                        {sortMenu}
                       </div>
                     )}
                     {/* Rows */}
                     {isArchive && archiveLoading && !archiveLoaded ? (
-                      <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "3rem", textAlign: "center", marginTop: "0.25rem" }}>
+                      <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 14, padding: "3rem", textAlign: "center", marginTop: "0.25rem" }}>
                         <p style={{ fontFamily: FONT, color: TEXT_MUTED, margin: 0 }}>Loading archive…</p>
                       </div>
                     ) : total === 0 ? (
-                      <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "3rem", textAlign: "center", marginTop: "0.25rem" }}>
+                      <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 14, padding: "3rem", textAlign: "center", marginTop: "0.25rem" }}>
                         <p style={{ fontFamily: FONT, color: TEXT_MUTED, margin: 0 }}>{query ? `No results for "${query}"` : `No ${label}s yet.`}</p>
                       </div>
-                    ) : isMobile ? (
-                      /* Mobile: white post cards with a status dot, meta line, and
-                         date column (from the mobile design prototype). */
-                      <div style={{ marginTop: "0.25rem" }}>
+                    ) : (
+                      /* One shared row design, desktop and mobile (from the
+                         redesign prototypes): a white card list where each row
+                         has a 38px crimson icon tile with a status badge on its
+                         corner (green published / yellow scheduled / none for
+                         drafts), an astoria title, and "section - byline". */
+                      <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", marginTop: "0.25rem" }}>
                         {(() => {
-                          // Dots mark items with a live state: yellow = scheduled,
-                          // green = published. Drafts get no dot.
                           const dot = isArchive || postTab === "published" ? "#1a7f37" : postTab === "scheduled" ? "#c9a227" : null;
-                          const card = (opts: { key: string; onClick: () => void; isNl?: boolean; title: React.ReactNode; meta: string; lock?: LockHolder; date: string }) => (
-                            <div key={opts.key} onClick={opts.onClick}
-                              style={{ background: "white", border: `1px solid ${CARD_LINE}`, borderRadius: 12, padding: "0.8rem 0.9rem", marginBottom: 9, display: "flex", alignItems: "flex-start", gap: 11, cursor: "pointer", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
-                              {dot && <span style={{ width: 9, height: 9, borderRadius: "50%", marginTop: 5, flexShrink: 0, background: dot }} />}
-                              <span style={{ flex: 1, minWidth: 0 }}>
-                                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                  {opts.isNl && <span style={{ fontFamily: FONT, fontSize: "0.56rem", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: CRIMSON, background: "#f3e9e9", borderRadius: 4, padding: "2px 5px", flexShrink: 0 }}>Newsletter</span>}
-                                  <span style={{ fontFamily: FONT, fontSize: "0.94rem", fontWeight: 600, color: TEXT_DARK, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{opts.title}</span>
-                                </span>
-                                <span style={{ display: "block", fontFamily: FONT, fontSize: "0.75rem", color: "#7a6f68", marginTop: 3 }}>{opts.meta}</span>
-                                {opts.lock && (
-                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontFamily: FONT, fontSize: "0.7rem", color: CRIMSON, marginTop: 5, fontWeight: 600 }}>
-                                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: CRIMSON }} />{opts.lock.name} is editing
-                                  </span>
-                                )}
-                              </span>
-                              <span style={{ fontFamily: FONT, fontSize: "0.7rem", color: "#a29a93", whiteSpace: "nowrap", flexShrink: 0 }}>{opts.date}</span>
+                          const row = (opts: { key: string; onClick: () => void; onCtx?: (e: React.MouseEvent) => void; isNl?: boolean; title: React.ReactNode; meta: React.ReactNode; date: string }) => (
+                            <div key={opts.key} className="post-row" onClick={opts.onClick} onContextMenu={opts.onCtx}
+                              style={isMobile ? { padding: "0.8rem 0.9rem", gap: 12 } : undefined}>
+                              <div style={{ position: "relative", flexShrink: 0 }}>
+                                <div style={{ width: 38, height: 38, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: CRIMSON, color: "white" }}>
+                                  {opts.isNl
+                                    ? <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
+                                    : <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}
+                                </div>
+                                {dot && <span style={{ position: "absolute", bottom: -3, right: -3, width: 14, height: 14, borderRadius: "50%", background: dot, border: "2.5px solid #fff", boxSizing: "border-box" }} />}
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <span style={{ display: "block", fontFamily: "var(--font-headline)", fontSize: isMobile ? "1.08rem" : "1.12rem", fontWeight: 700, color: TEXT_DARK, lineHeight: 1.25, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{opts.title}</span>
+                                <div style={{ fontFamily: FONT, fontSize: isMobile ? "0.78rem" : "0.8rem", color: TEXT_MUTED, marginTop: "0.3rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{opts.meta}</div>
+                              </div>
+                              <span style={{ fontFamily: FONT, fontSize: "0.8rem", color: BORDER, whiteSpace: "nowrap", flexShrink: 0 }}>{opts.date}</span>
+                              {!isMobile && <svg className="prow-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={BORDER} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0, transform: "translateX(-4px)", transition: "opacity .15s, transform .15s" }}><polyline points="9 18 15 12 9 6"/></svg>}
                             </div>
                           );
+                          const lockLine = (holder: LockHolder | undefined, verb: string, fallback: React.ReactNode) => holder ? (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: CRIMSON, fontWeight: 600 }}>
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                              {holder.name} is {verb}
+                            </span>
+                          ) : fallback;
                           return (
                             <>
-                              {sortedNl.map(n => card({
-                                key: n._id, onClick: () => openNewsletter(n), isNl: true,
+                              {sortedNl.map(n => row({
+                                key: n._id, isNl: true,
+                                onClick: () => openNewsletter(n),
+                                onCtx: e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, kind: "newsletter", newsletter: n }); },
                                 title: n.subject || <span style={{ color: TEXT_MUTED, fontWeight: 400 }}>Untitled newsletter</span>,
-                                meta: n.author || "Newsletter draft", lock: activeLocks[n._id],
-                                date: (n.createdAt ?? n.updatedAt ?? "").slice(0, 10) || "—",
+                                meta: lockLine(activeLocks[n._id], "writing", <>Newsletter{n.author ? <> &middot; {n.author}</> : null}</>),
+                                date: (n.createdAt ?? n.updatedAt ?? "").slice(0, 10) || "\u2014",
                               }))}
-                              {sortedPosts.map(post => card({
-                                key: post._id, onClick: () => startEdit(post),
+                              {sortedPosts.map(post => row({
+                                key: post._id,
+                                onClick: () => startEdit(post),
+                                onCtx: e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, kind: "post", post }); },
                                 title: post.headline || <span style={{ color: TEXT_MUTED, fontWeight: 400 }}>No headline</span>,
-                                meta: [post.section, post.byline].filter(Boolean).join(" · ") || " ",
-                                lock: activeLocks[post._id], date: post.date,
+                                meta: lockLine(activeLocks[post._id], "editing", [post.section, post.byline].filter(Boolean).join(" \u00b7 ") || "\u00a0"),
+                                date: post.date,
                               }))}
                               {archiveOverflow > 0 && (
-                                <p style={{ fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, margin: 0, padding: "0.85rem 1rem", textAlign: "center" }}>Showing first {sortedPosts.length} of {sortedPosts.length + archiveOverflow}. Search to narrow results.</p>
+                                <div style={{ padding: "0.85rem 1rem", textAlign: "center" }}>
+                                  <p style={{ fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, margin: 0 }}>Showing first {sortedPosts.length} of {sortedPosts.length + archiveOverflow}. Search to narrow results.</p>
+                                </div>
                               )}
                             </>
                           );
                         })()}
-                      </div>
-                    ) : (
-                      <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, overflow: "hidden", marginTop: "0.25rem" }}>
-                        {sortedNl.map(n => (
-                          <div key={n._id}
-                            onClick={() => openNewsletter(n)}
-                            onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, kind: "newsletter", newsletter: n }); }}
-                            style={{ display: "grid", gridTemplateColumns: "1fr 140px 120px", padding: "0.85rem 1rem", borderBottom: `1px solid ${BORDER}`, cursor: "pointer", alignItems: "center" }}
-                            onMouseEnter={e => (e.currentTarget.style.background = "#ffffff")}
-                            onMouseLeave={e => (e.currentTarget.style.background = "white")}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", minWidth: 0 }}>
-                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={TEXT_MUTED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
-                              <div style={{ minWidth: 0 }}>
-                                <p style={{ fontFamily: FONT, fontSize: "0.9rem", fontWeight: 600, color: TEXT_DARK, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.subject || <span style={{ color: TEXT_MUTED, fontWeight: 400 }}>Untitled newsletter</span>}</p>
-                                {activeLocks[n._id] ? (
-                                  <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: "#9a6a00", margin: 0, display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                                    {activeLocks[n._id].name} is writing
-                                  </p>
-                                ) : (
-                                  <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, margin: 0 }}>{n.author || ""}</p>
-                                )}
-                              </div>
-                            </div>
-                            <span style={{ fontFamily: FONT, fontSize: isMobile ? "0.7rem" : "0.8rem", color: TEXT_MUTED, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Newsletter</span>
-                            <span style={{ fontFamily: FONT, fontSize: isMobile ? "0.7rem" : "0.8rem", color: TEXT_MUTED, whiteSpace: "nowrap" }}>{(n.createdAt ?? n.updatedAt ?? "").slice(0, 10) || "—"}</span>
-                          </div>
-                        ))}
-                        {sortedPosts.map(post => (
-                          <div key={post._id}
-                            onClick={() => startEdit(post)}
-                            onContextMenu={e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, kind: "post", post }); }}
-                            style={{ display: "grid", gridTemplateColumns: "1fr 140px 120px", padding: "0.85rem 1rem", borderBottom: `1px solid ${BORDER}`, cursor: "pointer", alignItems: "center" }}
-                            onMouseEnter={e => (e.currentTarget.style.background = "#ffffff")}
-                            onMouseLeave={e => (e.currentTarget.style.background = "white")}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", minWidth: 0 }}>
-                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={TEXT_MUTED} strokeWidth="1.8" strokeLinecap="round" style={{ flexShrink: 0 }}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                              <div style={{ minWidth: 0 }}>
-                                <p style={{ fontFamily: FONT, fontSize: "0.9rem", fontWeight: 600, color: TEXT_DARK, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{post.headline || <span style={{ color: TEXT_MUTED, fontWeight: 400 }}>No headline</span>}</p>
-                                {activeLocks[post._id] ? (
-                                  <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: "#9a6a00", margin: 0, display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                                    {activeLocks[post._id].name} is editing
-                                  </p>
-                                ) : (
-                                  <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, margin: 0, minHeight: "1.05em" }}>{post.byline || " "}</p>
-                                )}
-                              </div>
-                            </div>
-                            <span style={{ fontFamily: FONT, fontSize: isMobile ? "0.7rem" : "0.8rem", color: TEXT_MUTED, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{post.section}</span>
-                            <span style={{ fontFamily: FONT, fontSize: isMobile ? "0.7rem" : "0.8rem", color: TEXT_MUTED, whiteSpace: "nowrap" }}>{post.date}</span>
-                          </div>
-                        ))}
-                        {archiveOverflow > 0 && (
-                          <div style={{ padding: "0.85rem 1rem", textAlign: "center" }}>
-                            <p style={{ fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, margin: 0 }}>Showing first {sortedPosts.length} of {sortedPosts.length + archiveOverflow}. Search to narrow results.</p>
-                          </div>
-                        )}
                       </div>
                     )}
                   </>
@@ -913,7 +902,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
           {/* ABOUT EDITOR — admin only */}
           {activePanel === "about" && isAdmin && (
             <form onSubmit={e => { e.preventDefault(); const fd = new FormData(); fd.set("body", JSON.stringify(tiptapToPortableText(aboutDoc))); startTransition(async () => { try { await saveAbout(fd); setSuccess("Saved!"); setTimeout(() => setSuccess(""), 2000); } catch (err: any) { setError(err.message); } }); }} style={{ maxWidth: 600, background: "white", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-              <h2 style={{ fontFamily: FONT, fontSize: "1.2rem", color: TEXT_DARK, margin: 0 }}>About Page</h2>
+              <h1 className="admin-h1" style={{ margin: 0 }}>About Page</h1>
               <div style={{ border: `1px solid ${BORDER}`, borderRadius: 4, overflow: "hidden" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.1rem", padding: "0.35rem 0.5rem", background: "#ffffff", borderBottom: `1px solid ${BORDER}` }}>
                   <button type="button" title="Bold" onMouseDown={e => { e.preventDefault(); aboutEditor?.chain().focus().toggleBold().run(); }} style={{ background: aboutEditor?.isActive("bold") ? "#ffffff" : "none", border: "none", borderRadius: 4, width: 30, height: 30, cursor: "pointer", color: aboutEditor?.isActive("bold") ? CRIMSON : TEXT_MUTED, fontWeight: 700, fontSize: "1rem", fontFamily: FONT }}>B</button>
@@ -930,7 +919,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
               </div>
               {success && <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: "#392a22", margin: 0 }}>{success}</p>}
               {error && <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: CRIMSON, margin: 0 }}>{error}</p>}
-              <button type="submit" disabled={isPending} style={{ background: CRIMSON, color: "white", border: "none", borderRadius: 4, padding: "0.6rem 1.2rem", fontFamily: FONT, fontSize: "0.9rem", cursor: "pointer", alignSelf: "flex-start" }}>{isPending ? "Saving…" : "Save"}</button>
+              <button type="submit" disabled={isPending} style={{ background: CRIMSON, color: "white", border: "none", borderRadius: 20, padding: "0.5rem 1.3rem", fontFamily: FONT, fontSize: "0.88rem", fontWeight: 600, cursor: "pointer", alignSelf: "flex-end" }}>{isPending ? "Saving…" : "Save"}</button>
             </form>
           )}
 
@@ -1000,10 +989,27 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                 <div style={{ display: "flex", gap: 0, height: "100%", minHeight: 0 }}>
                   {/* Grid */}
                   <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "1rem", overflowY: "auto", paddingRight: isMobile ? 0 : "1.5rem" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-                      <input type="search" placeholder="Search by name, alt text, or URL" value={mediaSearch} onChange={e => setMediaSearch(e.target.value)} style={{ ...INPUT, flex: 1, minWidth: 140, fontSize: "0.82rem" }} />
-                      <button type="button" onClick={() => setMediaPickerOpen(true)} disabled={mediaUploading} style={{ background: CRIMSON, color: "white", border: "none", borderRadius: 4, padding: "0.5rem 1rem", fontFamily: FONT, fontSize: "0.85rem", fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>{mediaUploading ? "Uploading…" : "+ Upload"}</button>
-                    </div>
+                    {!isMobile && (
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem" }}>
+                        <div>
+                          <h1 className="admin-h1">Media Library</h1>
+                          <p className="admin-sub">{mediaAssets.length.toLocaleString()} image{mediaAssets.length === 1 ? "" : "s"}</p>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                          <input type="search" placeholder="Search by name or alt text" value={mediaSearch} onChange={e => setMediaSearch(e.target.value)} style={{ fontFamily: FONT, fontSize: "0.85rem", padding: "0.5rem 0.9rem", border: `1px solid ${BORDER}`, borderRadius: 10, background: "white", color: TEXT_DARK, outline: "none", width: 230, boxSizing: "border-box" as const }} />
+                          <button type="button" onClick={() => setMediaPickerOpen(true)} disabled={mediaUploading} style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: CRIMSON, color: "white", border: "none", borderRadius: 20, padding: "0.55rem 1.15rem", fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            {mediaUploading ? "Uploading…" : "Upload"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {isMobile && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                        <input type="search" placeholder="Search by name, alt text, or URL" value={mediaSearch} onChange={e => setMediaSearch(e.target.value)} style={{ ...INPUT, flex: 1, minWidth: 140, fontSize: "0.82rem", borderRadius: 10 }} />
+                        <button type="button" onClick={() => setMediaPickerOpen(true)} disabled={mediaUploading} style={{ background: CRIMSON, color: "white", border: "none", borderRadius: 20, padding: "0.5rem 1rem", fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>{mediaUploading ? "Uploading…" : "+ Upload"}</button>
+                      </div>
+                    )}
                     {mediaLoading ? <p style={{ fontFamily: FONT, color: TEXT_MUTED }}>Loading…</p> : filtered.length === 0 ? <p style={{ fontFamily: FONT, color: TEXT_MUTED }}>{mediaSearch ? "No results." : "No images in library yet."}</p> : (
                       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fill, minmax(120px, 1fr))", gap: isMobile ? "10px" : "0.5rem" }}>
                         {filtered.map(asset => (
@@ -1046,7 +1052,12 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
           {/* COMMENTS */}
           {activePanel === "comments" && (
             <div style={{ maxWidth: 700 }}>
-              {!isMobile && <h2 style={{ fontFamily: FONT, fontSize: "1.2rem", color: TEXT_DARK, margin: "0 0 1.25rem" }}>Comments</h2>}
+              {!isMobile && (
+                <div style={{ margin: "0 0 1.2rem" }}>
+                  <h1 className="admin-h1">Comments</h1>
+                  <p className="admin-sub">{adminComments.filter(c => c.approved === false).length} awaiting review.</p>
+                </div>
+              )}
               {commentsLoading ? (
                 <p style={{ fontFamily: FONT, color: TEXT_MUTED }}>Loading…</p>
               ) : adminComments.length === 0 ? (
@@ -1081,7 +1092,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                       </div>
                     );
                     return (
-                    <div key={c._id} style={{ background: pending ? "#fff8f0" : "white", border: `1px solid ${pending ? "#e6c9a8" : BORDER}`, borderRadius: 4, padding: "0.85rem 1rem", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
+                    <div key={c._id} style={{ background: pending ? "#fff8f0" : "white", border: `1px solid ${pending ? "#e6c9a8" : BORDER}`, borderRadius: 12, boxShadow: "0 1px 2px rgba(0,0,0,0.03)", padding: "1rem 1.1rem", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ display: "flex", gap: "0.75rem", alignItems: "baseline", marginBottom: "0.25rem", flexWrap: "wrap" }}>
                           <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: "0.78rem", color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.05em" }}>{c.name}</span>
@@ -1090,19 +1101,19 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                           <span style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED }}>on <a href={`/stories/${c.slug}`} target="_blank" rel="noreferrer" style={{ color: TEXT_MUTED }}>{c.slug}</a></span>
                           <span style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED }}>{new Date(c._createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
                         </div>
-                        <p style={{ fontFamily: FONT, fontSize: "0.9rem", color: "#000000", margin: 0, lineHeight: 1.6 }}>{c.text}</p>
+                        <p style={{ fontFamily: "Georgia, serif", fontSize: "0.98rem", color: TEXT_MUTED, margin: 0, lineHeight: 1.6 }}>{c.text}</p>
                       </div>
                       <div style={{ flexShrink: 0, display: "flex", gap: "0.4rem" }}>
                         {pending && (
                           <button
                             onClick={() => { startTransition(async () => { await fetch("/api/comments", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c._id, approved: true }) }); setAdminComments(prev => prev.map(x => x._id === c._id ? { ...x, approved: true } : x)); }); }}
-                            style={{ background: CRIMSON, border: "none", borderRadius: 4, padding: "0.3rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, color: "white", cursor: "pointer" }}
+                            style={{ background: CRIMSON, border: "none", borderRadius: 20, padding: "0.35rem 0.9rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 700, color: "white", cursor: "pointer" }}
                           >Approve</button>
                         )}
                         <button
                           onClick={() => { if (!confirm("Delete this comment? This cannot be undone.")) return; startTransition(async () => { await fetch("/api/comments", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c._id }) }); setAdminComments(prev => prev.filter(x => x._id !== c._id)); }); }}
-                          style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, padding: "0.3rem 0.6rem", fontFamily: FONT, fontSize: "0.78rem", color: CRIMSON, cursor: "pointer" }}
-                        >Delete</button>
+                          style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 20, padding: "0.35rem 0.9rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, color: TEXT_MUTED, cursor: "pointer" }}
+                        >Trash</button>
                       </div>
                     </div>
                     );
@@ -1230,7 +1241,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
 
       {/* Mobile bottom tab bar — Posts · Media · Analytics · More */}
       {isMobile && (
-        <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 290, background: "rgba(255,255,255,0.94)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderTop: `1px solid ${CARD_LINE}`, display: "flex", padding: "8px 6px calc(10px + var(--safe-bottom, 0px))" }}>
+        <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 290, background: "rgba(255,255,255,0.94)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderTop: `1px solid ${BORDER}`, display: "flex", padding: "8px 6px calc(10px + var(--safe-bottom, 0px))" }}>
           {([
             ["dashboard", "Posts", <svg key="p" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>],
             ["media", "Media", <svg key="m" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>],
