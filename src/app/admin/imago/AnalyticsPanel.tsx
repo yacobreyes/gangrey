@@ -93,7 +93,12 @@ export default function AnalyticsPanel() {
     <div style={{ maxWidth: 980 }}>
       {/* The mobile header already titles the panel "Analytics" — repeating an
           h1 under it wastes a screen line, so the title row is desktop-only. */}
-      <style>{`@media (max-width: 700px) { .an-title { display: none; } }`}</style>
+      <style>{`@media (max-width: 700px) {
+        .an-title { display: none; }
+        /* The author pill sits at the LEFT edge on mobile (the title row is
+           hidden), so a right-anchored menu hangs off-screen — anchor left. */
+        .an-author-menu { left: 0; right: auto !important; }
+      }`}</style>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem", flexWrap: "wrap", gap: "0.75rem" }}>
         <div className="an-title">
           <h1 style={{ fontFamily: "var(--font-headline)", fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.02em", color: TEXT_DARK, margin: 0 }}>Analytics</h1>
@@ -116,7 +121,7 @@ export default function AnalyticsPanel() {
             {authorMenuOpen && (
               <>
                 <div style={{ position: "fixed", inset: 0, zIndex: 70 }} onClick={() => setAuthorMenuOpen(false)} />
-                <div style={{ position: "absolute", top: "calc(100% + 0.4rem)", right: 0, zIndex: 80, background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.14)", width: 250, overflow: "hidden" }}>
+                <div className="an-author-menu" style={{ position: "absolute", top: "calc(100% + 0.4rem)", right: 0, zIndex: 80, background: "white", border: `1px solid ${BORDER}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.14)", width: 250, overflow: "hidden" }}>
                   <div style={{ padding: "0.6rem 0.7rem", borderBottom: "1px solid #eee", position: "relative" }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={BORDER} strokeWidth="2" strokeLinecap="round" style={{ position: "absolute", left: "1.15rem", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <input autoFocus value={authorQuery} onChange={e => setAuthorQuery(e.target.value)} placeholder="Search authors"
