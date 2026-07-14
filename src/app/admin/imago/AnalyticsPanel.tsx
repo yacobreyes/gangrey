@@ -112,15 +112,25 @@ export default function AnalyticsPanel() {
         /* The author pill sits at the LEFT edge on mobile (the title row is
            hidden), so a right-anchored menu hangs off-screen — anchor left. */
         .an-author-menu { left: 0; right: auto !important; width: min(250px, calc(100vw - 2rem)) !important; }
+        /* Stack the controls full-width instead of cramming them onto one
+           wrapping row: author pill on its own line, range chips filling the
+           next. The advanced day-drilldown is hidden on mobile (tap a chart
+           bar to drill into a day; a range chip resets). */
+        .an-controls { flex-direction: column; align-items: stretch !important; width: 100%; }
+        .an-author-wrap { width: 100%; }
+        .an-author-wrap > button { width: 100%; justify-content: flex-start; }
+        .an-ranges { width: 100%; }
+        .an-ranges > button { flex: 1; }
+        .an-daypicker { display: none !important; }
       }`}</style>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem", flexWrap: "wrap", gap: "0.75rem" }}>
         <div className="an-title">
           <h1 style={{ fontFamily: "var(--font-headline)", fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.02em", color: TEXT_DARK, margin: 0 }}>Analytics</h1>
           <p style={{ fontFamily: FONT, fontSize: "0.82rem", color: TEXT_MUTED, margin: "0.35rem 0 0" }}>Your traffic and engagement. All self-hosted.</p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+        <div className="an-controls" style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
           {/* Author filter — narrows the whole panel to one writer. */}
-          <div style={{ position: "relative" }}>
+          <div className="an-author-wrap" style={{ position: "relative" }}>
             <button onClick={() => { setAuthorMenuOpen(v => !v); setAuthorQuery(""); }}
               style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "white", border: `1px solid ${author ? CRIMSON : BORDER}`, borderRadius: 9, padding: "0.42rem 0.7rem 0.42rem 0.8rem", fontFamily: FONT, fontSize: "0.82rem", fontWeight: 600, color: author ? CRIMSON : TEXT_MUTED, cursor: "pointer", whiteSpace: "nowrap" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -163,7 +173,7 @@ export default function AnalyticsPanel() {
               </>
             )}
           </div>
-          <div style={{ display: "flex", gap: 4, background: "#f4f4f5", borderRadius: 8, padding: 3 }}>
+          <div className="an-ranges" style={{ display: "flex", gap: 4, background: "#f4f4f5", borderRadius: 8, padding: 3 }}>
             {RANGES.map(([k, label]) => (
               <button key={k} onClick={() => { setDate(null); setRange(k); }} style={{
                 border: "none", borderRadius: 6, padding: "0.35rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer",
@@ -176,7 +186,7 @@ export default function AnalyticsPanel() {
 
       {/* Day drill-down (Today / Yesterday / any date) — its own quiet row so
           the header stays as the prototype has it: author pill + range chips. */}
-      <div style={{ display: "flex", justifyContent: "flex-end", margin: "-0.5rem 0 1rem" }}>
+      <div className="an-daypicker" style={{ display: "flex", justifyContent: "flex-end", margin: "-0.5rem 0 1rem" }}>
           {/* Day picker: Today / Yesterday / any date, with prev-next arrows —
               answers "how did I do on [day]" the way Parse.ly's date nav does. */}
           <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#f4f4f5", borderRadius: 8, padding: 3 }}>

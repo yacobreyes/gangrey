@@ -475,6 +475,8 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
         .admin-main > * { width: 100%; max-width: 1040px; margin-left: auto; margin-right: auto; }
         .admin-group { font-size: .62rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: ${BORDER}; padding: 1.1rem 0.7rem 0.4rem; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
         .admin-nav-btn { display: flex; align-items: center; gap: 0.7rem; width: 100%; background: none; border: none; text-align: left; padding: 0.6rem 0.7rem; font-family: ${FONT}; font-size: 0.9rem; font-weight: 500; color: ${TEXT_DARK}; cursor: pointer; border-radius: 9px; white-space: nowrap; overflow: hidden; margin-bottom: 2px; }
+        .admin-sidebar-collapsed .admin-nav-btn { margin-bottom: 4px; padding-top: 0.55rem; padding-bottom: 0.55rem; }
+        .admin-sidebar-collapsed .admin-nav-group + .admin-nav-group { margin-top: 14px; }
         .admin-nav-btn:hover { background: #f7f7f7; }
         .admin-nav-btn.active { background: #f5f8fa; color: ${CRIMSON}; font-weight: 700; box-shadow: inset 3px 0 0 ${CRIMSON}; }
         .admin-h1 { font-family: var(--font-headline); font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; color: ${TEXT_DARK}; margin: 0; }
@@ -539,7 +541,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
 
       <div className="admin-layout">
         {/* Collapsible sidebar */}
-        <div className="admin-sidebar">
+        <div className={`admin-sidebar${sidebarOpen ? "" : " admin-sidebar-collapsed"}`}>
           {/* Logo row: crimson mayfly mark + astoria wordmark */}
           <div style={{ padding: sidebarOpen ? "0 1.35rem" : 0, display: "flex", alignItems: "center", justifyContent: sidebarOpen ? "flex-start" : "center", gap: sidebarOpen ? 11 : 0, borderBottom: `1px solid ${BORDER}`, height: 64, boxSizing: "border-box", flexShrink: 0 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -569,7 +571,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                 ["users", "Users", <svg key="u" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>],
               ]]] as [string, string | null, [Panel, string, React.ReactNode][]][] : []),
             ] as [string, string | null, [Panel, string, React.ReactNode][]][]).map(([group, badge, items]) => (
-              <div key={group}>
+              <div key={group} className="admin-nav-group">
                 {sidebarOpen && (
                   <div className="admin-group">
                     <span>{group}</span>
@@ -1288,7 +1290,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
       {/* Mobile FAB — create (Posts tab only) */}
       {isMobile && activePanel === "dashboard" && (
         <button onClick={() => setShowCreateSheet(true)} aria-label="Create new"
-          style={{ position: "fixed", right: 18, bottom: "calc(78px + var(--safe-bottom, 0px))", zIndex: 291, width: 56, height: 56, borderRadius: "50%", background: CRIMSON, color: "white", border: "none", boxShadow: "0 8px 22px -6px rgba(73,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+          style={{ position: "fixed", right: 18, bottom: "calc(78px + var(--safe-bottom, 0px))", zIndex: 291, width: 56, height: 56, borderRadius: "50%", background: CRIMSON, color: "white", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
       )}

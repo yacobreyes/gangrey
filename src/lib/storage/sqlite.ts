@@ -124,6 +124,10 @@ function migrate(d: any) {
   // Who scheduled a scheduled story — shown in the editor's view-mode banner
   // ("This story was scheduled by X for ..."). Cleared when unscheduled.
   ensureColumn(d, "posts", "scheduled_by", "TEXT");
+  // The moment a story first went live — captured once, never overwritten by
+  // later edits (unlike last_edited_at). Powers the editor's "published on X"
+  // banner with the real publish time.
+  ensureColumn(d, "posts", "published_at", "TEXT");
   // Data fix: analytics events snapshot the byline at view time, and views
   // recorded before the archive byline cleanup carry the old short poster
   // names. The breakdown now groups by the post's current byline, but events
@@ -159,6 +163,7 @@ function rowToPost(r: PostRow): SanityPost {
     access: r.access ?? "free",
     scheduledAt: r.scheduled_at ?? undefined,
     scheduledBy: r.scheduled_by ?? undefined,
+    publishedAt: r.published_at ?? undefined,
     body: JSON.parse(r.body || "[]"),
     // Local images are plain {src,...}; components using Sanity's urlFor need
     // the asset guard, so we surface src via image.url and leave asset unset.
@@ -333,22 +338,24 @@ export function sqliteSavePost(doc: {
   db().prepare(`
     INSERT INTO posts (id, slug, section, headline, subheadline, byline, date, status, access,
       scheduled_at, scheduled_by, body, image, seo_headline, social_headline, social_description,
-      reading_time, sort_order, created_at, updated_at, last_edited_by, last_edited_at)
+      reading_time, sort_order, created_at, updated_at, last_edited_by, last_edited_at, published_at)
     VALUES (@id, @slug, @section, @headline, @subheadline, @byline, @date, @status, @access,
       @scheduledAt, @scheduledBy, @body, @image, @seoHeadline, @socialHeadline, @socialDescription,
-      @readingTime, @sortOrder, @now, @now, @lastEditedBy, @now)
+      @readingTime, @sortOrder, @now, @now, @lastEditedBy, @now, @publishedAt)
     ON CONFLICT(id) DO UPDATE SET
       slug=@slug, section=@section, headline=@headline, subheadline=@subheadline,
       byline=@byline, date=@date, status=@status, access=@access, scheduled_at=@scheduledAt, scheduled_by=@scheduledBy,
       body=@body, image=@image, seo_headline=@seoHeadline, social_headline=@socialHeadline,
       social_description=@socialDescription, reading_time=@readingTime, sort_order=@sortOrder,
-      updated_at=@now, last_edited_by=@lastEditedBy, last_edited_at=@now
+      updated_at=@now, last_edited_by=@lastEditedBy, last_edited_at=@now,
+      published_at=CASE WHEN @status='published' THEN COALESCE(published_at, @now) ELSE published_at END
   `).run({
     id: doc._id, slug: doc.slug, section: doc.section ?? "", headline: doc.headline ?? "",
     subheadline: doc.subheadline ?? "", byline: doc.byline ?? "", date: doc.date ?? "",
     status: doc.status ?? "draft", access: doc.access ?? "free",
     scheduledAt: doc.scheduledAt ?? null,
     scheduledBy: doc.scheduledBy ?? null,
+    publishedAt: doc.status === "published" ? now : null,
     body: JSON.stringify(doc.body ?? []),
     image: doc.image ? JSON.stringify(doc.image) : null,
     seoHeadline: doc.seoHeadline ?? null, socialHeadline: doc.socialHeadline ?? null,

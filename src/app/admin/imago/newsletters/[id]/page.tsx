@@ -7,7 +7,7 @@ import type { NlVersion } from "../../../newsletterActions";
 
 export const dynamic = "force-dynamic";
 
-const NL_FIELDS = `subject, preview, author, cards, status, scheduledAt, scheduledBy, volume, issue, intro, classics, lastEditedBy, lastEditedAt`;
+const NL_FIELDS = `subject, preview, author, cards, status, scheduledAt, scheduledBy, sentAt, volume, issue, intro, classics, lastEditedBy, lastEditedAt`;
 
 export default async function EditNewsletterPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ new?: string; classics?: string }> }) {
   const authed = await isAuthed();
@@ -51,6 +51,7 @@ export default async function EditNewsletterPage({ params, searchParams }: { par
         status: draft.status ?? "draft",
         scheduledAt: draft.scheduledAt ? String(draft.scheduledAt) : "",
         scheduledBy: draft.scheduledBy ?? "",
+        sentAt: draft.sentAt ? String(draft.sentAt) : "",
         cards: Array.isArray(draft.cards) ? draft.cards : [],
         volume: draft.volume ?? "",
         issue: draft.issue ?? "",

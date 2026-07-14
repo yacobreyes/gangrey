@@ -514,12 +514,18 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
         // no relation to when they actually ran. Only trust lastEditedAt for
         // a specific time-of-day when its own calendar date agrees with
         // post.date — otherwise show the real date with no fabricated time.
+        // Prefer the real first-publish timestamp (published_at) so the banner
+        // shows the actual date + time in ET. Fall back to the old heuristic
+        // (last-edited on the same calendar day, else the publish date alone)
+        // for stories published before published_at existed.
         const editedSameDay = post.lastEditedAt && post.date && etDateOnly(post.lastEditedAt) === etDateOnly(`${post.date}T12:00:00`);
-        const publishedLabel = post.lastEditedAt && editedSameDay
-          ? formatPublishedTime(post.lastEditedAt)
-          : post.date
-            ? etDateOnly(`${post.date}T12:00:00`)
-            : null;
+        const publishedLabel = post.publishedAt
+          ? formatPublishedTime(post.publishedAt)
+          : post.lastEditedAt && editedSameDay
+            ? formatPublishedTime(post.lastEditedAt)
+            : post.date
+              ? etDateOnly(`${post.date}T12:00:00`)
+              : null;
         const message = isScheduled
           ? `This story was scheduled${post.scheduledBy ? ` by ${post.scheduledBy}` : ""} for ${formatTime(post.scheduledAt ?? scheduledAt)}.`
           : viewLockHolder

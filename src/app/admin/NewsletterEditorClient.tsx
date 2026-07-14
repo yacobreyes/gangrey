@@ -69,6 +69,16 @@ function isoToLocalInput(v?: string): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+// "Jul 14 at 6:28am ET" — the newsroom's timezone, matching the story editor.
+function formatPublishedTime(v?: string) {
+  if (!v) return "";
+  const d = new Date(v);
+  if (isNaN(+d)) return "";
+  const time = d.toLocaleString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit", hour12: true }).replace(" ", "").toLowerCase();
+  const date = d.toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric" });
+  return `${date} at ${time} ET`;
+}
+
 function formatScheduledTime(v?: string) {
   if (!v) return "its scheduled time";
   const d = new Date(v);
@@ -93,6 +103,7 @@ export type InitialNewsletter = {
   status: "draft" | "published" | "scheduled";
   scheduledAt: string;
   scheduledBy?: string;
+  sentAt?: string;
   cards: StoredCard[];
   volume: string;
   issue: string;
@@ -770,9 +781,11 @@ export default function NewsletterEditorClient({
           <span>
             {nlStatus === "scheduled"
               ? `This newsletter was scheduled${initial?.scheduledBy ? ` by ${initial.scheduledBy}` : ""} for ${formatScheduledTime(nlScheduledAt)}.`
-              : viewLockHolder
-                ? `${viewLockHolder.name} is currently editing this. Do you want to kick them out?`
-                : "You’re viewing this newsletter. Do you want to make changes?"}
+              : nlStatus === "published" && initial?.sentAt
+                ? `This newsletter was published on ${formatPublishedTime(initial.sentAt)}. Do you want to make changes?`
+                : viewLockHolder
+                  ? `${viewLockHolder.name} is currently editing this. Do you want to kick them out?`
+                  : "You’re viewing this newsletter. Do you want to make changes?"}
           </span>
           <button type="button" onClick={nlStatus === "scheduled" ? unscheduleNlToEdit : () => { setViewMode(false); if (viewLockHolder) setTimeout(takeOver, 100); }} style={{
             background: CRIMSON, color: "#fff", border: "none", borderRadius: 22,

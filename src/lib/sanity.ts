@@ -52,6 +52,8 @@ export interface SanityPost {
   status?: "draft" | "published" | "scheduled" | "trashed";
   scheduledAt?: string;
   scheduledBy?: string;
+  // The moment the story first went live (stable; not overwritten by edits).
+  publishedAt?: string;
   // Audit stamp — who saved this post last and when (set on every save).
   lastEditedBy?: string;
   lastEditedAt?: string;
