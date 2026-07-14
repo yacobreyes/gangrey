@@ -286,8 +286,8 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean; web?: b
           </tr></table>
           <a href="${SITE_URL}" target="_blank" rel="noopener" style="text-decoration:none;">
             ${raw.classics
-              ? `<img src="${base}/wordmark-classics-email.png" alt="Gangrey Classics" width="290" style="width:290px;max-width:80%;display:block;margin:0 auto 20px;border:0;" />`
-              : `<img src="${base}/wordmark-white-email.png" alt="Gangrey" width="290" height="106" style="width:290px;height:106px;max-width:80%;display:block;margin:0 auto 20px;border:0;" />`
+              ? `<img src="${base}/wordmark-classics-email-hd.png" alt="Gangrey Classics" width="290" height="54" style="width:290px;height:54px;max-width:80%;display:block;margin:0 auto 20px;border:0;" />`
+              : `<img src="${base}/wordmark-white-email-hd.png" alt="Gangrey" width="290" height="106" style="width:290px;height:106px;max-width:80%;display:block;margin:0 auto 20px;border:0;" />`
             }
           </a>
           <div style="width:40px;height:2px;background:${CRIMSON};margin:0 auto 20px;"></div>

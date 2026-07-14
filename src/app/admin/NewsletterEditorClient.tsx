@@ -1023,7 +1023,7 @@ export default function NewsletterEditorClient({
                 <span style={{ fontFamily: FONT, fontSize: "0.55rem", letterSpacing: "0.28em", textTransform: "uppercase", color: "#b8b8ba" }}>Gangrey.org</span>
               </div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={nlClassics ? "/wordmark-classics-email.png" : "/wordmark-white-email.png"} alt="Gangrey" width={290} style={{ width: 290, maxWidth: "100%", display: "block", margin: "0 auto 1.1rem" }} />
+              <img src={nlClassics ? "/wordmark-classics-email-hd.png" : "/wordmark-white-email-hd.png"} alt="Gangrey" width={290} style={{ width: 290, maxWidth: "100%", display: "block", margin: "0 auto 1.1rem" }} />
               <div style={{ width: 40, height: 2, background: CRIMSON, margin: "0 auto 1.1rem" }} />
               {nlSubject && (
                 <p style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.35rem", lineHeight: 1.3, color: "#ffffff", textAlign: "center", margin: "0 0 0.5rem" }}>{nlSubject}</p>
