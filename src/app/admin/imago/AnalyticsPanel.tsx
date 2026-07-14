@@ -109,16 +109,15 @@ export default function AnalyticsPanel() {
           h1 under it wastes a screen line, so the title row is desktop-only. */}
       <style>{`@media (max-width: 700px) {
         .an-title { display: none; }
-        /* The author pill sits at the LEFT edge on mobile (the title row is
-           hidden), so a right-anchored menu hangs off-screen — anchor left. */
-        .an-author-menu { left: 0; right: auto !important; width: min(250px, calc(100vw - 2rem)) !important; }
-        /* Stack the controls full-width instead of cramming them onto one
-           wrapping row: author pill on its own line, range chips filling the
-           next. The advanced day-drilldown is hidden on mobile (tap a chart
-           bar to drill into a day; a range chip resets). */
+        /* Clamp the dropdown so it never runs off-screen; it stays
+           right-anchored under the (right-aligned) pill. */
+        .an-author-menu { width: min(250px, calc(100vw - 2rem)) !important; }
+        /* Stack the controls: the author pill stays a small button, aligned
+           right on its own row; the range chips fill the next row. The
+           advanced day-drilldown is hidden on mobile (tap a chart bar to drill
+           into a day; a range chip resets). */
         .an-controls { flex-direction: column; align-items: stretch !important; width: 100%; }
-        .an-author-wrap { width: 100%; }
-        .an-author-wrap > button { width: 100%; justify-content: flex-start; }
+        .an-author-wrap { align-self: flex-end; }
         .an-ranges { width: 100%; }
         .an-ranges > button { flex: 1; }
         .an-daypicker { display: none !important; }
