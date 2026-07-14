@@ -109,7 +109,7 @@ export default function Feed({
           aspect-ratio: 2.1 / 1;
           overflow: hidden;
           color: #ffffff;
-          background: linear-gradient(135deg, #4a3527 0%, #241a13 60%, #0f0b08 100%);
+          background: #e8e8ea; /* light-gray placeholder until the hero image loads */
         }
         .hm-kicker-onimage { display: none; }
         .hm-hero-below { display: none; }
