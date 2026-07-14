@@ -180,15 +180,10 @@ export default function AnalyticsPanel() {
               }}>{label}</button>
             ))}
           </div>
-        </div>
-      </div>
-
-      {/* Day drill-down (Today / Yesterday / any date) — its own quiet row so
-          the header stays as the prototype has it: author pill + range chips. */}
-      <div className="an-daypicker" style={{ display: "flex", justifyContent: "flex-end", margin: "-0.5rem 0 1rem" }}>
-          {/* Day picker: Today / Yesterday / any date, with prev-next arrows —
-              answers "how did I do on [day]" the way Parse.ly's date nav does. */}
-          <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#f4f4f5", borderRadius: 8, padding: 3 }}>
+          {/* Day drill-down (Today / Yesterday / any date) — sits inline in the
+              header controls so nothing floats on its own row; hidden on mobile
+              (tap a chart bar to drill into a day; a range chip resets). */}
+          <div className="an-daypicker" style={{ display: "flex", alignItems: "center", gap: 4, background: "#f4f4f5", borderRadius: 8, padding: 3 }}>
             <button onClick={() => setDate(today)} style={{
               border: "none", borderRadius: 6, padding: "0.35rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer",
               background: date === today ? "white" : "transparent", color: date === today ? CRIMSON : TEXT_MUTED, boxShadow: date === today ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
@@ -208,6 +203,7 @@ export default function AnalyticsPanel() {
               </button>
             </div>
           </div>
+        </div>
       </div>
       {author && (
         <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: "-0.5rem 0 1rem" }}>
