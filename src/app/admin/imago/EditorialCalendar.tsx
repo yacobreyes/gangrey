@@ -121,7 +121,7 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", marginBottom: "1.2rem", flexWrap: "wrap" }}>
         <div>
           <h1 style={{ fontFamily: "var(--font-headline)", fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.02em", color: TEXT_DARK, margin: 0 }}>Calendar</h1>
-          <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: "0.35rem 0 0" }}>Stories and newsletters, placed on the day they run.</p>
+          <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: "0.35rem 0 0" }}>Stories and newsletters, sorted by publication date.</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
           <button onClick={() => addStory(ymd(cursor))} disabled={creating}
