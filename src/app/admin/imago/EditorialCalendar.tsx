@@ -89,6 +89,15 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
   const todayStr = ymd(new Date());
   const weekDays = useMemo(() => { const s = startOfWeek(cursor); return Array.from({ length: 7 }, (_, i) => ymd(addDays(s, i))); }, [cursor]);
 
+  // The date number. Today gets a solid crimson circle badge (Apple-Calendar
+  // style) instead of tinting the whole column.
+  const dayNum = (n: number, isToday: boolean, size: number, weight = 600) =>
+    isToday ? (
+      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: size * 1.5, height: size * 1.5, padding: "0 4px", borderRadius: size * 0.9, background: CRIMSON, color: "white", fontFamily: FONT, fontSize: `${size}px`, fontWeight: 800, lineHeight: 1, boxSizing: "border-box" }}>{n}</span>
+    ) : (
+      <span style={{ fontFamily: FONT, fontSize: `${size}px`, fontWeight: weight, color: TEXT_DARK }}>{n}</span>
+    );
+
   // A droppable day cell/column that reschedules a dragged item onto its date.
   const dayDrop = (date: string) => ({
     onDragOver: (e: React.DragEvent) => { e.preventDefault(); setDragOver(date); },
@@ -152,11 +161,11 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
             {weekDays.map((day, i) => {
               const d = new Date(day + "T12:00:00");
               return (
-                <div key={day} {...dayDrop(day)} className="cal-cell" style={{ minHeight: 260, borderRight: i !== 6 ? "1px solid #eee" : "none", padding: "0.4rem", background: dragOver === day ? "#f0f2f4" : day === todayStr ? "#fffdf7" : "white" }}>
+                <div key={day} {...dayDrop(day)} className="cal-cell" style={{ minHeight: 260, borderRight: i !== 6 ? "1px solid #eee" : "none", padding: "0.4rem", background: dragOver === day ? "#f0f2f4" : "white" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, padding: "0 2px" }}>
                     <div style={{ textAlign: "left" }}>
-                      <div style={{ fontFamily: FONT, fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: TEXT_MUTED }}>{DOW[i]}</div>
-                      <div style={{ fontFamily: FONT, fontSize: "1rem", fontWeight: day === todayStr ? 800 : 600, color: day === todayStr ? CRIMSON : TEXT_DARK }}>{d.getDate()}</div>
+                      <div style={{ fontFamily: FONT, fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: TEXT_MUTED, marginBottom: 2 }}>{DOW[i]}</div>
+                      {dayNum(d.getDate(), day === todayStr, 15)}
                     </div>
                     <span className="cal-add">{addBtn(day)}</span>
                   </div>
@@ -172,10 +181,10 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
             {DOW.map(d => <div key={d} style={{ fontFamily: FONT, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: TEXT_MUTED, textAlign: "center", padding: "0.5rem 0", borderBottom: `1px solid ${BORDER}` }}>{d}</div>)}
             {monthGrid.map((day, i) => (
-              <div key={i} {...(day ? dayDrop(day) : {})} className={day ? "cal-cell" : undefined} style={{ minHeight: 92, borderRight: (i % 7 !== 6) ? `1px solid #eee` : "none", borderBottom: `1px solid #eee`, padding: "0.35rem", background: day && dragOver === day ? "#f0f2f4" : day === todayStr ? "#fffdf7" : "white" }}>
+              <div key={i} {...(day ? dayDrop(day) : {})} className={day ? "cal-cell" : undefined} style={{ minHeight: 92, borderRight: (i % 7 !== 6) ? `1px solid #eee` : "none", borderBottom: `1px solid #eee`, padding: "0.35rem", background: day && dragOver === day ? "#f0f2f4" : "white" }}>
                 {day && <>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 3 }}>
-                    <div style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: day === todayStr ? 800 : 500, color: day === todayStr ? CRIMSON : TEXT_MUTED }}>{Number(day.slice(8))}</div>
+                    {dayNum(Number(day.slice(8)), day === todayStr, 12, 500)}
                     <span className="cal-add">{addBtn(day, 16)}</span>
                   </div>
                   {(itemsByDay[day] ?? []).slice(0, 4).map(chip)}
