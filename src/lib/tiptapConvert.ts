@@ -5,17 +5,41 @@ type PTSpan = { _type: "span"; _key: string; text: string; marks: string[] };
 type PTMarkDef = { _key: string; _type: string; href?: string };
 type PTBlock = PortableTextBlock & { markDefs: PTMarkDef[]; children: PTSpan[] };
 
-// The recovered Archive was imported with blank paragraph blocks between real
-// paragraphs, which render as tall empty gaps. Drop text blocks that carry no
-// content (leaving images, lists, and headings untouched) so those posts read
-// with normal paragraph spacing. Scoped to Archive at the call sites.
+// The recovered Archive carries two import artifacts that render as tall
+// empty gaps: (1) blank paragraph blocks, and (2) single giant blocks whose
+// text holds real paragraphs separated by runs of newlines — PortableText
+// renders every "\n" as a <br/>, so "\n\n\n\n" becomes a hole. Drop the
+// blanks and split multi-newline runs into proper paragraph blocks (marks
+// preserved; images, lists, and headings untouched).
 export function stripEmptyBlocks(blocks: PortableTextBlock[]): PortableTextBlock[] {
-  return blocks.filter(b => {
-    const blk = b as PortableTextBlock & { listItem?: string };
-    if (blk._type !== "block" || blk.listItem) return true;
-    const text = (blk.children ?? []).map(c => (c as { text?: string }).text ?? "").join("");
-    return text.trim().length > 0;
-  });
+  const out: PortableTextBlock[] = [];
+  for (const b of blocks) {
+    const blk = b as PortableTextBlock & { listItem?: string; children?: { _type?: string; text?: string; marks?: string[] }[] };
+    if (blk._type !== "block" || blk.listItem) { out.push(b); continue; }
+    const kids = blk.children ?? [];
+    // Split this block's spans into paragraph groups on runs of 2+ newlines.
+    const groups: { text: string; marks?: string[] }[][] = [[]];
+    for (const c of kids) {
+      if (c._type !== "span" || typeof c.text !== "string") { groups[groups.length - 1].push(c as { text: string }); continue; }
+      const parts = c.text.split(/\n{2,}/);
+      parts.forEach((part, i) => {
+        if (i > 0) groups.push([]);
+        // Trim stray leading/trailing single newlines left at the seams.
+        const t = part.replace(/^\n+|\n+$/g, "");
+        if (t) groups[groups.length - 1].push({ ...c, text: t });
+      });
+    }
+    for (const g of groups) {
+      const text = g.map(c => c.text ?? "").join("");
+      if (!text.trim()) continue; // drop blank paragraphs
+      out.push({
+        ...blk,
+        _key: `${(blk as { _key?: string })._key ?? "b"}p${out.length}`,
+        children: g.map((c, i) => ({ _type: "span", marks: [], ...c, _key: `s${out.length}i${i}` })),
+      } as PortableTextBlock);
+    }
+  }
+  return out;
 }
 
 function inlineContent(source: JSONContent[], blockIndex: number): { spans: PTSpan[]; markDefs: PTMarkDef[] } {
