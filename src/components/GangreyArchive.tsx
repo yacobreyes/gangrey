@@ -142,7 +142,7 @@ export default function GangreyArchive({ posts }: { posts: Post[] }) {
         <div className="gr-search-wrap">
           <input
             className="gr-search"
-            type="search"
+            type="text"
             placeholder="Search stories…"
             value={query}
             onChange={e => setQuery(e.target.value)}
@@ -173,7 +173,11 @@ export default function GangreyArchive({ posts }: { posts: Post[] }) {
       </div>
 
       <div style={{ marginTop: 48 }}>
-        {filtered.length === 0
+        {/* While a search is in flight, don't flash "No stories matching" —
+            results haven't arrived yet. Show a quiet searching state instead. */}
+        {searchMode && searching && filtered.length === 0
+          ? <p className="gr-no-results" style={{ fontStyle: "normal" }}>Searching&hellip;</p>
+          : filtered.length === 0
           ? <p className="gr-no-results">No stories{!searchMode && activeYear ? ` from ${activeYear}` : ""}{query.trim() ? ` matching "${query.trim()}"` : ""}.</p>
           : searchMode
           ? <div className="gr-stories gr-search-list">{filtered.map(row)}</div>

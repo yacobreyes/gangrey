@@ -10,6 +10,8 @@ export default function CommentSection({ slug }: { slug: string }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [text, setText] = useState("");
+  // Honeypot — hidden from humans; only bots fill it. Submitted but discarded server-side.
+  const [website, setWebsite] = useState("");
   const [errors, setErrors] = useState<{ name?: string; email?: string; text?: string }>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -44,7 +46,7 @@ export default function CommentSection({ slug }: { slug: string }) {
       const res = await fetch("/api/comments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, name: straightenQuotes(name.trim()), email: email.trim(), text: straightenQuotes(text.trim()) }),
+        body: JSON.stringify({ slug, name: straightenQuotes(name.trim()), email: email.trim(), text: straightenQuotes(text.trim()), website }),
       });
       if (res.ok) {
         try {
@@ -99,6 +101,11 @@ export default function CommentSection({ slug }: { slug: string }) {
           <p style={{ fontFamily: "var(--font-subhead)", fontSize: "0.9rem", color: "#392a22" }}>Thanks! Your comment will appear once it&apos;s approved.</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+            {/* Honeypot: off-screen, non-focusable, hidden from assistive tech.
+                Only bots fill it, and the server discards anything that does. */}
+            <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true"
+              value={website} onChange={e => setWebsite(e.target.value)}
+              style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }} />
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem" }}>
               <div>
                 <input

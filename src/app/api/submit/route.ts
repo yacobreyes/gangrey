@@ -5,16 +5,26 @@ import { sanityMutate } from "@/lib/sanityWrite";
 import { straightenQuotes } from "@/lib/straighten";
 import { submissionEmailHtml, escapeHtml } from "@/lib/submissionEmail";
 import { validateSubmission } from "@/lib/submissionValidation";
+import { rateLimit } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
+  // Throttle abusive posting: at most 5 submissions per IP per hour.
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  if (!rateLimit(ip, "submit", 5, 60 * 60 * 1000)) {
+    return NextResponse.json({ error: "Too many submissions. Please try again later." }, { status: 429 });
+  }
+
   let body: Record<string, string>;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
+
+  // Honeypot: a hidden "website" field only bots fill. Feign success, store nothing.
+  if ((body.website ?? "").trim()) return NextResponse.json({ ok: true });
 
   const name = straightenQuotes((body.name ?? "").trim());
   const email = (body.email ?? "").trim().toLowerCase();

@@ -24,6 +24,8 @@ export default function SubmitForm() {
   const [category, setCategory] = useState<string>("");
   const [coverLetter, setCoverLetter] = useState("");
   const [text, setText] = useState("");
+  // Honeypot — hidden from humans; only bots fill it. Server discards if set.
+  const [website, setWebsite] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const [msg, setMsg] = useState("");
 
@@ -45,7 +47,7 @@ export default function SubmitForm() {
       const res = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, title, category, coverLetter, text }),
+        body: JSON.stringify({ name, email, title, category, coverLetter, text, website }),
       });
       const data = await res.json();
       if (res.ok) setStatus("sent");
@@ -70,6 +72,10 @@ export default function SubmitForm() {
 
   return (
     <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 620 }}>
+      {/* Honeypot: off-screen, non-focusable, hidden from assistive tech. */}
+      <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true"
+        value={website} onChange={e => setWebsite(e.target.value)}
+        style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }} />
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
         <div style={{ flex: "1 1 200px" }}>
           <label style={labelStyle} htmlFor="sub-name">Your name</label>

@@ -939,9 +939,12 @@ export function sqliteAnalyticsOverview(since: number, until: number, author?: s
   const j = author ? AUTHOR_JOIN : "", c = author ? AUTHOR_COND : "";
   const args = { since, until, ...(author ? { author } : {}) };
   const v = db().prepare(`SELECT COUNT(*) c, COUNT(DISTINCT e.session) u FROM analytics_events e ${j} WHERE e.kind='view' AND e.ts>=@since AND e.ts<@until ${c}`).get(args) as Row;
-  const e = db().prepare(`SELECT COALESCE(SUM(e.engaged_ms),0) s FROM analytics_events e ${j} WHERE e.kind='engage' AND e.ts>=@since AND e.ts<@until ${c}`).get(args) as Row;
-  const views = num(v.c), engagedMs = num(e.s);
-  return { views, visitors: num(v.u), engagedMs, avgEngagedMs: views ? Math.round(engagedMs / views) : 0 };
+  // Average engaged time is per *engaged session*, not per pageview — dividing
+  // by all views (bounces, bots, prefetches that never engage) drags the
+  // average to ~0 and the KPI perpetually reads "0s".
+  const e = db().prepare(`SELECT COALESCE(SUM(e.engaged_ms),0) s, COUNT(DISTINCT e.session) n FROM analytics_events e ${j} WHERE e.kind='engage' AND e.ts>=@since AND e.ts<@until ${c}`).get(args) as Row;
+  const views = num(v.c), engagedMs = num(e.s), engagedSessions = num(e.n);
+  return { views, visitors: num(v.u), engagedMs, avgEngagedMs: engagedSessions ? Math.round(engagedMs / engagedSessions) : 0 };
 }
 
 // View counts bucketed into `buckets` equal time slices across [since, until) —
@@ -970,15 +973,17 @@ export function sqliteAnalyticsTopContent(since: number, until: number, limit = 
     FROM analytics_events e ${j} WHERE e.kind='view' AND e.ts>=@since AND e.ts<@until AND e.slug != '' ${c}
     GROUP BY e.slug ORDER BY v DESC LIMIT @limit`).all(args) as Row[];
   const eng = db().prepare(`
-    SELECT slug, COALESCE(SUM(engaged_ms),0) e FROM analytics_events
+    SELECT slug, COALESCE(SUM(engaged_ms),0) e, COUNT(DISTINCT session) n FROM analytics_events
     WHERE kind='engage' AND ts>=? AND ts<? GROUP BY slug`).all(since, until) as Row[];
-  const engBySlug = new Map(eng.map(r => [String(r.slug), num(r.e)]));
+  // Per engaged session (see sqliteAnalyticsOverview), not per view.
+  const engBySlug = new Map(eng.map(r => [String(r.slug), { ms: num(r.e), n: num(r.n) }]));
   return views.map(r => {
     const v = num(r.v);
+    const en = engBySlug.get(String(r.slug));
     return {
       slug: String(r.slug), section: String(r.section ?? ""), byline: String(r.byline ?? ""),
       views: v, visitors: num(r.u),
-      avgEngagedMs: v ? Math.round((engBySlug.get(String(r.slug)) ?? 0) / v) : 0,
+      avgEngagedMs: en && en.n ? Math.round(en.ms / en.n) : 0,
     };
   });
 }

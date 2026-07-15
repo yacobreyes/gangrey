@@ -40,7 +40,10 @@ export async function POST(req: NextRequest) {
   if (!rateLimit(ip, "comments", 5, 60 * 60 * 1000)) {
     return NextResponse.json({ error: "Too many comments. Try again later." }, { status: 429 });
   }
-  const { slug, name, email, text } = await req.json() as { slug: string; name: string; email?: string; text: string };
+  const { slug, name, email, text, website } = await req.json() as { slug: string; name: string; email?: string; text: string; website?: string };
+  // Honeypot: a hidden "website" field no human ever fills. Bots auto-complete
+  // it — when it's non-empty, pretend success but store nothing.
+  if (website && website.trim()) return NextResponse.json({ ok: true, pending: true });
   const emailOk = !!email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
   if (!slug || !name?.trim() || !emailOk || !text?.trim()) {
     return NextResponse.json({ error: "Name, a valid email, and a comment are required." }, { status: 400 });
