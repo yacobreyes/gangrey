@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 
 type Post = {
@@ -43,15 +43,30 @@ export default function GangreyArchive({ posts }: { posts: Post[] }) {
 
   const searchMode = query.trim().length > 0;
 
+  // Server-side full-text search (FTS5) — relevance-ranked, matches body text,
+  // and doesn't depend on every post's body being shipped to the client. The
+  // year view below still renders from the loaded props when not searching.
+  const [results, setResults] = useState<Post[]>([]);
+  const [searching, setSearching] = useState(false);
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) { setResults([]); return; }
+    setSearching(true);
+    const ctrl = new AbortController();
+    const t = setTimeout(() => {
+      fetch(`/api/search?q=${encodeURIComponent(q)}&scope=public&section=Archive&limit=100`, { signal: ctrl.signal })
+        .then(r => r.json())
+        .then(d => { if (Array.isArray(d.results)) setResults(d.results); })
+        .catch(() => {})
+        .finally(() => setSearching(false));
+    }, 220);
+    return () => { clearTimeout(t); ctrl.abort(); };
+  }, [query]);
+
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return posts.filter(p => {
-      if (!searchMode) return new Date(p.date).getUTCFullYear().toString() === activeYear;
-      return p.headline.toLowerCase().includes(q) ||
-        (p.byline ?? "").toLowerCase().includes(q) ||
-        plainText(p.body).toLowerCase().includes(q);
-    });
-  }, [posts, query, activeYear, searchMode]);
+    if (searchMode) return results;
+    return posts.filter(p => new Date(p.date).getUTCFullYear().toString() === activeYear);
+  }, [posts, results, activeYear, searchMode]);
 
   const byYear: Record<string, Post[]> = {};
   for (const p of filtered) {

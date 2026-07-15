@@ -146,6 +146,62 @@ function migrate(d: any) {
     d.prepare(`UPDATE analytics_events SET byline='Thomas Lake' WHERE byline IN ('t lake','T Lake','t. lake')`).run();
     d.prepare(`UPDATE analytics_events SET byline='Michael Kruse' WHERE byline IN ('kruse','Kruse')`).run();
   } catch { /* best-effort */ }
+
+  // Full-text search index over every post (headline/subheadline/byline/section
+  // + flattened body). Standalone FTS5 table kept in sync on write; backfilled
+  // once here so the ~3,100-piece archive is searchable server-side instead of
+  // client-filtering the whole list.
+  try {
+    d.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS posts_fts USING fts5(
+      id UNINDEXED, slug UNINDEXED, section, byline, headline, subheadline, body,
+      tokenize = 'porter unicode61'
+    );`);
+    const ftsCount = (d.prepare(`SELECT COUNT(*) c FROM posts_fts`).get() as { c: number }).c;
+    const postCount = (d.prepare(`SELECT COUNT(*) c FROM posts`).get() as { c: number }).c;
+    if (ftsCount === 0 && postCount > 0) ftsReindexAll(d);
+  } catch { /* FTS5 unavailable — search falls back to LIKE via sqliteSearchPosts */ }
+}
+
+// Flatten Portable Text blocks to plain text for the search index.
+function ptToText(body: unknown): string {
+  if (!Array.isArray(body)) return "";
+  return (body as { _type?: string; children?: { text?: string }[] }[])
+    .filter(b => b?._type === "block" || Array.isArray(b?.children))
+    .flatMap(b => (b.children ?? []).map(c => c.text ?? ""))
+    .join(" ").replace(/\s+/g, " ").trim();
+}
+
+function ftsHasTable(d: any): boolean {
+  try { return !!d.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='posts_fts'`).get(); }
+  catch { return false; }
+}
+
+// Reindex a single post (delete + insert), keeping FTS in step with a write.
+function ftsUpsert(d: any, row: { id: string; slug: string; section?: string; byline?: string; headline?: string; subheadline?: string; body?: unknown }) {
+  if (!ftsHasTable(d)) return;
+  try {
+    d.prepare(`DELETE FROM posts_fts WHERE id = ?`).run(row.id);
+    d.prepare(`INSERT INTO posts_fts (id, slug, section, byline, headline, subheadline, body) VALUES (?,?,?,?,?,?,?)`)
+      .run(row.id, row.slug, row.section ?? "", row.byline ?? "", row.headline ?? "", row.subheadline ?? "", ptToText(row.body));
+  } catch { /* best-effort */ }
+}
+function ftsRemove(d: any, id: string) {
+  if (!ftsHasTable(d)) return;
+  try { d.prepare(`DELETE FROM posts_fts WHERE id = ?`).run(id); } catch { /* best-effort */ }
+}
+function ftsReindexAll(d: any) {
+  if (!ftsHasTable(d)) return;
+  const rows = d.prepare(`SELECT id, slug, section, byline, headline, subheadline, body FROM posts`).all();
+  const ins = d.prepare(`INSERT INTO posts_fts (id, slug, section, byline, headline, subheadline, body) VALUES (?,?,?,?,?,?,?)`);
+  const tx = d.transaction((rs: any[]) => {
+    d.prepare(`DELETE FROM posts_fts`).run();
+    for (const r of rs) {
+      let body: unknown = [];
+      try { body = JSON.parse(r.body || "[]"); } catch {}
+      ins.run(r.id, r.slug, r.section ?? "", r.byline ?? "", r.headline ?? "", r.subheadline ?? "", ptToText(body));
+    }
+  });
+  tx(rows);
 }
 
 function ensureColumn(d: any, table: string, col: string, decl: string) {
@@ -393,10 +449,43 @@ export function sqliteSavePost(doc: {
     readingTime: doc.readingTime ?? null, sortOrder: doc.sortOrder ?? null,
     now, lastEditedBy: doc.lastEditedBy ?? null,
   });
+  ftsUpsert(db(), { id: doc._id, slug: doc.slug, section: doc.section, byline: doc.byline, headline: doc.headline, subheadline: doc.subheadline, body: doc.body });
 }
 
 export function sqliteDeletePost(id: string): void {
   db().prepare(`DELETE FROM posts WHERE id = ?`).run(id);
+  ftsRemove(db(), id);
+}
+
+// Full-text search over posts. Uses the FTS5 index; falls back to a LIKE scan
+// if FTS is unavailable. `publicOnly` restricts to reader-visible posts.
+export function sqliteSearchPosts(query: string, opts: { limit?: number; publicOnly?: boolean; section?: string } = {}): SanityPost[] {
+  const q = query.trim();
+  if (!q) return [];
+  const limit = opts.limit ?? 50;
+  const d = db();
+  const pubWhere = opts.publicOnly ? `AND (${PUBLIC_WHERE})` : `AND p.status != 'trashed'`;
+  const sec = opts.section ? `AND p.section = @section` : "";
+  const args: Record<string, unknown> = { limit, ...(opts.section ? { section: opts.section } : {}) };
+  if (ftsHasTable(d)) {
+    // Prefix-match each term so partial words hit ("shrimp" → "shrimper").
+    const match = q.replace(/["]/g, " ").split(/\s+/).filter(Boolean).map(t => `"${t}"*`).join(" ");
+    try {
+      const rows = d.prepare(`
+        SELECT p.* FROM posts_fts f JOIN posts p ON p.id = f.id
+        WHERE posts_fts MATCH @match ${pubWhere} ${sec}
+        ORDER BY bm25(posts_fts, 0, 0, 4, 3, 10, 6, 1) LIMIT @limit
+      `).all({ ...args, match }) as PostRow[];
+      return rows.map(rowToPost);
+    } catch { /* malformed query → fall through to LIKE */ }
+  }
+  const like = `%${q.replace(/[%_]/g, "")}%`;
+  const rows = d.prepare(`
+    SELECT p.* FROM posts p
+    WHERE (p.headline LIKE @like OR p.subheadline LIKE @like OR p.byline LIKE @like OR p.body LIKE @like) ${pubWhere} ${sec}
+    ORDER BY p.date DESC LIMIT @limit
+  `).all({ ...args, like }) as PostRow[];
+  return rows.map(rowToPost);
 }
 
 // Full archive rebuild: wipe every Archive/Gangrey-Redux post and re-insert the
@@ -426,7 +515,10 @@ export function sqliteReplaceArchive(
     }
     return { deleted, inserted };
   });
-  return tx(records);
+  const result = tx(records);
+  // The archive is fully swapped — resync the whole search index to match.
+  ftsReindexAll(d);
+  return result;
 }
 
 export function sqliteSetStatus(id: string, status: string): void {
