@@ -333,6 +333,19 @@ function classifyByOpens(openedCount: number, lookbackCount: number): "active" |
   return "inactive";
 }
 
+// Metered-paywall funnel for the current month: how many anonymous readers
+// sampled a members-only story, how many hit the wall, plus the free-read
+// limit — shown in the Subscribers panel to see the wall's conversion pressure.
+export async function getMeterFunnel(): Promise<{ month: string; readers: number; walled: number; limit: number }> {
+  await requireAdmin();
+  if (!isSqliteBackend()) return { month: "", readers: 0, walled: 0, limit: 0 };
+  const { sqliteMeterFunnel } = await import("@/lib/storage/sqlite");
+  const { meterMonth, METER_LIMIT } = await import("@/lib/meter");
+  const month = meterMonth();
+  const { readers, walled } = sqliteMeterFunnel(month, METER_LIMIT);
+  return { month, readers, walled, limit: METER_LIMIT };
+}
+
 export async function getSubscribers(): Promise<Subscriber[]> {
   await requireAdmin();
   if (isSqliteBackend()) {

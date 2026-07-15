@@ -116,6 +116,18 @@ function migrate(d: any) {
       to_slug   TEXT NOT NULL,
       created_at TEXT
     );
+
+    -- Metered paywall: which members-only stories an anonymous visitor
+    -- (identified by a first-party 'gm_id' cookie) has read in a given month.
+    -- Distinct (meter_id, slug, month) rows = free reads used that month.
+    CREATE TABLE IF NOT EXISTS meter_reads (
+      meter_id TEXT NOT NULL,
+      slug     TEXT NOT NULL,
+      month    TEXT NOT NULL,          -- 'YYYY-MM' (ET)
+      ts       INTEGER NOT NULL,
+      PRIMARY KEY (meter_id, slug, month)
+    );
+    CREATE INDEX IF NOT EXISTS idx_meter_month ON meter_reads (month, meter_id);
   `);
 
   // Additive column migrations — CREATE TABLE IF NOT EXISTS never alters an
@@ -316,6 +328,32 @@ export function sqliteRedirectTarget(slug: string): string | null {
   if (!slug) return null;
   const row = db().prepare(`SELECT to_slug FROM slug_redirects WHERE from_slug = ?`).get(slug) as { to_slug?: string } | undefined;
   return row?.to_slug ?? null;
+}
+
+// --- Metered paywall -------------------------------------------------------
+
+// Free members-only stories this visitor has already opened this month.
+export function sqliteMeterCount(meterId: string, month: string): number {
+  if (!meterId) return 0;
+  const r = db().prepare(`SELECT COUNT(*) c FROM meter_reads WHERE meter_id = ? AND month = ?`).get(meterId, month) as { c: number };
+  return r.c;
+}
+// Has this visitor already opened THIS story this month (so re-reads don't re-wall)?
+export function sqliteMeterHasRead(meterId: string, slug: string, month: string): boolean {
+  if (!meterId) return false;
+  return !!db().prepare(`SELECT 1 FROM meter_reads WHERE meter_id = ? AND slug = ? AND month = ?`).get(meterId, slug, month);
+}
+// Record a metered read (idempotent per visitor/story/month).
+export function sqliteRecordMeterRead(meterId: string, slug: string, month: string): void {
+  if (!meterId || !slug) return;
+  db().prepare(`INSERT OR IGNORE INTO meter_reads (meter_id, slug, month, ts) VALUES (?, ?, ?, ?)`).run(meterId, slug, month, Date.now());
+}
+// Funnel for a month: how many visitors sampled a gated story, and how many
+// hit the wall (used up all `limit` free reads).
+export function sqliteMeterFunnel(month: string, limit: number): { readers: number; walled: number } {
+  const readers = (db().prepare(`SELECT COUNT(DISTINCT meter_id) c FROM meter_reads WHERE month = ?`).get(month) as { c: number }).c;
+  const walled = (db().prepare(`SELECT COUNT(*) c FROM (SELECT meter_id FROM meter_reads WHERE month = ? GROUP BY meter_id HAVING COUNT(*) >= ?)`).get(month, limit) as { c: number }).c;
+  return { readers, walled };
 }
 
 export function sqliteRenameSlugData(oldSlug: string, newSlug: string): void {

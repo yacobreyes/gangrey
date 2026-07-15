@@ -11,6 +11,7 @@ import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
 import StoryBackLink from "@/components/StoryBackLink";
 import StoryVisitTracker from "@/components/StoryVisitTracker";
+import MeterPing from "@/components/MeterPing";
 import StoryPaywall from "@/components/StoryPaywall";
 import { postReadingTime } from "@/lib/readingTime";
 import { storyStyles, storyPtComponents, splitCaption } from "@/components/storyTheme";
@@ -99,7 +100,24 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
   // session cookie makes this route render per-request (opts out of caching)
   // for gated stories, which is correct — a paywall can't be statically cached.
   const gated = storyRequiresMembership(post);
-  const unlocked = gated ? await isCurrentVisitorActiveMember() : true;
+  const isMember = gated ? await isCurrentVisitorActiveMember() : false;
+  // Metered paywall: a non-member gets METER_LIMIT free members-only reads per
+  // month before the wall. Already-read-this-month stories always open (no
+  // re-wall). This view is recorded client-side (see MeterPing) so the count
+  // reflects real reads.
+  let metered = false; // true when this non-member view counts against the meter
+  let unlocked = !gated || isMember;
+  if (gated && !isMember) {
+    const { isSqliteBackend, sqliteMeterCount, sqliteMeterHasRead } = await import("@/lib/storage/sqlite");
+    const { METER_COOKIE, METER_LIMIT, meterMonth } = await import("@/lib/meter");
+    const { cookies } = await import("next/headers");
+    if (isSqliteBackend()) {
+      const meterId = (await cookies()).get(METER_COOKIE)?.value ?? "";
+      const month = meterMonth();
+      const already = sqliteMeterHasRead(meterId, slug, month);
+      if (already || sqliteMeterCount(meterId, month) < METER_LIMIT) { unlocked = true; metered = !already; }
+    }
+  }
   const bodyToRender = unlocked ? post.body : previewBody(post.body);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org";
@@ -204,6 +222,7 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
       </div>
 
       <StoryVisitTracker slug={slug} />
+      {metered && <MeterPing slug={slug} />}
       <MagFooter />
     </div>
   );
