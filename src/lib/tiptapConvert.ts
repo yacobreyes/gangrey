@@ -5,6 +5,19 @@ type PTSpan = { _type: "span"; _key: string; text: string; marks: string[] };
 type PTMarkDef = { _key: string; _type: string; href?: string };
 type PTBlock = PortableTextBlock & { markDefs: PTMarkDef[]; children: PTSpan[] };
 
+// The recovered Archive was imported with blank paragraph blocks between real
+// paragraphs, which render as tall empty gaps. Drop text blocks that carry no
+// content (leaving images, lists, and headings untouched) so those posts read
+// with normal paragraph spacing. Scoped to Archive at the call sites.
+export function stripEmptyBlocks(blocks: PortableTextBlock[]): PortableTextBlock[] {
+  return blocks.filter(b => {
+    const blk = b as PortableTextBlock & { listItem?: string };
+    if (blk._type !== "block" || blk.listItem) return true;
+    const text = (blk.children ?? []).map(c => (c as { text?: string }).text ?? "").join("");
+    return text.trim().length > 0;
+  });
+}
+
 function inlineContent(source: JSONContent[], blockIndex: number): { spans: PTSpan[]; markDefs: PTMarkDef[] } {
   const markDefs: PTMarkDef[] = [];
   const spans = source.flatMap((child, i) => {

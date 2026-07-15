@@ -16,6 +16,7 @@ import StoryPaywall from "@/components/StoryPaywall";
 import { postReadingTime } from "@/lib/readingTime";
 import { storyStyles, storyPtComponents, splitCaption } from "@/components/storyTheme";
 import { storyRequiresMembership, previewBody } from "@/lib/storyAccess";
+import { stripEmptyBlocks } from "@/lib/tiptapConvert";
 import { isCurrentVisitorActiveMember } from "@/lib/currentMember";
 
 function sectionLabel(section: string) {
@@ -118,7 +119,10 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
       if (already || sqliteMeterCount(meterId, month) < METER_LIMIT) { unlocked = true; metered = !already; }
     }
   }
-  const bodyToRender = unlocked ? post.body : previewBody(post.body);
+  // Archive pieces were imported with blank paragraph blocks that render as
+  // huge gaps — drop them so those posts read with normal spacing.
+  const cleanBody = post.section === "Archive" ? stripEmptyBlocks(post.body) : post.body;
+  const bodyToRender = unlocked ? cleanBody : previewBody(cleanBody);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org";
   const jsonLd = {

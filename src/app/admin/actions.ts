@@ -393,6 +393,79 @@ export async function setPostDate(id: string, date: string) {
   await mutate([{ patch: { id, set: { date } } }]);
 }
 
+// A unified item shown on the editorial calendar: both stories and
+// newsletters, each placed on the date it runs (its scheduled send/publish
+// date when scheduled, otherwise its pub date). Drives auto-population so
+// anything you schedule shows up on the calendar without extra work.
+export type CalItem = {
+  id: string;
+  kind: "story" | "newsletter";
+  title: string;
+  byline?: string;
+  date: string;    // YYYY-MM-DD placement date
+  status: string;  // draft | scheduled | published (stories); + sent (newsletters)
+  slug?: string;   // story slug, for the editor link
+};
+
+export async function getCalendarItems(): Promise<CalItem[]> {
+  await requireAuth();
+  const items: CalItem[] = [];
+  const ymd = (s?: string) => (s ?? "").slice(0, 10);
+  const ok = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
+
+  const { getAllPostsAdmin, getAllNewslettersAdmin } = await import("@/lib/sanity");
+
+  // Stories (excluding the bulk Archive import). Scheduled stories land on
+  // their auto-publish date; everything else on its pub date.
+  const posts = await getAllPostsAdmin(false, true);
+  for (const p of posts) {
+    if (p.status === "trashed") continue;
+    const date = p.status === "scheduled" && p.scheduledAt ? ymd(p.scheduledAt) : ymd(p.date);
+    if (!ok(date)) continue;
+    items.push({ id: p._id, kind: "story", title: p.headline || "Untitled", byline: p.byline || undefined, date, status: p.status ?? "draft", slug: p.slug });
+  }
+
+  // Newsletters that have a place on the calendar: scheduled ones on their
+  // send date, already-sent/published ones on the day they went out. Plain
+  // drafts have no date yet, so they stay off the grid until scheduled.
+  const nls = await getAllNewslettersAdmin();
+  for (const n of nls) {
+    const raw = n.status === "scheduled" ? n.scheduledAt : (n.sentAt ?? n.scheduledAt);
+    const date = ymd(raw);
+    if (!ok(date)) continue;
+    items.push({ id: n._id, kind: "newsletter", title: n.subject || "Untitled newsletter", byline: n.author || undefined, date, status: n.status ?? "draft" });
+  }
+
+  return items;
+}
+
+// Create a new blank story dated on a specific calendar day, so the "+" on a
+// day opens the Add-story editor already placed on that date.
+export async function createStoryOnDate(date: string): Promise<{ slug: string }> {
+  await requireAuth();
+  const useDate = /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : new Date().toISOString().slice(0, 10);
+  const slug = `untitled-${Date.now()}`;
+  const doc = {
+    _id: `post-${slug}`, _type: "post", slug: { _type: "slug", current: slug },
+    section: "", headline: "", subheadline: "", byline: "", date: useDate,
+    status: "draft", access: "free", body: [],
+  };
+  if (isSqliteBackend()) sqliteMutate([{ createOrReplace: doc }]);
+  else await mutate([{ createOrReplace: doc }]);
+  return { slug };
+}
+
+// Reschedule a calendar item by dragging it to another day. Scheduled items
+// move their auto-send date (so the card follows what actually happens);
+// unscheduled stories just move their pub date.
+export async function rescheduleCalendarItem(kind: "story" | "newsletter", id: string, date: string) {
+  await requireAuth();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+  if (isSqliteBackend()) { const { sqliteRescheduleItem } = await import("@/lib/storage/sqlite"); sqliteRescheduleItem(kind, id, date); return; }
+  if (kind === "story") await mutate([{ patch: { id, set: { date } } }]);
+  else await mutate([{ patch: { id, set: { scheduledAt: `${date}T09:00:00.000Z` } } }]);
+}
+
 export async function unpublishPost(id: string) {
   await requireAuth();
   if (isSqliteBackend()) { sqliteSetStatus(id, "draft"); return; }

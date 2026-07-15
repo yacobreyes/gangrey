@@ -13,6 +13,7 @@ import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
 import { postReadingTime } from "@/lib/readingTime";
 import { storyStyles, storyPtComponents, splitCaption } from "@/components/storyTheme";
+import { stripEmptyBlocks } from "@/lib/tiptapConvert";
 
 export const dynamic = "force-dynamic";
 
@@ -98,7 +99,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ slug: 
 
       <article className="story-article">
         <div className="story-body">
-          <PortableText value={post.body} components={storyPtComponents} />
+          <PortableText value={post.section === "Archive" ? stripEmptyBlocks(post.body) : post.body} components={storyPtComponents} />
         </div>
       </article>
 

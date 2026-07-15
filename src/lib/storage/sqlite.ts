@@ -512,6 +512,30 @@ export function sqliteSetPostFields(id: string, fields: { stage?: string; assign
   db().prepare(`UPDATE posts SET ${sets.join(", ")} WHERE id = @id`).run(args);
 }
 
+// Reschedule a calendar item to a new day. For scheduled items we move the
+// auto-send/publish timestamp (preserving its time-of-day) so the card tracks
+// what will actually happen; unscheduled stories just move their pub date.
+export function sqliteRescheduleItem(kind: "story" | "newsletter", id: string, date: string): void {
+  const now = new Date().toISOString();
+  if (kind === "story") {
+    const row = db().prepare(`SELECT status, scheduled_at FROM posts WHERE id = ?`).get(id) as { status?: string; scheduled_at?: string } | undefined;
+    if (!row) return;
+    if (row.status === "scheduled" && row.scheduled_at) {
+      // Keep the same time-of-day; swap only the date portion of the ISO stamp.
+      const time = row.scheduled_at.length > 10 ? row.scheduled_at.slice(10) : "T09:00:00.000Z";
+      db().prepare(`UPDATE posts SET date = ?, scheduled_at = ?, updated_at = ? WHERE id = ?`).run(date, date + time, now, id);
+    } else {
+      db().prepare(`UPDATE posts SET date = ?, updated_at = ? WHERE id = ?`).run(date, now, id);
+    }
+    return;
+  }
+  // Newsletter: shift its scheduled send date (only meaningful while scheduled).
+  const doc = sqliteGetDoc<{ scheduledAt?: string }>(id);
+  if (!doc) return;
+  const time = doc.scheduledAt && doc.scheduledAt.length > 10 ? doc.scheduledAt.slice(10) : "T09:00:00.000Z";
+  patchDoc(id, { scheduledAt: date + time });
+}
+
 // Full-text search over posts. Uses the FTS5 index; falls back to a LIKE scan
 // if FTS is unavailable. `publicOnly` restricts to reader-visible posts.
 export function sqliteSearchPosts(query: string, opts: { limit?: number; publicOnly?: boolean; section?: string } = {}): SanityPost[] {

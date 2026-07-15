@@ -1022,7 +1022,10 @@ export default function NewsletterEditorClient({
                   } catch { alert("Test send failed."); }
                   finally { setNlSending(false); }
                 }} style={{ display: "block", width: "100%", background: "none", border: "none", textAlign: "left", padding: "0.65rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: TEXT_DARK, cursor: "pointer" }}>Send test email</button>
-                <button type="button" onClick={() => { if (!nlSubject.trim()) { alert("Add a subject line before scheduling."); return; } const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60000); setNlScheduledAt(d.toISOString().slice(0, 16)); setShowNlScheduler(true); }} style={{ display: "block", width: "100%", background: "none", border: "none", textAlign: "left", padding: "0.65rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: TEXT_DARK, cursor: "pointer" }}>Schedule</button>
+                {/* An already-published newsletter can't be scheduled — hide it. */}
+                {nlStatus !== "published" && (
+                  <button type="button" onClick={() => { if (!nlSubject.trim()) { alert("Add a subject line before scheduling."); return; } const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60000); setNlScheduledAt(d.toISOString().slice(0, 16)); setShowNlScheduler(true); }} style={{ display: "block", width: "100%", background: "none", border: "none", textAlign: "left", padding: "0.65rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: TEXT_DARK, cursor: "pointer" }}>Schedule</button>
+                )}
                 <button type="button" onClick={() => setShowNlPreview(true)} style={{ display: "block", width: "100%", background: "none", border: "none", textAlign: "left", padding: "0.65rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: TEXT_DARK, cursor: "pointer" }}>Preview</button>
                 {nlStatus === "published" && (
                   <>

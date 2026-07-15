@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useTransition, useRef, useEffect, useCallback } from "react";
+import { useState, useTransition, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { savePost, deletePost, restorePost, uploadImage, unpublishPost, getVersions, updateMediaAsset } from "./actions";
 import ScheduleModal from "@/components/ScheduleModal";
 import type { PostVersion } from "./actions";
-import { tiptapToPortableText, portableTextToTiptap } from "@/lib/tiptapConvert";
+import { tiptapToPortableText, portableTextToTiptap, stripEmptyBlocks } from "@/lib/tiptapConvert";
+import type { PortableTextBlock } from "@portabletext/types";
 import RichBodyEditor from "@/components/RichBodyEditor";
 import type { ToolbarHandles } from "@/components/RichBodyEditor";
 import ImagePickerModal from "@/components/ImagePickerModal";
@@ -95,6 +96,22 @@ function etDateOnly(iso: string) {
 
 const EMPTY_DOC: JSONContent = { type: "doc", content: [{ type: "paragraph" }] };
 
+// A headline/subheadline field that wraps and grows with its text instead of
+// scrolling a long title out of view. Behaves like the old <input> otherwise.
+function GrowField({ value, onChange, ...rest }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const resize = () => { const t = ref.current; if (t) { t.style.height = "auto"; t.style.height = `${t.scrollHeight}px`; } };
+  useLayoutEffect(resize, [value]);
+  return <textarea ref={ref} rows={1} value={value} onChange={onChange} {...rest} />;
+}
+
+// Load a post body into the editor, dropping the Archive import's blank
+// paragraph blocks so recovered pieces don't show huge gaps.
+function bodyToEditor(body: PortableTextBlock[] | undefined, section?: string): JSONContent {
+  if (!body?.length) return EMPTY_DOC;
+  return portableTextToTiptap(section === "Archive" ? stripEmptyBlocks(body) : body);
+}
+
 type FormState = {
   headline: string; subheadline: string; byline: string; slug: string;
   section: string; date: string; body: JSONContent;
@@ -161,7 +178,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
     slug: post.slug,
     section: post.section ?? "",
     date: post.date ?? new Date().toISOString().slice(0, 10),
-    body: post.body?.length ? portableTextToTiptap(post.body) : EMPTY_DOC,
+    body: bodyToEditor(post.body, post.section),
     status: post.status === "published" || !post.status ? "published" : post.status === "scheduled" ? "scheduled" : "draft",
     access: post.access === "paid" ? "paid" : "free",
     seoHeadline: post.seoHeadline ?? "",
@@ -234,7 +251,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
         const list = await r.json() as SanityPost[];
         const fresh = Array.isArray(list) ? list.find(p => p.slug === post.slug) : null;
         if (!fresh || !alive) return;
-        const freshBody = fresh.body?.length ? portableTextToTiptap(fresh.body) : EMPTY_DOC;
+        const freshBody = bodyToEditor(fresh.body, fresh.section);
         setForm(f => ({
           ...f,
           headline: fresh.headline ?? f.headline,
@@ -367,7 +384,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
     const snap = versions[i];
     if (!snap) return;
     if (!confirm("Restore this version? Your current text will be replaced.")) return;
-    const body = snap.body?.length ? portableTextToTiptap(snap.body) : EMPTY_DOC;
+    const body = bodyToEditor(snap.body, form.section);
     setForm(f => ({ ...f, headline: snap.headline, subheadline: snap.subheadline, body }));
     if (editor) editor.commands.setContent(body);
   }, [versions, editor]);
@@ -647,7 +664,10 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
             {showEllipsis && (
               <div style={{ position: "absolute", top: "calc(100% + 0.4rem)", right: 0, zIndex: 100, background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.12)", minWidth: 180, overflow: "hidden" }} onClick={() => setShowEllipsis(false)}>
                 <button type="button" onClick={() => { setShowEllipsis(false); doSave(form.status === "published" ? "published" : "draft"); setTimeout(() => window.open(`/stories/${form.slug}/preview`, "_blank"), 800); }} style={{ display: "block", width: "100%", background: "none", border: "none", textAlign: "left", padding: "0.65rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: TEXT_DARK, cursor: "pointer" }}>Preview</button>
-                <button type="button" onClick={() => { setShowEllipsis(false); if (!validateForPublish("scheduling")) return; const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60000); setScheduledAt(d.toISOString().slice(0, 16)); setShowScheduler(true); }} style={{ display: "block", width: "100%", background: "none", border: "none", textAlign: "left", padding: "0.65rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: TEXT_DARK, cursor: "pointer" }}>Schedule</button>
+                {/* An already-published story can't be scheduled — hide it. */}
+                {form.status !== "published" && (
+                  <button type="button" onClick={() => { setShowEllipsis(false); if (!validateForPublish("scheduling")) return; const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60000); setScheduledAt(d.toISOString().slice(0, 16)); setShowScheduler(true); }} style={{ display: "block", width: "100%", background: "none", border: "none", textAlign: "left", padding: "0.65rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: TEXT_DARK, cursor: "pointer" }}>Schedule</button>
+                )}
                 {form.status === "published" && (
                   <button type="button" onClick={() => { setShowEllipsis(false); revertToDraft(); }} style={{ display: "block", width: "100%", background: "none", border: "none", textAlign: "left", padding: "0.65rem 1rem", fontFamily: FONT, fontSize: "0.88rem", color: TEXT_DARK, cursor: "pointer" }}>Unpublish</button>
                 )}
@@ -766,22 +786,23 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
           </div>
         )}
 
-        {/* Canvas */}
-        <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "1.5rem 1.25rem" : "3rem 4rem" }}>
+        {/* Canvas. overflowX hidden + minWidth 0 so a wide field or long word
+            can't make the whole editor pan left/right on mobile. */}
+        <div style={{ flex: 1, minWidth: 0, overflowY: "auto", overflowX: "hidden", padding: isMobile ? "1.5rem 1.25rem" : "3rem 4rem" }}>
           {editorTab === "content" && (
             <div style={{ maxWidth: 680, margin: "0 auto", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", minHeight: isMobile ? "4rem" : "5.5rem" }}>
-                <input
+                <GrowField
                   placeholder="Type your headline"
                   readOnly={readOnly}
-                  style={{ fontFamily: "var(--font-headline)", fontSize: isMobile ? "1.5rem" : "2rem", fontWeight: 700, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", lineHeight: 1.2, padding: 0, margin: 0 }}
+                  style={{ fontFamily: "var(--font-headline)", fontSize: isMobile ? "1.5rem" : "2rem", fontWeight: 700, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", lineHeight: 1.2, padding: 0, margin: 0, resize: "none", overflow: "hidden", display: "block" }}
                   value={form.headline}
                   onChange={e => { const v = straightenQuotes(e.target.value); updateForm({ headline: v, ...(post.slug.startsWith("untitled-") ? { slug: slugify(v) || post.slug } : {}) }); }}
                 />
-                <input
+                <GrowField
                   placeholder="Type your subheadline"
                   readOnly={readOnly}
-                  style={{ fontFamily: "var(--font-subhead)", fontSize: "1.1rem", fontWeight: 400, color: TEXT_MUTED, border: "none", outline: "none", width: "100%", background: "transparent", lineHeight: 1.4, padding: 0, margin: 0 }}
+                  style={{ fontFamily: "var(--font-subhead)", fontSize: "1.1rem", fontWeight: 400, color: TEXT_MUTED, border: "none", outline: "none", width: "100%", background: "transparent", lineHeight: 1.4, padding: 0, margin: 0, resize: "none", overflow: "hidden", display: "block" }}
                   value={form.subheadline}
                   onChange={e => updateForm({ subheadline: straightenQuotes(e.target.value) })}
                 />
