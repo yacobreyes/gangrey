@@ -34,9 +34,18 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
   const [creating, setCreating] = useState(false);
   // A single anchor date drives day/week/month navigation.
   const [cursor, setCursor] = useState(() => new Date());
+  // A 7-column grid can't breathe on a phone, so week/month collapse to a
+  // readable agenda list on narrow screens.
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     getCalendarItems().then(setItems).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 700);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
   }, []);
 
   function reschedule(it: CalItem, date: string) {
@@ -125,6 +134,35 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
     </div>
   );
 
+  // Mobile agenda: a readable vertical list of the days in the period that have
+  // items, instead of a scrunched 7-column grid. Used for week/month on phones.
+  const agenda = (days: string[]) => {
+    const withItems = days.filter(d => (itemsByDay[d] ?? []).length > 0);
+    return (
+      <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+        {navHeader}
+        {withItems.length === 0 ? (
+          <div style={{ padding: "1.4rem 1.1rem" }}>
+            <p style={{ fontFamily: FONT, fontSize: "0.88rem", color: TEXT_MUTED, margin: "0 0 0.8rem" }}>Nothing scheduled {view === "month" ? `in ${MONTHS[cursor.getMonth()]}` : "this week"}.</p>
+            <button onClick={() => addStory(ymd(cursor))} disabled={creating}
+              style={{ background: "none", border: `1px dashed ${BORDER}`, borderRadius: 6, padding: "0.5rem 0.7rem", fontFamily: FONT, fontSize: "0.82rem", fontWeight: 600, color: TEXT_MUTED, cursor: "pointer" }}>+ Add a story</button>
+          </div>
+        ) : withItems.map(day => {
+          const d = new Date(day + "T12:00:00");
+          return (
+            <div key={day} {...dayDrop(day)} style={{ display: "flex", gap: 12, padding: "0.8rem 1rem", borderTop: `1px solid #eee`, background: dragOver === day ? "#f0f2f4" : "white" }}>
+              <div style={{ width: 46, flexShrink: 0, textAlign: "center" }}>
+                <div style={{ fontFamily: FONT, fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: TEXT_MUTED, marginBottom: 3 }}>{DOW[d.getDay()]}</div>
+                {dayNum(d.getDate(), day === todayStr, 16)}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>{(itemsByDay[day] ?? []).map(chip)}</div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", marginBottom: "1.2rem", flexWrap: "wrap" }}>
@@ -154,6 +192,8 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
               style={{ marginTop: 6, background: "none", border: `1px dashed ${BORDER}`, borderRadius: 6, padding: "0.4rem 0.6rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, color: TEXT_MUTED, cursor: "pointer", width: "100%", textAlign: "left" }}>+ Add a story</button>
           </div>
         </div>
+      ) : isMobile ? (
+        agenda(view === "week" ? weekDays : monthGrid.filter((d): d is string => d !== null))
       ) : view === "week" ? (
         <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
           {navHeader}
