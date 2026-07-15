@@ -84,11 +84,9 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
   const post = await getPost(slug);
   if (!post) {
     // A renamed story leaves a 301 behind so old links/rankings survive.
-    const { isSqliteBackend, sqliteRedirectTarget } = await import("@/lib/storage/sqlite");
-    if (isSqliteBackend()) {
-      const target = sqliteRedirectTarget(slug);
-      if (target && target !== slug) permanentRedirect(`/stories/${target}`);
-    }
+    const { sqliteRedirectTarget } = await import("@/lib/storage/sqlite");
+    const target = sqliteRedirectTarget(slug);
+    if (target && target !== slug) permanentRedirect(`/stories/${target}`);
     notFound();
   }
   // A scheduled story is hidden from listings until its time — but getPost
@@ -109,15 +107,13 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
   let metered = false; // true when this non-member view counts against the meter
   let unlocked = !gated || isMember;
   if (gated && !isMember) {
-    const { isSqliteBackend, sqliteMeterCount, sqliteMeterHasRead } = await import("@/lib/storage/sqlite");
+    const { sqliteMeterCount, sqliteMeterHasRead } = await import("@/lib/storage/sqlite");
     const { METER_COOKIE, METER_LIMIT, meterMonth } = await import("@/lib/meter");
     const { cookies } = await import("next/headers");
-    if (isSqliteBackend()) {
-      const meterId = (await cookies()).get(METER_COOKIE)?.value ?? "";
-      const month = meterMonth();
-      const already = sqliteMeterHasRead(meterId, slug, month);
-      if (already || sqliteMeterCount(meterId, month) < METER_LIMIT) { unlocked = true; metered = !already; }
-    }
+    const meterId = (await cookies()).get(METER_COOKIE)?.value ?? "";
+    const month = meterMonth();
+    const already = sqliteMeterHasRead(meterId, slug, month);
+    if (already || sqliteMeterCount(meterId, month) < METER_LIMIT) { unlocked = true; metered = !already; }
   }
   // Drop blank paragraph blocks (an Archive-import relic) so posts read with
   // normal spacing instead of huge empty gaps between paragraphs.

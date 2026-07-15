@@ -1,11 +1,9 @@
-import { sanityMutate } from "./sanityWrite";
 import { getStripe } from "./stripe";
-import { withRetry } from "./sanity";
-import { isSqliteBackend, sqliteGetDoc, sqliteDocsByType } from "./storage/sqlite";
+import { sqliteMutate, sqliteGetDoc, sqliteDocsByType } from "./storage/sqlite";
 
-// Reader memberships are stored as `member` documents in Sanity, keyed
-// deterministically by email so the Stripe webhook can upsert idempotently and
-// the magic-link login can look a member up by the email they signed in with.
+// Reader memberships are stored as `member` documents, keyed deterministically
+// by email so the Stripe webhook can upsert idempotently and the magic-link
+// login can look a member up by the email they signed in with.
 
 export type MemberTier = "monthly" | "annual" | "founding";
 export type MemberStatus = "active" | "trialing" | "past_due" | "canceled" | "incomplete";
@@ -57,26 +55,8 @@ export function isActiveMember(member: Member | null | undefined): boolean {
   return true;
 }
 
-// Tokenless CDN read — member docs are non-sensitive membership metadata
-// (no card data ever touches Sanity), and this runs on every gated page view.
 export async function getMemberByEmail(email: string): Promise<Member | null> {
-  if (isSqliteBackend()) return sqliteGetDoc<Member>(memberIdForEmail(email));
-  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
-  const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
-  if (!projectId) return null;
-  const id = memberIdForEmail(email);
-  const query = encodeURIComponent(`*[_id == "${id}"][0]{ _id, email, tier, status, stripeCustomerId, stripeSubscriptionId, currentPeriodEnd, createdAt, comped }`);
-  try {
-    const res = await fetch(
-      `https://${projectId}.apicdn.sanity.io/v2024-01-01/data/query/${dataset}?query=${query}`,
-      { next: { revalidate: 30 } }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    return (data.result as Member | null) ?? null;
-  } catch {
-    return null;
-  }
+  return sqliteGetDoc<Member>(memberIdForEmail(email));
 }
 
 // Create/update a member from Stripe webhook data. Idempotent via a fixed _id.
@@ -92,7 +72,7 @@ export async function upsertMember(input: {
   const _id = memberIdForEmail(email);
   // createOrReplace would wipe createdAt; use createIfNotExists + patch so the
   // first-seen timestamp survives status changes.
-  await sanityMutate([
+  await sqliteMutate([
     {
       createIfNotExists: {
         _id,
@@ -119,32 +99,9 @@ export async function upsertMember(input: {
   ]);
 }
 
-// Admin: list every member (comped + Stripe), newest first. Uses the write
-// token so drafts/unpublished are visible and reads are always fresh.
+// Admin: list every member (comped + Stripe), newest first.
 export async function listAllMembers(): Promise<Member[]> {
-  if (isSqliteBackend()) {
-    return sqliteDocsByType<Member>("member").sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
-  }
-  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
-  const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
-  const token = process.env.SANITY_API_WRITE_TOKEN ?? process.env.SANITY_WRITE_TOKEN;
-  if (!projectId) return [];
-  const query = encodeURIComponent(`*[_type == "member"] | order(coalesce(createdAt, "") desc){ _id, email, tier, status, stripeCustomerId, stripeSubscriptionId, currentPeriodEnd, createdAt, comped }`);
-  // Retry on transient errors (429/5xx) so a momentary Sanity throttle doesn't
-  // make the members list look empty.
-  try {
-    return await withRetry(async () => {
-      const res = await fetch(
-        `https://${projectId}.api.sanity.io/v2024-01-01/data/query/${dataset}?query=${query}`,
-        { headers: token ? { Authorization: `Bearer ${token}` } : {}, cache: "no-store" }
-      );
-      if (!res.ok) throw new Error(`members query ${res.status}`);
-      const data = await res.json();
-      return (data.result as Member[]) ?? [];
-    });
-  } catch {
-    return [];
-  }
+  return sqliteDocsByType<Member>("member").sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
 }
 
 // Admin: backfill — add every existing member to the subscriber list. Needed
@@ -153,7 +110,7 @@ export async function syncMembersToSubscribers(): Promise<number> {
   const members = await listAllMembers();
   const muts = members.filter(m => m.email).map(m => addSubscriberMutation(m.email));
   for (let i = 0; i < muts.length; i += 100) {
-    await sanityMutate(muts.slice(i, i + 100));
+    await sqliteMutate(muts.slice(i, i + 100));
   }
   return muts.length;
 }
@@ -162,7 +119,7 @@ export async function syncMembersToSubscribers(): Promise<number> {
 export async function compMembership(email: string, tier: MemberTier = "founding"): Promise<void> {
   const clean = email.trim().toLowerCase();
   const _id = memberIdForEmail(clean);
-  await sanityMutate([
+  await sqliteMutate([
     { createIfNotExists: { _id, _type: "member", email: clean, createdAt: new Date().toISOString() } },
     { patch: { id: _id, set: { email: clean, tier, status: "active", comped: true, currentPeriodEnd: null } } },
     addSubscriberMutation(clean),
@@ -188,14 +145,14 @@ export async function revokeMembership(email: string): Promise<void> {
       if (code !== "resource_missing") throw err;
     }
   }
-  await sanityMutate([{ patch: { id: _id, set: { status: "canceled" } } }]);
+  await sqliteMutate([{ patch: { id: _id, set: { status: "canceled" } } }]);
 }
 
 // Admin: permanently delete a member record (e.g. to clear a canceled row out
 // of the panel). Does not touch Stripe — revoke already cancels the sub.
 export async function deleteMembership(email: string): Promise<void> {
   const _id = memberIdForEmail(email.trim().toLowerCase());
-  await sanityMutate([{ delete: { id: _id } }]);
+  await sqliteMutate([{ delete: { id: _id } }]);
 }
 
 // Update just the status/period on subscription lifecycle events, keyed by the
@@ -205,33 +162,7 @@ export async function updateMemberBySubscription(input: {
   status: MemberStatus;
   currentPeriodEnd?: number;
 }): Promise<void> {
-  if (isSqliteBackend()) {
-    const m = sqliteDocsByType<Member>("member").find(x => x.stripeSubscriptionId === input.stripeSubscriptionId);
-    if (!m) return;
-    await sanityMutate([{ patch: { id: m._id, set: { status: input.status, ...(input.currentPeriodEnd ? { currentPeriodEnd: input.currentPeriodEnd } : {}) } } }]);
-    return;
-  }
-  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
-  const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
-  if (!projectId) return;
-  const query = encodeURIComponent(`*[_type == "member" && stripeSubscriptionId == "${input.stripeSubscriptionId}"][0]._id`);
-  const token = process.env.SANITY_API_WRITE_TOKEN ?? process.env.SANITY_WRITE_TOKEN;
-  const res = await fetch(
-    `https://${projectId}.api.sanity.io/v2024-01-01/data/query/${dataset}?query=${query}`,
-    { headers: token ? { Authorization: `Bearer ${token}` } : {}, cache: "no-store" }
-  );
-  if (!res.ok) return;
-  const { result: id } = await res.json();
-  if (!id) return;
-  await sanityMutate([
-    {
-      patch: {
-        id,
-        set: {
-          status: input.status,
-          ...(input.currentPeriodEnd ? { currentPeriodEnd: input.currentPeriodEnd } : {}),
-        },
-      },
-    },
-  ]);
+  const m = sqliteDocsByType<Member>("member").find(x => x.stripeSubscriptionId === input.stripeSubscriptionId);
+  if (!m) return;
+  await sqliteMutate([{ patch: { id: m._id, set: { status: input.status, ...(input.currentPeriodEnd ? { currentPeriodEnd: input.currentPeriodEnd } : {}) } } }]);
 }

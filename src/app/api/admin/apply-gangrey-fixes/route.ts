@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminOrCronSecret } from "@/lib/adminAuth";
-import { isSqliteBackend, sqliteArchivePostsForFixes, sqliteSetDateByline, sqliteSetStatus } from "@/lib/storage/sqlite";
+import { sqliteArchivePostsForFixes, sqliteSetDateByline, sqliteSetStatus } from "@/lib/storage/sqlite";
 import fixes from "@/lib/gangreyFixes.json";
 
 export const dynamic = "force-dynamic";
@@ -72,7 +72,6 @@ function normHeadline(s: string): string {
 
 export async function POST(req: NextRequest) {
   await requireAdminOrCronSecret(req);
-  if (!isSqliteBackend()) return NextResponse.json({ error: "sqlite-only" }, { status: 400 });
   const apply = req.nextUrl.searchParams.get("apply") === "1";
   const trashUnmatched = req.nextUrl.searchParams.get("trashUnmatched") === "1";
 

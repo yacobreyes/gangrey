@@ -1,5 +1,4 @@
-import { client } from "./sanity";
-import { isSqliteBackend, sqliteDocsByType } from "./storage/sqlite";
+import { sqliteDocsByType } from "./storage/sqlite";
 
 export type UserRole = "admin" | "editor";
 
@@ -16,13 +15,9 @@ export type FlatplanUser = {
   active: boolean;
 };
 
-const USER_FIELDS = `_id, email, firstName, lastName, byline, jobTitle, bio,
-  "photoUrl": photo.asset->url, role, active`;
-
-// On the sqlite backend the raw user doc stores the photo as
-// photo.asset._ref (which is the local /media/... path — see
-// sqliteSaveMedia), and the GROQ projection that derives photoUrl never
-// runs. Surface it here, or uploaded photos save but never display.
+// The raw user doc stores the photo as photo.asset._ref (which is the local
+// /media/... path — see sqliteSaveMedia). Surface it as photoUrl here, or
+// uploaded photos save but never display.
 function withPhotoUrl(u: FlatplanUser & { photo?: { asset?: { _ref?: string } } }): FlatplanUser {
   return { ...u, photoUrl: u.photoUrl ?? u.photo?.asset?._ref ?? undefined };
 }
@@ -32,31 +27,15 @@ function withPhotoUrl(u: FlatplanUser & { photo?: { asset?: { _ref?: string } } 
 export async function getUserByEmail(email: string): Promise<FlatplanUser | null> {
   const e = (email ?? "").trim().toLowerCase();
   if (!e) return null;
-  if (isSqliteBackend()) {
-    const u = sqliteDocsByType<FlatplanUser>("user").find(x => x.email === e && x.active === true);
-    return u ? withPhotoUrl(u) : null;
-  }
-  const u: FlatplanUser | null = await client.fetch(
-    `*[_type == "user" && email == $email && active == true][0]{ ${USER_FIELDS} }`,
-    { email: e },
-    { cache: "no-store" }
-  );
-  return u ?? null;
+  const u = sqliteDocsByType<FlatplanUser>("user").find(x => x.email === e && x.active === true);
+  return u ? withPhotoUrl(u) : null;
 }
 
 // All users (active and deactivated) for the admin management panel.
 export async function listAllUsers(): Promise<FlatplanUser[]> {
-  if (isSqliteBackend()) {
-    return sqliteDocsByType<FlatplanUser>("user")
-      .map(withPhotoUrl)
-      .sort((a, b) => Number(b.active) - Number(a.active) || (a.firstName ?? "").localeCompare(b.firstName ?? "") || a.email.localeCompare(b.email));
-  }
-  const users: FlatplanUser[] = await client.fetch(
-    `*[_type == "user"] | order(active desc, firstName asc, email asc){ ${USER_FIELDS} }`,
-    {},
-    { cache: "no-store" }
-  );
-  return users ?? [];
+  return sqliteDocsByType<FlatplanUser>("user")
+    .map(withPhotoUrl)
+    .sort((a, b) => Number(b.active) - Number(a.active) || (a.firstName ?? "").localeCompare(b.firstName ?? "") || a.email.localeCompare(b.email));
 }
 
 export function fullName(u: { firstName?: string; lastName?: string; email?: string }): string {

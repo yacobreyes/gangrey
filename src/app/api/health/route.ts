@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isSqliteBackend, sqliteGetCount } from "@/lib/storage/sqlite";
+import { sqliteGetCount } from "@/lib/storage/sqlite";
 
 // Lightweight liveness + readiness check for an external uptime monitor.
 // Returns 200 only if the app is running AND its datastore answers a query;
@@ -9,10 +9,8 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    if (isSqliteBackend()) {
-      // Cheapest possible read that proves the SQLite file is open & queryable.
-      sqliteGetCount("healthcheck");
-    }
+    // Cheapest possible read that proves the SQLite file is open & queryable.
+    sqliteGetCount("healthcheck");
     return NextResponse.json(
       { status: "ok", time: new Date().toISOString() },
       { headers: { "Cache-Control": "no-store" } }

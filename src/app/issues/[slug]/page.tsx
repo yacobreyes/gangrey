@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { client } from "@/lib/sanity";
-import { isSqliteBackend, sqliteGetDoc, sqliteDocsByType } from "@/lib/storage/sqlite";
+import { sqliteGetDoc, sqliteDocsByType } from "@/lib/storage/sqlite";
 import { renderNewsletterPageHtml, type NlCard } from "@/lib/newsletterEmail";
 import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
@@ -15,24 +14,12 @@ type NewsletterDoc = {
 };
 
 async function getIssue(slug: string): Promise<IssueDoc | null> {
-  if (isSqliteBackend()) {
-    return sqliteDocsByType<IssueDoc & { slug?: { current?: string } }>("issue")
-      .find(i => i.slug?.current === slug) ?? null;
-  }
-  return client.fetch(
-    `*[_type == "issue" && slug.current == $slug][0]{ newsletterId, title, description }`,
-    { slug },
-    { next: { revalidate: 60 } }
-  );
+  return sqliteDocsByType<IssueDoc & { slug?: { current?: string } }>("issue")
+    .find(i => i.slug?.current === slug) ?? null;
 }
 
 async function getNewsletter(id: string): Promise<NewsletterDoc | null> {
-  if (isSqliteBackend()) return sqliteGetDoc<NewsletterDoc>(id);
-  return client.fetch(
-    `*[_id == $id][0]{ subject, preview, intro, author, volume, issue, classics, cards }`,
-    { id },
-    { next: { revalidate: 60 } }
-  );
+  return sqliteGetDoc<NewsletterDoc>(id);
 }
 
 

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
-import { isSqliteBackend, sqliteAddSubmission, type SubmissionRow } from "@/lib/storage/sqlite";
-import { sanityMutate } from "@/lib/sanityWrite";
+import { sqliteAddSubmission } from "@/lib/storage/sqlite";
 import { straightenQuotes } from "@/lib/straighten";
 import { submissionEmailHtml, escapeHtml } from "@/lib/submissionEmail";
 import { validateSubmission } from "@/lib/submissionValidation";
@@ -42,15 +41,7 @@ export async function POST(req: Request) {
 
   const record = { name, email, title, category, coverLetter, text, wordCount };
   try {
-    if (isSqliteBackend()) {
-      sqliteAddSubmission(record);
-    } else {
-      const id = `submission-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const doc: Omit<SubmissionRow, "_id"> & { _id: string; _type: string } = {
-        _id: id, _type: "submission", status: "new", _createdAt: new Date().toISOString(), ...record,
-      };
-      await sanityMutate([{ create: doc }]);
-    }
+    sqliteAddSubmission(record);
   } catch (e) {
     console.log(`[submit] store failed: ${e instanceof Error ? e.message : e}`);
     return NextResponse.json({ error: "Couldn't save your submission. Try again." }, { status: 500 });

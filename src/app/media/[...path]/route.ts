@@ -2,12 +2,12 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { isSqliteBackend, sqliteMediaDir } from "@/lib/storage/sqlite";
+import { sqliteMediaDir } from "@/lib/storage/sqlite";
 
 // Serves uploaded media on the self-hosted backend. Uploads land in
 // DATA_DIR/media at runtime (outside the build), so they can't be served as
 // static files — this route streams them (resizing/cropping on request via
-// sharp, cached to disk) with long-lived caching. On Sanity this path is unused.
+// sharp, cached to disk) with long-lived caching.
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +24,6 @@ function parseCrop(v: string | null): { x: number; y: number; w: number; h: numb
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  if (!isSqliteBackend()) return new NextResponse("Not found", { status: 404 });
   const { path: parts } = await params;
   const name = (parts ?? []).join("/");
   if (!name || name.includes("..") || name.includes("/")) return new NextResponse("Not found", { status: 404 });

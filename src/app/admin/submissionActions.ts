@@ -2,10 +2,8 @@
 
 import { Resend } from "resend";
 import { requireAuth } from "@/lib/adminAuth";
-import { client } from "@/lib/sanity";
-import { sanityMutate } from "@/lib/sanityWrite";
 import {
-  isSqliteBackend, sqliteAllSubmissions, sqliteGetSubmission,
+  sqliteAllSubmissions, sqliteGetSubmission,
   sqliteUpdateSubmission, sqliteDeleteSubmission,
   type SubmissionRow, type SubmissionStatus,
 } from "@/lib/storage/sqlite";
@@ -14,24 +12,15 @@ import { createPostFromNewsletterCard } from "./actions";
 
 export async function getSubmissions(): Promise<SubmissionRow[]> {
   await requireAuth();
-  if (isSqliteBackend()) return sqliteAllSubmissions();
-  const rows = await client.fetch(
-    `*[_type == "submission"] | order(_createdAt desc){ "_id": _id, name, email, title, category, coverLetter, text, wordCount, status, respondedAt, _createdAt }`,
-    {},
-    { cache: "no-store" }
-  );
-  return (rows ?? []) as SubmissionRow[];
+  return sqliteAllSubmissions();
 }
 
 async function getOne(id: string): Promise<SubmissionRow | null> {
-  if (isSqliteBackend()) return sqliteGetSubmission(id);
-  const r = await client.fetch(`*[_id == $id][0]{ "_id": _id, name, email, title, category, status }`, { id }, { cache: "no-store" });
-  return (r ?? null) as SubmissionRow | null;
+  return sqliteGetSubmission(id);
 }
 
 async function patch(id: string, fields: Partial<SubmissionRow>): Promise<void> {
-  if (isSqliteBackend()) sqliteUpdateSubmission(id, fields);
-  else await sanityMutate([{ patch: { id, set: fields } }]);
+  sqliteUpdateSubmission(id, fields);
 }
 
 // Move a submission through the review workflow without notifying the writer
@@ -135,18 +124,12 @@ export async function createStoryFromSubmission(id: string): Promise<{ ok: boole
 }
 
 async function getFull(id: string): Promise<SubmissionRow | null> {
-  if (isSqliteBackend()) return sqliteGetSubmission(id);
-  const r = await client.fetch(
-    `*[_id == $id][0]{ "_id": _id, name, email, title, category, coverLetter, text, wordCount, status, respondedAt, _createdAt }`,
-    { id }, { cache: "no-store" }
-  );
-  return (r ?? null) as SubmissionRow | null;
+  return sqliteGetSubmission(id);
 }
 
 export async function deleteSubmission(id: string): Promise<{ ok: boolean }> {
   await requireAuth();
-  if (isSqliteBackend()) sqliteDeleteSubmission(id);
-  else await sanityMutate([{ delete: { id } }]);
+  sqliteDeleteSubmission(id);
   return { ok: true };
 }
 

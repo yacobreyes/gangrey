@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit } from "@/lib/rateLimit";
-import { isSqliteBackend, sqliteIncrementCount } from "@/lib/storage/sqlite";
+import { sqliteIncrementCount } from "@/lib/storage/sqlite";
 
 // Records a story page view in our own datastore (no third party). Called once
 // per story load by StoryVisitTracker. Admin-only pages never call this.
@@ -24,10 +24,6 @@ export async function POST(req: NextRequest) {
   if (!rateLimit(`${ip}|${slug}`, "view-dedup", 1, 24 * 60 * 60 * 1000)) {
     return NextResponse.json({ ok: true, deduped: true });
   }
-  if (isSqliteBackend()) {
-    const count = sqliteIncrementCount(viewId(slug), 1);
-    return NextResponse.json({ ok: true, count });
-  }
-  // Sanity backend: views aren't tracked (self-host feature); no-op success.
-  return NextResponse.json({ ok: true });
+  const count = sqliteIncrementCount(viewId(slug), 1);
+  return NextResponse.json({ ok: true, count });
 }

@@ -1,10 +1,8 @@
 "use server";
 
 import { requireAuth } from "@/lib/adminAuth";
-import { client } from "@/lib/sanity";
-import { sanityMutate } from "@/lib/sanityWrite";
 import { fullName } from "@/lib/users";
-import { isSqliteBackend, sqliteGetDoc, sqliteDocsByType } from "@/lib/storage/sqlite";
+import { sqliteMutate, sqliteGetDoc, sqliteDocsByType } from "@/lib/storage/sqlite";
 
 // A lock is considered live only if it was refreshed within this window. The
 // editor heartbeats every ~20s, so 45s tolerates a missed beat before a lock is
@@ -23,8 +21,7 @@ const isLive = (l: { heartbeatAt?: string } | null, nowMs: number) =>
 const toHolder = (l: LockDoc): LockHolder => ({ name: l.holderName, email: l.holderEmail, sessionId: l.sessionId, since: l.since });
 
 async function readLock(targetId: string): Promise<LockDoc | null> {
-  if (isSqliteBackend()) return sqliteGetDoc<LockDoc>(lockId(targetId));
-  return client.fetch(`*[_id == $id][0]`, { id: lockId(targetId) }, { cache: "no-store" });
+  return sqliteGetDoc<LockDoc>(lockId(targetId));
 }
 
 // Try to take/hold the lock for this editing session. force=true seizes it from
@@ -41,7 +38,7 @@ export async function claimLock(targetId: string, sessionId: string, nowIso: str
   }
 
   const since = live && existing?.sessionId === sessionId ? existing.since : nowIso;
-  await sanityMutate([{
+  await sqliteMutate([{
     createOrReplace: {
       _id: lockId(targetId), _type: "editLock", targetId,
       holderName: fullName(me), holderEmail: me.email, sessionId,
@@ -58,7 +55,7 @@ export async function heartbeatLock(targetId: string, sessionId: string, nowIso:
   const now = new Date(nowIso).getTime();
   const existing = await readLock(targetId);
   if (existing && existing.sessionId === sessionId) {
-    await sanityMutate([{ patch: { id: lockId(targetId), set: { heartbeatAt: nowIso } } }]);
+    await sqliteMutate([{ patch: { id: lockId(targetId), set: { heartbeatAt: nowIso } } }]);
     return { held: true, holder: toHolder({ ...existing, heartbeatAt: nowIso }) };
   }
   if (isLive(existing, now) && existing) return { held: false, holder: toHolder(existing), selfOtherTab: existing.holderEmail === me.email };
@@ -69,7 +66,7 @@ export async function releaseLock(targetId: string, sessionId: string): Promise<
   await requireAuth();
   const existing = await readLock(targetId);
   if (existing && existing.sessionId === sessionId) {
-    try { await sanityMutate([{ delete: { id: lockId(targetId) } }]); } catch {}
+    try { await sqliteMutate([{ delete: { id: lockId(targetId) } }]); } catch {}
   }
 }
 
@@ -90,9 +87,7 @@ export async function watchLock(targetId: string, nowIso: string): Promise<LockS
 export async function getActiveLocks(nowIso: string): Promise<Record<string, LockHolder>> {
   await requireAuth();
   const now = new Date(nowIso).getTime();
-  const locks: LockDoc[] = isSqliteBackend()
-    ? sqliteDocsByType<LockDoc>("editLock")
-    : await client.fetch(`*[_type == "editLock"]`, {}, { cache: "no-store" });
+  const locks: LockDoc[] = sqliteDocsByType<LockDoc>("editLock");
   const out: Record<string, LockHolder> = {};
   for (const l of locks ?? []) {
     if (isLive(l, now)) out[l.targetId] = toHolder(l);

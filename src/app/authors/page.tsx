@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { client } from "@/lib/sanity";
-import { isSqliteBackend, sqliteAllPublishedPosts } from "@/lib/storage/sqlite";
+import { sqliteAllPublishedPosts } from "@/lib/storage/sqlite";
 import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
 import AuthorsClient from "./AuthorsClient";
@@ -13,21 +12,12 @@ export const metadata: Metadata = {
   description: "Every writer published in Gangrey.",
 };
 
-// Exclude archive (Archive) pieces — the author board only lists
-// writers featured in Gangrey proper, not the imported archive.
-const QUERY = `*[_type == "post" && (status == "published" || !defined(status)) && defined(byline) && byline != "" && section != "Archive"] {
-  "byline": byline
-}`;
-
 export default async function AuthorsPage() {
-  let bylines: { byline: string }[] = [];
-  if (isSqliteBackend()) {
-    bylines = sqliteAllPublishedPosts()
-      .filter(p => p.section !== "Archive" && p.byline?.trim())
-      .map(p => ({ byline: p.byline }));
-  } else {
-    try { bylines = await client.fetch(QUERY, {}, { next: { revalidate: 60 } }); } catch {}
-  }
+  // Exclude archive (Archive) pieces — the author board only lists
+  // writers featured in Gangrey proper, not the imported archive.
+  const bylines: { byline: string }[] = sqliteAllPublishedPosts()
+    .filter(p => p.section !== "Archive" && p.byline?.trim())
+    .map(p => ({ byline: p.byline }));
 
   // Count posts per author and sort alphabetically by last name
   const counts = new Map<string, number>();

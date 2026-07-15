@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit } from "@/lib/rateLimit";
 import {
-  isSqliteBackend, sqliteRecordEvent, sqliteGetPost, sqliteIncrementCount, sqlitePruneEvents,
+  sqliteRecordEvent, sqliteGetPost, sqliteIncrementCount, sqlitePruneEvents,
 } from "@/lib/storage/sqlite";
 
 // Analytics ingestion — the Parse.ly-style event pipeline. Records a pageview
@@ -36,8 +36,6 @@ function hostOf(url: string): string {
 }
 
 export async function POST(req: NextRequest) {
-  if (!isSqliteBackend()) return NextResponse.json({ ok: true });
-
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   if (!rateLimit(ip, "track", 600, 60 * 1000)) return NextResponse.json({ ok: false }, { status: 429 });
 

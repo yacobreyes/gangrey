@@ -2,7 +2,7 @@
 
 import { requireAdmin, getCurrentUser } from "@/lib/adminAuth";
 import { listAllUsers, type FlatplanUser, type UserRole } from "@/lib/users";
-import { sanityMutate, uploadUserPhotoAsset } from "@/lib/sanityWrite";
+import { sqliteMutate, sqliteSaveMedia } from "@/lib/storage/sqlite";
 import { straightenQuotes } from "@/lib/straighten";
 
 const sq = (s: string | null | undefined) => (typeof s === "string" ? straightenQuotes(s) : s);
@@ -56,7 +56,7 @@ export async function saveUser(input: UserInput): Promise<{ ok: boolean; error?:
   };
 
   try {
-    await sanityMutate([{ createOrReplace: doc }]);
+    await sqliteMutate([{ createOrReplace: doc }]);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Save failed." };
@@ -70,7 +70,7 @@ export async function setUserActive(id: string, active: boolean): Promise<{ ok: 
   const me = await requireAdmin();
   if (id === me._id) return { ok: false, error: "You can't deactivate your own account." };
   try {
-    await sanityMutate([{ patch: { id, set: { active } } }]);
+    await sqliteMutate([{ patch: { id, set: { active } } }]);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Update failed." };
@@ -84,7 +84,7 @@ export async function deleteUser(id: string): Promise<{ ok: boolean; error?: str
   const me = await requireAdmin();
   if (id === me._id) return { ok: false, error: "You can't delete your own account." };
   try {
-    await sanityMutate([{ delete: { id } }]);
+    await sqliteMutate([{ delete: { id } }]);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Delete failed." };
@@ -96,7 +96,9 @@ export async function uploadUserPhoto(formData: FormData): Promise<{ assetId: st
   await requireAdmin();
   const file = formData.get("file") as File;
   if (!file) throw new Error("No file provided");
-  return uploadUserPhotoAsset(file);
+  // Profile photos — stored alongside media on disk but excluded from the
+  // Media Library listing (they're headshots, not editorial assets).
+  return sqliteSaveMedia(file.name, Buffer.from(await file.arrayBuffer()), "user");
 }
 
 // The signed-in person's own record (role, name) for gating the UI.

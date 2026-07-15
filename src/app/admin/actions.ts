@@ -4,11 +4,10 @@ import { revalidatePath } from "next/cache";
 import { parseBody } from "@/lib/parseBody";
 import { requireAuth, requireAdmin } from "@/lib/adminAuth";
 import { fullName } from "@/lib/users";
-import { client } from "@/lib/sanity";
 import { straightenQuotes, straightenBlocks } from "@/lib/straighten";
 import { postImageUrl } from "@/lib/sanityImage";
 import {
-  isSqliteBackend, sqliteSavePost, sqliteDeletePost, sqliteSetStatus,
+  sqliteSavePost, sqliteDeletePost, sqliteSetStatus,
   sqliteSnapshotVersion, sqliteGetVersions, sqliteSetSingleton, sqliteMutate,
 } from "@/lib/storage/sqlite";
 
@@ -40,13 +39,6 @@ function warmImageDerivatives(src: string, crops: Record<string, { x: number; y:
 // plain input). Guarded for null/undefined.
 const sq = (s: string | null | undefined) =>
   typeof s === "string" ? straightenQuotes(s) : s;
-
-// All writes go to the local sqlite store — Sanity was fully removed. The name
-// survives from the Sanity era so the dozens of call sites below don't churn.
-async function mutate(mutations: unknown[]) {
-  sqliteMutate(mutations);
-  return { results: [] };
-}
 
 export async function uploadImage(formData: FormData) {
   await requireAuth();
@@ -104,10 +96,7 @@ export async function createPostFromNewsletterCard(input: {
       ...(input.image.alt ? { alt: input.image.alt } : {}),
     };
   }
-  // Route by backend like every other write in this file — the bare Sanity
-  // mutate() throws "Missing Sanity config" on the self-hosted sqlite build.
-  if (isSqliteBackend()) sqliteMutate([{ createOrReplace: doc }]);
-  else await mutate([{ createOrReplace: doc }]);
+  sqliteMutate([{ createOrReplace: doc }]);
   return { slug };
 }
 
@@ -188,16 +177,12 @@ export async function savePost(formData: FormData) {
     // set here previously only lived on the post, so the library showed blank.
     if (imageCaption || imageAlt) {
       const fields = { description: (imageCaption ? sq(imageCaption) : undefined) ?? undefined, altText: (imageAlt ? sq(imageAlt) : undefined) ?? undefined };
-      if (isSqliteBackend()) {
-        const { sqliteSetMediaMeta } = await import("@/lib/storage/sqlite");
-        sqliteSetMediaMeta(imageAssetId, fields);
-      } else {
-        await mutate([{ patch: { id: imageAssetId, set: fields } }]).catch(() => {});
-      }
+      const { sqliteSetMediaMeta } = await import("@/lib/storage/sqlite");
+      sqliteSetMediaMeta(imageAssetId, fields);
     }
   }
 
-  if (isSqliteBackend()) {
+  {
     // If the slug changed, carry the story's slug-keyed data (analytics events,
     // view/like counters, comments) over to the new slug so nothing is orphaned
     // (stale analytics rows that 404, lost view counts).
@@ -247,28 +232,6 @@ export async function savePost(formData: FormData) {
     }
     return { slug };
   }
-
-  await mutate([{ createOrReplace: doc }]);
-  if (shouldSnapshot || status === "published") {
-    await snapshotVersion({
-      postId: doc._id as string,
-      slug,
-      type: status === "published" ? "publish" : "autosave",
-      headline, subheadline,
-      body: Array.isArray(body) ? body : [],
-      editedBy: fullName(me),
-    });
-  }
-  // On publish, invalidate the cached public pages so the change appears
-  // immediately instead of waiting for the 60s revalidate window.
-  if (status === "published") {
-    revalidatePath(`/stories/${slug}`);
-    revalidatePath("/");
-    revalidatePath("/latest");
-    revalidatePath("/archive");
-    revalidatePath("/brief/[read]", "page");
-  }
-  return { slug };
 }
 
 function portableWordCount(body: unknown[]): number {
@@ -277,52 +240,6 @@ function portableWordCount(body: unknown[]): number {
     .map(b => (b.children ?? []).map(c => c.text ?? "").join(""))
     .join(" ");
   return text.trim().split(/\s+/).filter(Boolean).length;
-}
-
-interface VersionInput { postId: string; slug: string; type: "autosave" | "publish"; headline: string; subheadline: string; body: unknown[]; editedBy?: string; }
-
-// Saves a snapshot of the post as a separate postVersion document, then prunes
-// to the most recent 20 per post. Stored in Sanity so history survives across devices.
-async function snapshotVersion({ postId, slug, type, headline, subheadline, body, editedBy }: VersionInput) {
-  try {
-    // Skip if nothing changed since the most recent version (avoids empty saves).
-    const latest = await client.fetch(
-      `*[_type == "postVersion" && slug == $slug] | order(savedAt desc)[0]{ headline, subheadline, body }`,
-      { slug },
-      { cache: "no-store" }
-    );
-    if (latest &&
-        latest.headline === headline &&
-        latest.subheadline === subheadline &&
-        JSON.stringify(latest.body ?? []) === JSON.stringify(body)) {
-      return;
-    }
-
-    const versionDoc = {
-      _id: `version-${slug}-${Date.now()}`,
-      _type: "postVersion",
-      postId, slug, type,
-      savedAt: new Date().toISOString(),
-      wordCount: portableWordCount(body),
-      headline, subheadline, body, editedBy,
-    };
-    // Never delete a published snapshot — those are real milestones. Only prune
-    // the oldest *autosave* versions once there are more than KEEP_AUTOSAVES of
-    // them, so routine typing doesn't grow unbounded but real history survives.
-    const KEEP_AUTOSAVES = 60;
-    const staleAutosaves: string[] = await client.fetch(
-      `*[_type == "postVersion" && slug == $slug && type != "publish"] | order(savedAt desc) [${KEEP_AUTOSAVES}...1000]._id`,
-      { slug },
-      { cache: "no-store" }
-    );
-    await mutate([
-      { createOrReplace: versionDoc },
-      ...staleAutosaves.map(id => ({ delete: { id } })),
-    ]);
-  } catch (err) {
-    // Version history is best-effort — never block a save on it.
-    console.error("snapshotVersion failed", err);
-  }
 }
 
 export interface PostVersion {
@@ -338,34 +255,20 @@ export interface PostVersion {
 
 export async function getVersions(slug: string): Promise<PostVersion[]> {
   await requireAuth();
-  if (isSqliteBackend()) return sqliteGetVersions(slug);
-  return client.fetch(
-    `*[_type == "postVersion" && slug == $slug] | order(savedAt desc){ _id, savedAt, type, wordCount, headline, subheadline, body, editedBy }`,
-    { slug },
-    { cache: "no-store" }
-  );
+  return sqliteGetVersions(slug);
 }
 
 export async function checkSlugsExist(slugs: string[]): Promise<string[]> {
   await requireAuth();
   if (!slugs.length) return [];
-  if (isSqliteBackend()) {
-    const { sqliteAllPostsAdmin } = await import("@/lib/storage/sqlite");
-    const set = new Set(slugs);
-    return sqliteAllPostsAdmin(false).filter(p => p.status !== "trashed" && set.has(p.slug)).map(p => p.slug);
-  }
-  const found: { slug: string }[] = await client.fetch(
-    `*[_type == "post" && slug.current in $slugs && status != "trashed"]{ "slug": slug.current }`,
-    { slugs },
-    { cache: "no-store" }
-  );
-  return found.map(f => f.slug);
+  const { sqliteAllPostsAdmin } = await import("@/lib/storage/sqlite");
+  const set = new Set(slugs);
+  return sqliteAllPostsAdmin(false).filter(p => p.status !== "trashed" && set.has(p.slug)).map(p => p.slug);
 }
 
 export async function deletePost(id: string) {
   await requireAuth();
-  if (isSqliteBackend()) { sqliteDeletePost(id); return; }
-  await mutate([{ delete: { id } }]);
+  sqliteDeletePost(id);
 }
 
 // Editorial workflow: move a draft between pipeline stages (the Calendar board).
@@ -373,15 +276,15 @@ export async function setPostStage(id: string, stage: string) {
   await requireAuth();
   const allowed = ["assigned", "drafting", "editing", "ready"];
   if (!allowed.includes(stage)) return;
-  if (isSqliteBackend()) { const { sqliteSetPostFields } = await import("@/lib/storage/sqlite"); sqliteSetPostFields(id, { stage }); return; }
-  await mutate([{ patch: { id, set: { stage } } }]);
+  const { sqliteSetPostFields } = await import("@/lib/storage/sqlite");
+  sqliteSetPostFields(id, { stage });
 }
 
 // Assign (or unassign) the editor responsible for a draft.
 export async function setPostAssignee(id: string, assignee: string | null) {
   await requireAuth();
-  if (isSqliteBackend()) { const { sqliteSetPostFields } = await import("@/lib/storage/sqlite"); sqliteSetPostFields(id, { assignee: assignee || null }); return; }
-  await mutate([{ patch: { id, set: { assignee: assignee || null } } }]);
+  const { sqliteSetPostFields } = await import("@/lib/storage/sqlite");
+  sqliteSetPostFields(id, { assignee: assignee || null });
 }
 
 // Move a piece's target/publish date — used by dragging on the Calendar's
@@ -389,8 +292,8 @@ export async function setPostAssignee(id: string, assignee: string | null) {
 export async function setPostDate(id: string, date: string) {
   await requireAuth();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
-  if (isSqliteBackend()) { const { sqliteSetPostFields } = await import("@/lib/storage/sqlite"); sqliteSetPostFields(id, { date }); return; }
-  await mutate([{ patch: { id, set: { date } } }]);
+  const { sqliteSetPostFields } = await import("@/lib/storage/sqlite");
+  sqliteSetPostFields(id, { date });
 }
 
 // A unified item shown on the editorial calendar: both stories and
@@ -450,8 +353,7 @@ export async function createStoryOnDate(date: string): Promise<{ slug: string }>
     section: "", headline: "", subheadline: "", byline: "", date: useDate,
     status: "draft", access: "free", body: [],
   };
-  if (isSqliteBackend()) sqliteMutate([{ createOrReplace: doc }]);
-  else await mutate([{ createOrReplace: doc }]);
+  sqliteMutate([{ createOrReplace: doc }]);
   return { slug };
 }
 
@@ -461,47 +363,35 @@ export async function createStoryOnDate(date: string): Promise<{ slug: string }>
 export async function rescheduleCalendarItem(kind: "story" | "newsletter", id: string, date: string) {
   await requireAuth();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
-  if (isSqliteBackend()) { const { sqliteRescheduleItem } = await import("@/lib/storage/sqlite"); sqliteRescheduleItem(kind, id, date); return; }
-  if (kind === "story") await mutate([{ patch: { id, set: { date } } }]);
-  else await mutate([{ patch: { id, set: { scheduledAt: `${date}T09:00:00.000Z` } } }]);
+  const { sqliteRescheduleItem } = await import("@/lib/storage/sqlite");
+  sqliteRescheduleItem(kind, id, date);
 }
 
 export async function unpublishPost(id: string) {
   await requireAuth();
-  if (isSqliteBackend()) { sqliteSetStatus(id, "draft"); return; }
-  await mutate([{ patch: { id, set: { status: "draft" } } }]);
+  sqliteSetStatus(id, "draft");
 }
 
 export async function trashPost(id: string) {
   await requireAuth();
-  if (isSqliteBackend()) { sqliteSetStatus(id, "trashed"); return; }
-  await mutate([{ patch: { id, set: { status: "trashed" } } }]);
+  sqliteSetStatus(id, "trashed");
 }
 
 export async function restorePost(id: string) {
   await requireAuth();
-  if (isSqliteBackend()) { sqliteSetStatus(id, "draft"); return; }
-  await mutate([{ patch: { id, set: { status: "draft" } } }]);
+  sqliteSetStatus(id, "draft");
 }
 
 export async function deleteMediaAsset(assetId: string) {
   await requireAuth();
-  if (isSqliteBackend()) {
-    const { sqliteDeleteMedia } = await import("@/lib/storage/sqlite");
-    sqliteDeleteMedia(assetId);
-    return;
-  }
-  await mutate([{ delete: { id: assetId } }]);
+  const { sqliteDeleteMedia } = await import("@/lib/storage/sqlite");
+  sqliteDeleteMedia(assetId);
 }
 
 export async function updateMediaAsset(assetId: string, fields: { title?: string; description?: string; altText?: string }) {
   await requireAuth();
-  if (isSqliteBackend()) {
-    const { sqliteSetMediaMeta } = await import("@/lib/storage/sqlite");
-    sqliteSetMediaMeta(assetId, fields);
-    return;
-  }
-  await mutate([{ patch: { id: assetId, set: fields } }]);
+  const { sqliteSetMediaMeta } = await import("@/lib/storage/sqlite");
+  sqliteSetMediaMeta(assetId, fields);
 }
 
 export async function saveAbout(formData: FormData) {
@@ -516,8 +406,7 @@ export async function saveAbout(formData: FormData) {
   } catch {
     body = parseBody(raw);
   }
-  if (isSqliteBackend()) sqliteSetSingleton("about", { body });
-  else await mutate([{ createOrReplace: { _id: "about", _type: "about", body } }]);
+  sqliteSetSingleton("about", { body });
   // Refresh the cached public page immediately instead of waiting for ISR.
   revalidatePath("/about");
 }
@@ -526,34 +415,23 @@ const CLOUD_DRAFT_ID = "admin-autosave";
 
 export async function saveDraftToCloud(data: string) {
   await requireAuth();
-  if (isSqliteBackend()) { sqliteSetSingleton(CLOUD_DRAFT_ID, { data, ts: Date.now() }); return; }
-  await mutate([{ createOrReplace: { _id: CLOUD_DRAFT_ID, _type: "adminDraft", data, ts: Date.now() } }]);
+  sqliteSetSingleton(CLOUD_DRAFT_ID, { data, ts: Date.now() });
 }
 
 export async function loadDraftFromCloud(): Promise<{ data: string; ts: number } | null> {
   await requireAuth();
-  if (isSqliteBackend()) {
-    const doc = (await import("@/lib/storage/sqlite")).sqliteGetSingleton<{ data: string; ts: number }>(CLOUD_DRAFT_ID);
-    return doc?.data ? { data: doc.data, ts: doc.ts ?? 0 } : null;
-  }
-  const doc = await client.fetch(
-    `*[_id == $id][0]{ data, ts }`,
-    { id: CLOUD_DRAFT_ID },
-    { cache: "no-store" }
-  );
+  const doc = (await import("@/lib/storage/sqlite")).sqliteGetSingleton<{ data: string; ts: number }>(CLOUD_DRAFT_ID);
   return doc?.data ? { data: doc.data, ts: doc.ts ?? 0 } : null;
 }
 
 export async function clearCloudDraft() {
   // no auth check — safe to call on mount to purge stale data
-  if (isSqliteBackend()) { try { sqliteSetSingleton(CLOUD_DRAFT_ID, { data: "", ts: 0 }); } catch {} return; }
-  try { await mutate([{ delete: { id: CLOUD_DRAFT_ID } }]); } catch {}
+  try { sqliteSetSingleton(CLOUD_DRAFT_ID, { data: "", ts: 0 }); } catch {}
 }
 
 export async function saveWelcome(headline: string, body: string) {
   await requireAuth();
-  if (isSqliteBackend()) sqliteSetSingleton("welcome", { headline, body });
-  else await mutate([{ createOrReplace: { _id: "welcome", _type: "welcome", headline, body } }]);
+  sqliteSetSingleton("welcome", { headline, body });
   revalidatePath("/");
 }
 
@@ -572,7 +450,6 @@ export async function saveLately(formData: FormData) {
     reading, readingAuthor, readingUrl, listening, listeningArtist, listeningUrl, watching, watchingUrl,
   };
 
-  if (isSqliteBackend()) sqliteSetSingleton("lately", doc);
-  else await mutate([{ createOrReplace: doc }]);
+  sqliteSetSingleton("lately", doc);
   revalidatePath("/");
 }

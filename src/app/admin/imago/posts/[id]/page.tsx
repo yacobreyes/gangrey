@@ -1,22 +1,15 @@
 import { getCurrentUser } from "@/lib/adminAuth";
 import { fullName } from "@/lib/users";
 import { redirect } from "next/navigation";
-import { client } from "@/lib/sanity";
 import type { SanityPost } from "@/lib/sanity";
-import { isSqliteBackend, sqliteGetPost } from "@/lib/storage/sqlite";
+import { sqliteGetPost } from "@/lib/storage/sqlite";
 import EditorClient from "../../../EditorClient";
 
 async function loadPost(slug: string): Promise<SanityPost | null> {
-  if (isSqliteBackend()) return sqliteGetPost(slug);
-  return client.fetch<SanityPost | null>(QUERY, { slug }, { cache: "no-store" });
+  return sqliteGetPost(slug);
 }
 
 export const dynamic = "force-dynamic";
-
-const QUERY = `*[_type == "post" && slug.current == $slug][0]{
-  _id, "slug": slug.current, section, headline, subheadline, byline,
-  date, body, image { asset, "url": asset->url, caption, alt }, status, scheduledAt, scheduledBy, readingTime
-}`;
 
 export default async function EditPostPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ new?: string }> }) {
   const me = await getCurrentUser();

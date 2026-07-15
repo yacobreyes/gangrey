@@ -2,7 +2,7 @@ import { getServerSession, type NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { timingSafeEqual } from "crypto";
 import { getUserByEmail, type FlatplanUser, type UserRole } from "./users";
-import { sanityMutate } from "./sanityWrite";
+import { sqliteMutate } from "./storage/sqlite";
 
 // The bootstrap owner. This email is always allowed and always treated as an
 // admin, even before any `user` records exist — so the first sign-in can create
@@ -15,7 +15,7 @@ const BOOTSTRAP_EMAIL = (process.env.ADMIN_GOOGLE_EMAIL ?? "").trim().toLowerCas
 async function ensureBootstrapRecord(email: string, name?: string | null) {
   const [firstName, ...rest] = (name ?? "").trim().split(" ");
   try {
-    await sanityMutate([{
+    await sqliteMutate([{
       createIfNotExists: {
         _id: `user-${email.replace(/[^a-z0-9]/g, "-")}`,
         _type: "user",

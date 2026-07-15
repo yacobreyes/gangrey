@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdminOrCronSecret } from "@/lib/adminAuth";
-import { isSqliteBackend, sqliteAllPostsAdminLight } from "@/lib/storage/sqlite";
+import { sqliteAllPostsAdminLight } from "@/lib/storage/sqlite";
 import { postImageUrl } from "@/lib/sanityImage";
 
 export const dynamic = "force-dynamic";
@@ -51,7 +51,6 @@ async function warmOne(base: string, image: { url?: string; crops?: unknown }): 
 
 export async function POST(req: Request) {
   await requireAdminOrCronSecret(req);
-  if (!isSqliteBackend()) return NextResponse.json({ error: "sqlite-only" }, { status: 400 });
 
   const url = new URL(req.url);
   const offset = Math.max(0, Number(url.searchParams.get("offset")) || 0);

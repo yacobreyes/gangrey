@@ -1,9 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { isAuthed } from "@/lib/adminAuth";
-import { client } from "@/lib/sanity";
-import type { SanityPost } from "@/lib/sanity";
 import { postImageUrl } from "@/lib/sanityImage";
-import { isSqliteBackend, sqliteGetPost } from "@/lib/storage/sqlite";
+import { sqliteGetPost } from "@/lib/storage/sqlite";
 import { PortableText } from "@portabletext/react";
 import Link from "next/link";
 import CommentSection from "@/components/CommentSection";
@@ -23,19 +21,12 @@ function sectionLabel(section: string) {
   return section;
 }
 
-const QUERY = `*[_type == "post" && slug.current == $slug][0]{
-  _id, "slug": slug.current, section, headline, subheadline, byline,
-  date, body, image { asset, caption, alt }, status, readingTime
-}`;
-
 export default async function PreviewPage({ params }: { params: Promise<{ slug: string }> }) {
   const authed = await isAuthed();
   if (!authed) redirect("/admin/imago");
 
   const { slug } = await params;
-  const post = isSqliteBackend()
-    ? sqliteGetPost(slug)
-    : await client.fetch<SanityPost | null>(QUERY, { slug }, { cache: "no-store" });
+  const post = sqliteGetPost(slug);
   if (!post) notFound();
 
   const caption = post.image?.caption ? splitCaption(post.image.caption) : null;

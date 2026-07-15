@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import { requireAdminOrCronSecret } from "@/lib/adminAuth";
-import { isSqliteBackend, sqliteReplaceArchive, sqliteArchivePostsForFixes } from "@/lib/storage/sqlite";
+import { sqliteReplaceArchive, sqliteArchivePostsForFixes } from "@/lib/storage/sqlite";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -27,7 +27,6 @@ function loadDataset(): Rec[] {
 
 export async function POST(req: NextRequest) {
   await requireAdminOrCronSecret(req);
-  if (!isSqliteBackend()) return NextResponse.json({ error: "sqlite-only" }, { status: 400 });
   const apply = req.nextUrl.searchParams.get("apply") === "1";
 
   let dataset: Rec[];

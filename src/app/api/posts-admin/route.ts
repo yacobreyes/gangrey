@@ -1,15 +1,9 @@
 import { getAllPostsAdmin, getArchivePostsAdmin } from "@/lib/sanity";
 import { isAuthed } from "@/lib/adminAuth";
-import { client } from "@/lib/sanity";
-import { isSqliteBackend, sqliteGetPost } from "@/lib/storage/sqlite";
+import { sqliteGetPost } from "@/lib/storage/sqlite";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
-
-const ONE_POST_QUERY = `*[_type == "post" && slug.current == $slug][0]{
-  _id, "slug": slug.current, section, headline, subheadline, byline, date, body,
-  image { asset, "url": asset->url, caption, alt }, status, scheduledAt, readingTime
-}`;
 
 export async function GET(req: NextRequest) {
   if (!(await isAuthed())) return NextResponse.json([], { status: 401 });
@@ -18,9 +12,7 @@ export async function GET(req: NextRequest) {
   try {
     // Single-post fetch (with body) for the view-mode live-sync poll.
     if (slug) {
-      const post = isSqliteBackend()
-        ? sqliteGetPost(slug)
-        : await client.fetch(ONE_POST_QUERY, { slug }, { cache: "no-store" });
+      const post = sqliteGetPost(slug);
       return NextResponse.json(post ? [post] : []);
     }
     // Archive pieces only — lazy-loaded by the dashboard's Archive tab.

@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthed } from "@/lib/adminAuth";
-import { isSqliteBackend, sqliteSearchPosts } from "@/lib/storage/sqlite";
+import { sqliteSearchPosts } from "@/lib/storage/sqlite";
 
 // Server-side full-text search over posts (SQLite FTS5). Public scope returns
 // only reader-visible posts; the admin scope (auth-gated) searches everything.
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  if (!isSqliteBackend()) return NextResponse.json({ results: [] });
   const q = (req.nextUrl.searchParams.get("q") ?? "").trim();
   if (!q) return NextResponse.json({ results: [] });
 

@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { sanityMutate } from "@/lib/sanityWrite";
+import { sqliteMutate } from "@/lib/storage/sqlite";
 import { rateLimit } from "@/lib/rateLimit";
 
-// Routed through the shared helper (Sanity or local sqlite per STORAGE_BACKEND).
 async function mutate(mutations: unknown[]) {
-  return sanityMutate(mutations);
+  return sqliteMutate(mutations);
 }
 
 // Deterministic id per email so the same address can't subscribe twice.

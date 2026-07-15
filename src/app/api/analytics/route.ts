@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthed } from "@/lib/adminAuth";
 import {
-  isSqliteBackend,
   sqliteAnalyticsOverview, sqliteAnalyticsSeries, sqliteAnalyticsTopContent,
   sqliteAnalyticsBreakdown, sqliteAnalyticsRealtime, sqliteAnalyticsTrending,
   sqliteAllPostsAdminLight,
@@ -15,7 +14,6 @@ const RANGE_DAYS: Record<string, number> = { "7d": 7, "30d": 30, "90d": 90 };
 
 export async function GET(req: NextRequest) {
   if (!(await isAuthed())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!isSqliteBackend()) return NextResponse.json({ error: "Analytics is only available on the self-hosted backend." }, { status: 400 });
 
   // A specific calendar day (?date=YYYY-MM-DD) — e.g. "how did I do yesterday" —
   // takes priority over the rolling-window ranges below. Hourly buckets, and
