@@ -79,6 +79,15 @@ function formatPublishedTime(v?: string) {
   return `${date} at ${time} ET`;
 }
 
+// Date only ("Jul 14") — the fallback for newsletters published before we
+// recorded a precise send time.
+function formatEtDate(v?: string) {
+  if (!v) return "";
+  const d = new Date(v);
+  if (isNaN(+d)) return "";
+  return d.toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric" });
+}
+
 function formatScheduledTime(v?: string) {
   if (!v) return "its scheduled time";
   const d = new Date(v);
@@ -779,13 +788,18 @@ export default function NewsletterEditorClient({
           fontFamily: FONT, fontSize: "0.9rem", color: TEXT_DARK,
         }}>
           <span>
-            {nlStatus === "scheduled"
-              ? `This newsletter was scheduled${initial?.scheduledBy ? ` by ${initial.scheduledBy}` : ""} for ${formatScheduledTime(nlScheduledAt)}.`
-              : nlStatus === "published" && initial?.sentAt
-                ? `This newsletter was published on ${formatPublishedTime(initial.sentAt)}. Do you want to make changes?`
+            {(() => {
+              // Prefer the precise send time (sentAt); fall back to the last
+              // edit date for newsletters published before we recorded it.
+              const publishedLabel = initial?.sentAt ? formatPublishedTime(initial.sentAt) : formatEtDate(initial?.lastEditedAt);
+              return nlStatus === "scheduled"
+                ? `This newsletter was scheduled${initial?.scheduledBy ? ` by ${initial.scheduledBy}` : ""} for ${formatScheduledTime(nlScheduledAt)}.`
                 : viewLockHolder
                   ? `${viewLockHolder.name} is currently editing this. Do you want to kick them out?`
-                  : "You’re viewing this newsletter. Do you want to make changes?"}
+                  : nlStatus === "published"
+                    ? `This newsletter was published${publishedLabel ? ` on ${publishedLabel}` : ""}. Do you want to make changes?`
+                    : "You’re viewing this newsletter. Do you want to make changes?";
+            })()}
           </span>
           <button type="button" onClick={nlStatus === "scheduled" ? unscheduleNlToEdit : () => { setViewMode(false); if (viewLockHolder) setTimeout(takeOver, 100); }} style={{
             background: CRIMSON, color: "#fff", border: "none", borderRadius: 22,
