@@ -221,14 +221,14 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))" }}>
             {DOW.map(d => <div key={d} style={{ minWidth: 0, overflow: "hidden", fontFamily: FONT, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: TEXT_MUTED, textAlign: "center", padding: "0.5rem 0", borderBottom: `1px solid ${BORDER}` }}>{d}</div>)}
             {monthGrid.map((day, i) => (
-              <div key={i} {...(day ? dayDrop(day) : {})} className={day ? "cal-cell" : undefined} style={{ minWidth: 0, overflow: "hidden", minHeight: 92, borderRight: (i % 7 !== 6) ? `1px solid #eee` : "none", borderBottom: `1px solid #eee`, padding: "0.35rem", background: day && dragOver === day ? "#f0f2f4" : "white" }}>
+              <div key={i} {...(day ? dayDrop(day) : {})} className={day ? "cal-cell" : undefined} style={{ minWidth: 0, overflow: "hidden", height: 116, borderRight: (i % 7 !== 6) ? `1px solid #eee` : "none", borderBottom: `1px solid #eee`, padding: "0.35rem", background: day && dragOver === day ? "#f0f2f4" : "white" }}>
                 {day && <>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 3 }}>
                     {dayNum(Number(day.slice(8)), day === todayStr, 12, 500)}
                     <span className="cal-add">{addBtn(day, 16)}</span>
                   </div>
-                  {(itemsByDay[day] ?? []).slice(0, 4).map(chip)}
-                  {(itemsByDay[day] ?? []).length > 4 && <div style={{ fontFamily: FONT, fontSize: "0.66rem", color: TEXT_MUTED }}>+{(itemsByDay[day] ?? []).length - 4} more</div>}
+                  {(itemsByDay[day] ?? []).slice(0, 3).map(chip)}
+                  {(itemsByDay[day] ?? []).length > 3 && <div style={{ fontFamily: FONT, fontSize: "0.66rem", color: TEXT_MUTED }}>+{(itemsByDay[day] ?? []).length - 3} more</div>}
                 </>}
               </div>
             ))}
