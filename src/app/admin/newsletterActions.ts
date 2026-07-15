@@ -81,6 +81,43 @@ export async function getPostsForNewsletter(): Promise<NlPickablePost[]> {
   );
 }
 
+// "On this day in Gangrey" — archive pieces first published on today's calendar
+// day (month + day), across every year, newest first. Powers the Classics
+// newsletter's one-tap way to build a dated issue from the archive. Light (no
+// bodies); insertPostAsCard fetches the body when a piece is actually pulled in.
+export async function getArchiveOnThisDay(monthDay?: string): Promise<NlPickablePost[]> {
+  await requireAuth();
+  // Default to today in the newsroom's timezone so "this day" matches ET, not
+  // the server's UTC (which can be a day ahead late at night).
+  const md = monthDay ?? new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York", month: "2-digit", day: "2-digit" });
+  const wantMd = md.length === 5 ? md : md.slice(5); // accept "MM-DD" or "YYYY-MM-DD"
+  const isArchive = (section?: string) => section === "Archive" || section === "Gangrey Redux";
+  const light = (p: { _id: string; slug: string; headline: string; byline?: string; section?: string; date?: string; status?: string; image?: { url?: string; caption?: string; alt?: string } }): NlPickablePost => ({
+    id: p._id, slug: p.slug, headline: p.headline, byline: p.byline,
+    section: p.section, date: p.date, status: p.status as NlPickablePost["status"],
+    body: [] as NlCard["body"],
+    image: p.image?.url ? { assetId: p.image.url, url: p.image.url, caption: p.image.caption, alt: p.image.alt } : null,
+  });
+
+  if (isSqliteBackend()) {
+    return sqliteAllPostsAdminLight(false)
+      .filter(p => p.status !== "trashed" && isArchive(p.section) && (p.date ?? "").slice(5, 10) === wantMd)
+      .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""))
+      .map(light);
+  }
+  const rows: NlPickablePost[] = await client.fetch(
+    `*[_type == "post" && !(_id in path("drafts.**")) && status != "trashed" && (section == "Archive" || section == "Gangrey Redux")]{
+      "id": _id, "slug": slug.current, headline, byline, section, date, status, "body": [],
+      image{ "assetId": asset._ref, "url": asset->url, "caption": coalesce(caption, asset->description), "alt": coalesce(alt, asset->altText) }
+    }`,
+    {},
+    { cache: "no-store" }
+  );
+  return rows
+    .filter(p => (p.date ?? "").slice(5, 10) === wantMd)
+    .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
+}
+
 // Fetch just one story's portable-text body, when it's actually inserted as a
 // card — keeps the picker list light.
 export async function getNewsletterPostBody(slug: string): Promise<NlCard["body"]> {

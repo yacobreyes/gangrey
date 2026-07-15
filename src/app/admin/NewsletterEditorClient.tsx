@@ -10,7 +10,7 @@ import { straightenQuotes } from "@/lib/straighten";
 import { useEditLock } from "./useEditLock";
 import EditLockBanner from "./EditLockBanner";
 import { watchLock, type LockHolder } from "./lockActions";
-import { saveNewsletter, deleteNewsletter, sendNewsletter, sendTestNewsletter, getPostsForNewsletter, getNewsletterPostBody, type NlVersion, type NlPickablePost } from "./newsletterActions";
+import { saveNewsletter, deleteNewsletter, sendNewsletter, sendTestNewsletter, getPostsForNewsletter, getArchiveOnThisDay, getNewsletterPostBody, type NlVersion, type NlPickablePost } from "./newsletterActions";
 import { createPostFromNewsletterCard, checkSlugsExist } from "./actions";
 import ScheduleModal from "@/components/ScheduleModal";
 import type { JSONContent, Editor } from "@tiptap/react";
@@ -271,6 +271,12 @@ export default function NewsletterEditorClient({
   const [findPosts, setFindPosts] = useState<NlPickablePost[]>([]);
   const [findLoading, setFindLoading] = useState(false);
   const [findQuery, setFindQuery] = useState("");
+  // "On this day in Gangrey" — Classics-only archive pieces first published on
+  // today's calendar day; toggled open below the cover.
+  const [showOnThisDay, setShowOnThisDay] = useState(false);
+  const [onThisDay, setOnThisDay] = useState<NlPickablePost[]>([]);
+  const [onThisDayLoading, setOnThisDayLoading] = useState(false);
+  const onThisDayLoaded = useRef(false);
   const [findShowDraftScheduled, setFindShowDraftScheduled] = useState(false);
   const [nlInsertingPost, setNlInsertingPost] = useState<NlPickablePost | null>(null);
   const nlInsertChipRef = useRef<HTMLDivElement | null>(null);
@@ -386,6 +392,14 @@ export default function NewsletterEditorClient({
     setFindLoading(true);
     getPostsForNewsletter().then(setFindPosts).catch(() => setFindPosts([])).finally(() => setFindLoading(false));
   }, [showFindContent]);
+
+  // Load "On this day" archive pieces the first time the section is opened.
+  useEffect(() => {
+    if (!showOnThisDay || onThisDayLoaded.current) return;
+    onThisDayLoaded.current = true;
+    setOnThisDayLoading(true);
+    getArchiveOnThisDay().then(setOnThisDay).catch(() => setOnThisDay([])).finally(() => setOnThisDayLoading(false));
+  }, [showOnThisDay]);
 
   // Press-and-drag a story out of the find-content panel into the card list.
   // Mirrors the card-reorder drag above: a floating chip follows the cursor,
@@ -1070,6 +1084,43 @@ export default function NewsletterEditorClient({
               </div>
             </div>
           </div>
+
+          {/* On this day in Gangrey — Classics-only. Surfaces archive pieces
+              first published on today's calendar day (across years); tap one to
+              drop it in as an archive card. */}
+          {nlClassics && !nlReadOnly && (
+            <div style={{ margin: "1.25rem 0 0" }}>
+              <button type="button" onClick={() => setShowOnThisDay(v => !v)}
+                style={{ display: "flex", alignItems: "center", gap: "0.6rem", width: "100%", background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "0.85rem 1rem", cursor: "pointer", textAlign: "left", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CRIMSON} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontFamily: "var(--font-headline)", fontSize: "1.05rem", fontWeight: 700, color: TEXT_DARK }}>On this day in Gangrey</span>
+                  <span style={{ display: "block", fontFamily: FONT, fontSize: "0.8rem", color: TEXT_MUTED, marginTop: 1 }}>Archive pieces first published on {new Date().toLocaleDateString("en-US", { timeZone: "America/New_York", month: "long", day: "numeric" })}</span>
+                </span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={TEXT_MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transform: showOnThisDay ? "rotate(180deg)" : "none", transition: "transform 0.15s" }}><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              {showOnThisDay && (
+                <div style={{ border: `1px solid ${BORDER}`, borderTop: "none", borderRadius: "0 0 12px 12px", marginTop: -6, paddingTop: 6, background: "white", overflow: "hidden" }}>
+                  {onThisDayLoading ? (
+                    <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, padding: "1rem" }}>Looking through the archive…</p>
+                  ) : onThisDay.length === 0 ? (
+                    <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, padding: "1rem" }}>No archive pieces first ran on this date. Use Find content to pull in a piece from another day.</p>
+                  ) : onThisDay.map(p => (
+                    <button key={p.id} type="button" onClick={() => insertPostAsCard(p, nlCards.length)}
+                      style={{ display: "flex", alignItems: "center", gap: "0.75rem", width: "100%", background: "none", border: "none", borderTop: `1px solid #eee`, padding: "0.8rem 1rem", cursor: "pointer", textAlign: "left" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "#f7f7f7")} onMouseLeave={e => (e.currentTarget.style.background = "none")}>
+                      <span style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 800, color: CRIMSON, flexShrink: 0, width: 40 }}>{(p.date ?? "").slice(0, 4)}</span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: "block", fontFamily: FONT, fontSize: "0.9rem", fontWeight: 600, color: TEXT_DARK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.headline || "Untitled"}</span>
+                        {p.byline && <span style={{ display: "block", fontFamily: FONT, fontSize: "0.76rem", color: TEXT_MUTED }}>{p.byline}</span>}
+                      </span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={CRIMSON} strokeWidth="2.2" strokeLinecap="round" style={{ flexShrink: 0 }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Cards — black ground (matches the email) so white article sheets
               float on it with a 16px gutter. */}
