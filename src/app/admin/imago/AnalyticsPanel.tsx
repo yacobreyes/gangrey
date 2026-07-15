@@ -188,10 +188,6 @@ export default function AnalyticsPanel() {
               border: "none", borderRadius: 6, padding: "0.35rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer",
               background: date === today ? "white" : "transparent", color: date === today ? CRIMSON : TEXT_MUTED, boxShadow: date === today ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
             }}>Today</button>
-            <button onClick={() => setDate(yesterday)} style={{
-              border: "none", borderRadius: 6, padding: "0.35rem 0.7rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, cursor: "pointer",
-              background: date === yesterday ? "white" : "transparent", color: date === yesterday ? CRIMSON : TEXT_MUTED, boxShadow: date === yesterday ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
-            }}>Yesterday</button>
             <div style={{ display: "flex", alignItems: "center", gap: 2, marginLeft: 2 }}>
               <button aria-label="Previous day" onClick={() => setDate(shiftDate(date ?? today, -1))} style={{ border: "none", background: "none", cursor: "pointer", color: TEXT_MUTED, padding: "0.3rem 0.35rem", display: "flex" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
