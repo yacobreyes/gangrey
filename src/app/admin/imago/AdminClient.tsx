@@ -942,7 +942,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                 </div>
               </div>
               {error && <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: CRIMSON, margin: 0 }}>{error}</p>}
-              <button type="submit" disabled={isPending} style={{ background: aboutSaved ? "#1a7f37" : CRIMSON, color: "white", border: "none", borderRadius: 20, padding: "0.5rem 1.3rem", fontFamily: FONT, fontSize: "0.88rem", fontWeight: 600, cursor: "pointer", alignSelf: "flex-end", minWidth: 92, transition: "background 0.2s" }}>{isPending ? "Saving…" : aboutSaved ? "Saved ✓" : "Save"}</button>
+              <button type="submit" disabled={isPending} style={{ background: aboutSaved ? "#1a7f37" : CRIMSON, color: "white", border: "none", borderRadius: 20, padding: "0.5rem 1.3rem", fontFamily: FONT, fontSize: "0.88rem", fontWeight: 600, cursor: "pointer", alignSelf: "flex-end", minWidth: 92, transition: "background 0.2s" }}>{isPending ? "Saving…" : aboutSaved ? "Saved" : "Save"}</button>
             </form>
             </div>
           )}
