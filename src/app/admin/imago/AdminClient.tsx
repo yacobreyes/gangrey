@@ -1087,13 +1087,13 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
               {!isMobile && (
                 <div style={{ margin: "0 0 1.2rem" }}>
                   <h1 className="admin-h1">Comments</h1>
-                  <p className="admin-sub">{adminComments.filter(c => c.approved === false).length} awaiting review.</p>
+                  <p className="admin-sub">Published once the commenter confirms by email. {adminComments.filter(c => c.approved === false).length} unconfirmed.</p>
                 </div>
               )}
               {commentsLoading ? (
                 <p style={{ fontFamily: FONT, color: TEXT_MUTED }}>Loading…</p>
               ) : adminComments.length === 0 ? (
-                <p style={{ fontFamily: FONT, color: TEXT_MUTED, textAlign: isMobile ? "center" : "left", padding: isMobile ? "2.5rem 0" : 0, fontStyle: isMobile ? "italic" : "normal" }}>No comments to review.</p>
+                <p style={{ fontFamily: FONT, color: TEXT_MUTED, textAlign: isMobile ? "center" : "left", padding: isMobile ? "2.5rem 0" : 0, fontStyle: isMobile ? "italic" : "normal" }}>No comments yet.</p>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? "0.6rem" : "0.75rem" }}>
                   {/* Pending (unapproved) comments first so they're easy to action. */}
@@ -1112,9 +1112,9 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                             <button
                               onClick={() => { startTransition(async () => { await fetch("/api/comments", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c._id, approved: true }) }); setAdminComments(prev => prev.map(x => x._id === c._id ? { ...x, approved: true } : x)); }); }}
                               style={{ flex: 1, background: "#1a7f37", color: "white", border: "none", borderRadius: 7, padding: "0.5rem", fontFamily: FONT, fontSize: "0.82rem", fontWeight: 700, cursor: "pointer" }}
-                            >Approve</button>
+                            >Publish</button>
                           ) : (
-                            <span style={{ flex: 1, textAlign: "center", background: "#f2fbf5", color: "#1a7f37", borderRadius: 7, padding: "0.5rem", fontFamily: FONT, fontSize: "0.82rem", fontWeight: 700 }}>✓ Approved</span>
+                            <span style={{ flex: 1, textAlign: "center", background: "#f2fbf5", color: "#1a7f37", borderRadius: 7, padding: "0.5rem", fontFamily: FONT, fontSize: "0.82rem", fontWeight: 700 }}>✓ Published</span>
                           )}
                           <button
                             onClick={() => { if (!confirm("Delete this comment? This cannot be undone.")) return; startTransition(async () => { await fetch("/api/comments", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c._id }) }); setAdminComments(prev => prev.filter(x => x._id !== c._id)); }); }}
@@ -1129,7 +1129,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                         <div style={{ display: "flex", gap: "0.75rem", alignItems: "baseline", marginBottom: "0.25rem", flexWrap: "wrap" }}>
                           <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: "0.78rem", color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.05em" }}>{c.name}</span>
                           {c.email && <a href={`mailto:${c.email}`} style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, textDecoration: "none" }}>{c.email}</a>}
-                          {pending && <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: "0.62rem", color: "#a05a00", background: "#ffe8cc", borderRadius: 3, padding: "0.1rem 0.4rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>Pending</span>}
+                          {pending && <span style={{ fontFamily: FONT, fontWeight: 700, fontSize: "0.62rem", color: "#a05a00", background: "#ffe8cc", borderRadius: 3, padding: "0.1rem 0.4rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>Unconfirmed</span>}
                           <span style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED }}>on <a href={`/stories/${c.slug}`} target="_blank" rel="noreferrer" style={{ color: TEXT_MUTED }}>{c.slug}</a></span>
                           <span style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED }}>{new Date(c._createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
                         </div>
@@ -1140,7 +1140,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                           <button
                             onClick={() => { startTransition(async () => { await fetch("/api/comments", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c._id, approved: true }) }); setAdminComments(prev => prev.map(x => x._id === c._id ? { ...x, approved: true } : x)); }); }}
                             style={{ background: CRIMSON, border: "none", borderRadius: 20, padding: "0.35rem 0.9rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 700, color: "white", cursor: "pointer" }}
-                          >Approve</button>
+                          >Publish</button>
                         )}
                         <button
                           onClick={() => { if (!confirm("Delete this comment? This cannot be undone.")) return; startTransition(async () => { await fetch("/api/comments", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c._id }) }); setAdminComments(prev => prev.filter(x => x._id !== c._id)); }); }}

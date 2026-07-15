@@ -797,13 +797,16 @@ export function sqliteSetMediaMeta(assetId: string, fields: { title?: string; de
 
 export type CommentRow = { _id: string; name: string; email?: string; text: string; slug: string; approved: boolean; _createdAt: string };
 
-export function sqliteAddComment(slug: string, name: string, text: string, email = ""): void {
+export function sqliteAddComment(slug: string, name: string, text: string, email = ""): { id: string; token: string } {
   const id = `comment-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  // Arrives pending (approved: false) — an admin must approve it before it shows
-  // publicly. sqliteCommentsForSlug filters on approved. Email is stored for the
-  // admin only, never returned to the public comment feed.
+  // Arrives unverified (approved: false) with a one-time token. It's published
+  // automatically once the commenter clicks the confirmation link we email —
+  // proving the address is real — not by manual admin approval. Email is stored
+  // for the admin only, never returned to the public comment feed.
+  const token = (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/-/g, "");
   db().prepare(`INSERT INTO documents (id, type, data) VALUES (?, 'comment', ?)`)
-    .run(id, JSON.stringify({ slug, name, email, text, approved: false, _createdAt: new Date().toISOString() }));
+    .run(id, JSON.stringify({ slug, name, email, text, approved: false, token, _createdAt: new Date().toISOString() }));
+  return { id, token };
 }
 
 export function sqliteSetCommentApproved(id: string, approved: boolean): void {
@@ -811,6 +814,23 @@ export function sqliteSetCommentApproved(id: string, approved: boolean): void {
   if (!row) return;
   const data = { ...JSON.parse(row.data), approved };
   db().prepare(`UPDATE documents SET data = ? WHERE id = ? AND type = 'comment'`).run(JSON.stringify(data), id);
+}
+
+// Confirm a comment via its emailed token: mark it approved (published) and
+// clear the token. Returns the comment's slug/email/name so the caller can
+// redirect the reader back and subscribe the now-verified address.
+export function sqliteVerifyComment(token: string): { slug: string; email: string; name: string } | null {
+  if (!token) return null;
+  const rows = db().prepare(`SELECT id, data FROM documents WHERE type = 'comment'`).all() as { id: string; data: string }[];
+  for (const r of rows) {
+    const d = JSON.parse(r.data);
+    if (d.token && d.token === token) {
+      const next = { ...d, approved: true, token: undefined };
+      db().prepare(`UPDATE documents SET data = ? WHERE id = ?`).run(JSON.stringify(next), r.id);
+      return { slug: d.slug ?? "", email: d.email ?? "", name: d.name ?? "" };
+    }
+  }
+  return null;
 }
 
 export function sqliteCommentsForSlug(slug: string): CommentRow[] {
