@@ -368,6 +368,22 @@ export async function deletePost(id: string) {
   await mutate([{ delete: { id } }]);
 }
 
+// Editorial workflow: move a draft between pipeline stages (the Calendar board).
+export async function setPostStage(id: string, stage: string) {
+  await requireAuth();
+  const allowed = ["assigned", "drafting", "editing", "ready"];
+  if (!allowed.includes(stage)) return;
+  if (isSqliteBackend()) { const { sqliteSetPostFields } = await import("@/lib/storage/sqlite"); sqliteSetPostFields(id, { stage }); return; }
+  await mutate([{ patch: { id, set: { stage } } }]);
+}
+
+// Assign (or unassign) the editor responsible for a draft.
+export async function setPostAssignee(id: string, assignee: string | null) {
+  await requireAuth();
+  if (isSqliteBackend()) { const { sqliteSetPostFields } = await import("@/lib/storage/sqlite"); sqliteSetPostFields(id, { assignee: assignee || null }); return; }
+  await mutate([{ patch: { id, set: { assignee: assignee || null } } }]);
+}
+
 export async function unpublishPost(id: string) {
   await requireAuth();
   if (isSqliteBackend()) { sqliteSetStatus(id, "draft"); return; }

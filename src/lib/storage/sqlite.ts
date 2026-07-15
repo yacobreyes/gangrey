@@ -148,6 +148,10 @@ function migrate(d: any) {
   // later edits (unlike last_edited_at). Powers the editor's "published on X"
   // banner with the real publish time.
   ensureColumn(d, "posts", "published_at", "TEXT");
+  // Editorial workflow: which pipeline stage a draft is in, and the editor it's
+  // assigned to — powers the Calendar/board. Existing drafts read 'drafting'.
+  ensureColumn(d, "posts", "stage", "TEXT DEFAULT 'drafting'");
+  ensureColumn(d, "posts", "assignee", "TEXT");
   // Data fix: analytics events snapshot the byline at view time, and views
   // recorded before the archive byline cleanup carry the old short poster
   // names. The breakdown now groups by the post's current byline, but events
@@ -240,6 +244,8 @@ function rowToPost(r: PostRow): SanityPost {
     scheduledAt: r.scheduled_at ?? undefined,
     scheduledBy: r.scheduled_by ?? undefined,
     publishedAt: r.published_at ?? undefined,
+    stage: r.stage ?? undefined,
+    assignee: r.assignee ?? undefined,
     body: JSON.parse(r.body || "[]"),
     // Local images are plain {src,...}; components using Sanity's urlFor need
     // the asset guard, so we surface src via image.url and leave asset unset.
@@ -397,7 +403,7 @@ export function sqliteAllPublishedPosts(): SanityPost[] {
 const LIGHT_COLS = `id, slug, section, headline, subheadline, byline, date, status, access,
   scheduled_at, image, seo_headline, social_headline, social_description,
   reading_time, sort_order, created_at, updated_at, last_edited_by, last_edited_at,
-  pinned_hero, pinned_top, archive_free`;
+  pinned_hero, pinned_top, archive_free, stage, assignee`;
 
 export function sqliteAllPublishedPostsLight(): SanityPost[] {
   const rows = db().prepare(`SELECT ${LIGHT_COLS} FROM posts WHERE ${PUBLIC_WHERE} ORDER BY date DESC, COALESCE(sort_order, 0) ASC`).all();
@@ -493,6 +499,16 @@ export function sqliteSavePost(doc: {
 export function sqliteDeletePost(id: string): void {
   db().prepare(`DELETE FROM posts WHERE id = ?`).run(id);
   ftsRemove(db(), id);
+}
+
+// Patch a few whitelisted post columns (editorial workflow fields) without a
+// full save — used by the Calendar board's stage/assignee changes.
+export function sqliteSetPostFields(id: string, fields: { stage?: string; assignee?: string | null }): void {
+  const sets: string[] = [], args: Record<string, unknown> = { id };
+  if (fields.stage !== undefined) { sets.push("stage = @stage"); args.stage = fields.stage; }
+  if (fields.assignee !== undefined) { sets.push("assignee = @assignee"); args.assignee = fields.assignee; }
+  if (!sets.length) return;
+  db().prepare(`UPDATE posts SET ${sets.join(", ")} WHERE id = @id`).run(args);
 }
 
 // Full-text search over posts. Uses the FTS5 index; falls back to a LIKE scan

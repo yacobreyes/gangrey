@@ -54,6 +54,9 @@ export interface SanityPost {
   scheduledBy?: string;
   // The moment the story first went live (stable; not overwritten by edits).
   publishedAt?: string;
+  // Editorial workflow: pipeline stage + assigned editor (for the Calendar).
+  stage?: string;
+  assignee?: string;
   // Audit stamp — who saved this post last and when (set on every save).
   lastEditedBy?: string;
   lastEditedAt?: string;
