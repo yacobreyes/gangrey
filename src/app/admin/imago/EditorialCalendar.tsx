@@ -62,12 +62,12 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
     <div key={it.id} draggable={draggable(it)}
       onDragStart={() => draggable(it) && setDrag(it)} onDragEnd={() => { setDrag(null); setDragOver(null); }}
       onClick={() => openItem(it)} title={it.title}
-      style={{ display: "flex", alignItems: "center", gap: 5, cursor: draggable(it) ? "grab" : "pointer", padding: "3px 5px", borderRadius: 5, marginBottom: 3, background: drag?.id === it.id ? "#eef0f2" : it.kind === "newsletter" ? "#f9f1f1" : "#f7f7f7", border: `1px solid ${it.kind === "newsletter" ? "#ecdcdc" : CARD_LINE}` }}>
+      style={{ display: "flex", alignItems: "center", gap: 5, maxWidth: "100%", cursor: draggable(it) ? "grab" : "pointer", padding: "3px 5px", borderRadius: 5, marginBottom: 3, background: drag?.id === it.id ? "#eef0f2" : it.kind === "newsletter" ? "#f9f1f1" : "#f7f7f7", border: `1px solid ${it.kind === "newsletter" ? "#ecdcdc" : CARD_LINE}` }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: STATUS_DOT[it.status] ?? TEXT_MUTED, flexShrink: 0 }} />
       {it.kind === "newsletter" && (
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={CRIMSON} strokeWidth="2.4" style={{ flexShrink: 0 }}><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
       )}
-      <span style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 600, color: TEXT_DARK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.title || "Untitled"}</span>
+      <span style={{ minWidth: 0, flex: 1, fontFamily: FONT, fontSize: "0.72rem", fontWeight: 600, color: TEXT_DARK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.title || "Untitled"}</span>
     </div>
   );
 
@@ -157,11 +157,11 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
       ) : view === "week" ? (
         <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
           {navHeader}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))" }}>
             {weekDays.map((day, i) => {
               const d = new Date(day + "T12:00:00");
               return (
-                <div key={day} {...dayDrop(day)} className="cal-cell" style={{ minHeight: 260, borderRight: i !== 6 ? "1px solid #eee" : "none", padding: "0.4rem", background: dragOver === day ? "#f0f2f4" : "white" }}>
+                <div key={day} {...dayDrop(day)} className="cal-cell" style={{ minWidth: 0, overflow: "hidden", minHeight: 260, borderRight: i !== 6 ? "1px solid #eee" : "none", padding: "0.4rem", background: dragOver === day ? "#f0f2f4" : "white" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, padding: "0 2px" }}>
                     <div style={{ textAlign: "left" }}>
                       <div style={{ fontFamily: FONT, fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: TEXT_MUTED, marginBottom: 2 }}>{DOW[i]}</div>
@@ -178,10 +178,10 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
       ) : (
         <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
           {navHeader}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
-            {DOW.map(d => <div key={d} style={{ fontFamily: FONT, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: TEXT_MUTED, textAlign: "center", padding: "0.5rem 0", borderBottom: `1px solid ${BORDER}` }}>{d}</div>)}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))" }}>
+            {DOW.map(d => <div key={d} style={{ minWidth: 0, overflow: "hidden", fontFamily: FONT, fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: TEXT_MUTED, textAlign: "center", padding: "0.5rem 0", borderBottom: `1px solid ${BORDER}` }}>{d}</div>)}
             {monthGrid.map((day, i) => (
-              <div key={i} {...(day ? dayDrop(day) : {})} className={day ? "cal-cell" : undefined} style={{ minHeight: 92, borderRight: (i % 7 !== 6) ? `1px solid #eee` : "none", borderBottom: `1px solid #eee`, padding: "0.35rem", background: day && dragOver === day ? "#f0f2f4" : "white" }}>
+              <div key={i} {...(day ? dayDrop(day) : {})} className={day ? "cal-cell" : undefined} style={{ minWidth: 0, overflow: "hidden", minHeight: 92, borderRight: (i % 7 !== 6) ? `1px solid #eee` : "none", borderBottom: `1px solid #eee`, padding: "0.35rem", background: day && dragOver === day ? "#f0f2f4" : "white" }}>
                 {day && <>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 3 }}>
                     {dayNum(Number(day.slice(8)), day === todayStr, 12, 500)}
