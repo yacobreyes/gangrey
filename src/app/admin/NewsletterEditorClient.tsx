@@ -135,7 +135,7 @@ function mapStoredCardType(t: StoredCard["cardType"]): "narratives" | "essays" |
 function cardsFromStored(cards: StoredCard[], classics = false): NlEditorCard[] {
   if (!cards.length) {
     return classics
-      ? [{ ...newNlCard(), cardType: "archive" }, { ...newNlCard(), cardType: "archive" }]
+      ? [{ ...newNlCard(), cardType: "archive" }]
       : [
           { ...newNlCard(), cardType: "narratives" },
           { ...newNlCard(), cardType: "essays" },
