@@ -2,26 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { setPostStage, setPostAssignee, setPostDate } from "../actions";
+import { setPostDate } from "../actions";
 import type { SanityPost } from "@/lib/sanity";
 import type { FlatplanUser } from "@/lib/users";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
 
 const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
 const CARD_LINE = "#e6e4e0";
-const STAGES: { key: string; label: string }[] = [
-  { key: "assigned", label: "Assigned" },
-  { key: "drafting", label: "Drafting" },
-  { key: "editing", label: "Editing" },
-  { key: "ready", label: "Ready" },
-];
 const STATUS_DOT: Record<string, string> = { draft: "#c9a227", scheduled: "#490000", published: "#1a7f37" };
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
-function initials(name: string) { return name.split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase(); }
-
-type View = "board" | "day" | "week" | "month";
+type View = "day" | "week" | "month";
 
 // Local YYYY-MM-DD for a Date (no UTC shift).
 function ymd(d: Date): string { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
@@ -30,7 +22,7 @@ function startOfWeek(d: Date): Date { return addDays(d, -d.getDay()); } // Sunda
 
 export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?: FlatplanUser[] }) {
   const router = useRouter();
-  const [view, setView] = useState<View>("board");
+  const [view, setView] = useState<View>("week");
   const [posts, setPosts] = useState<SanityPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [drag, setDrag] = useState<string | null>(null);
@@ -42,28 +34,6 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
     fetch("/api/posts-admin", { cache: "no-store" }).then(r => r.json()).then(d => { if (Array.isArray(d)) setPosts(d); }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  const users = useMemo(() => initialUsers.filter(u => u.active !== false), [initialUsers]);
-  const userByName = useMemo(() => {
-    const m: Record<string, FlatplanUser> = {};
-    for (const u of users) { const n = [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email; m[n] = u; }
-    return m;
-  }, [users]);
-
-  const drafts = useMemo(() => posts.filter(p => (p.status ?? "draft") === "draft"), [posts]);
-  const byStage = useMemo(() => {
-    const m: Record<string, SanityPost[]> = { assigned: [], drafting: [], editing: [], ready: [] };
-    for (const p of drafts) (m[p.stage && m[p.stage] ? p.stage : "drafting"]).push(p);
-    return m;
-  }, [drafts]);
-
-  function moveTo(id: string, stage: string) {
-    setPosts(prev => prev.map(p => p._id === id ? { ...p, stage } : p));
-    setPostStage(id, stage).catch(() => {});
-  }
-  function assign(id: string, name: string | null) {
-    setPosts(prev => prev.map(p => p._id === id ? { ...p, assignee: name ?? undefined } : p));
-    setPostAssignee(id, name).catch(() => {});
-  }
   function reschedule(id: string, date: string) {
     setPosts(prev => prev.map(p => p._id === id ? { ...p, date } : p));
     setPostDate(id, date).catch(() => {});
@@ -75,31 +45,6 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
       style={{ display: "flex", alignItems: "center", gap: 5, cursor: "grab", padding: "3px 5px", borderRadius: 5, marginBottom: 3, background: drag === p._id ? "#eef0f2" : "#f7f7f7", border: `1px solid ${CARD_LINE}` }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: STATUS_DOT[p.status ?? "published"] ?? TEXT_MUTED, flexShrink: 0 }} />
       <span style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 600, color: TEXT_DARK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.headline || "Untitled"}</span>
-    </div>
-  );
-
-  const avatar = (name?: string, size = 22) => {
-    if (!name) return <span style={{ width: size, height: size, borderRadius: "50%", border: `1px dashed ${BORDER}`, display: "inline-flex", flexShrink: 0 }} />;
-    const u = userByName[name];
-    return <span title={name} style={{ width: size, height: size, borderRadius: "50%", background: CRIMSON, color: "white", display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: FONT, fontSize: size * 0.4, fontWeight: 800, flexShrink: 0, overflow: "hidden" }}>{u?.photoUrl ? <img src={u.photoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : initials(name)}</span>;
-  };
-
-  const card = (p: SanityPost) => (
-    <div key={p._id} draggable onDragStart={() => setDrag(p._id)} onDragEnd={() => { setDrag(null); setDragOver(null); }}
-      onClick={() => router.push(`/admin/imago/posts/${p.slug}`)}
-      style={{ background: "white", border: `1px solid ${CARD_LINE}`, borderRadius: 10, padding: "0.7rem 0.8rem", marginBottom: 8, cursor: "grab", boxShadow: "0 1px 2px rgba(0,0,0,0.04)", opacity: drag === p._id ? 0.5 : 1 }}>
-      <div style={{ fontFamily: "var(--font-headline)", fontSize: "0.98rem", fontWeight: 700, color: TEXT_DARK, lineHeight: 1.25, marginBottom: 4 }}>{p.headline || "Untitled"}</div>
-      <div style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, marginBottom: 8 }}>{[p.section, p.date].filter(Boolean).join(" · ")}</div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }} onClick={e => e.stopPropagation()}>
-        <select value={p.assignee ?? ""} onChange={e => assign(p._id, e.target.value || null)}
-          style={{ fontFamily: FONT, fontSize: "0.72rem", color: p.assignee ? TEXT_DARK : TEXT_MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, padding: "0.2rem 0.35rem", background: "white", maxWidth: 120 }}>
-          <option value="">Unassigned</option>
-          {/* Include the current assignee even if they're not in the users list,
-              so the dropdown never silently disagrees with the avatar. */}
-          {Array.from(new Set([...(p.assignee ? [p.assignee] : []), ...Object.keys(userByName)])).map(n => <option key={n} value={n}>{n}</option>)}
-        </select>
-        {avatar(p.assignee)}
-      </div>
     </div>
   );
 
@@ -150,28 +95,13 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
           <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: "0.35rem 0 0" }}>Assignments, review stages, and what&apos;s running when.</p>
         </div>
         <div style={{ display: "flex", gap: 4, background: "#eef0f2", borderRadius: 8, padding: 3 }}>
-          {(["board", "day", "week", "month"] as const).map(v => (
+          {(["day", "week", "month"] as const).map(v => (
             <button key={v} onClick={() => setView(v)} style={{ border: "none", borderRadius: 6, padding: "0.35rem 0.9rem", fontFamily: FONT, fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", textTransform: "capitalize", background: view === v ? "white" : "transparent", color: view === v ? CRIMSON : TEXT_MUTED, boxShadow: view === v ? "0 1px 3px rgba(0,0,0,0.12)" : "none" }}>{v}</button>
           ))}
         </div>
       </div>
 
-      {loading ? <p style={{ fontFamily: FONT, color: TEXT_MUTED }}>Loading…</p> : view === "board" ? (
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${STAGES.length}, 1fr)`, gap: "0.75rem", alignItems: "start" }}>
-          {STAGES.map(st => (
-            <div key={st.key}
-              onDragOver={e => { e.preventDefault(); setDragOver(st.key); }} onDragLeave={() => setDragOver(o => o === st.key ? null : o)}
-              onDrop={() => { if (drag) moveTo(drag, st.key); setDrag(null); setDragOver(null); }}
-              style={{ background: dragOver === st.key ? "#f0f2f4" : "#f5f8fa", border: `1px solid ${dragOver === st.key ? CRIMSON : BORDER}`, borderRadius: 12, padding: "0.7rem", minHeight: 120, transition: "background .1s, border-color .1s" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.6rem", padding: "0 0.2rem" }}>
-                <span style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: TEXT_MUTED }}>{st.label}</span>
-                <span style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, color: BORDER }}>{byStage[st.key].length}</span>
-              </div>
-              {byStage[st.key].map(card)}
-            </div>
-          ))}
-        </div>
-      ) : view === "day" ? (
+      {loading ? <p style={{ fontFamily: FONT, color: TEXT_MUTED }}>Loading…</p> : view === "day" ? (
         <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
           {navHeader}
           <div {...dayDrop(ymd(cursor))} style={{ padding: "1rem 1.1rem", minHeight: 200, background: dragOver === ymd(cursor) ? "#f0f2f4" : "white" }}>
