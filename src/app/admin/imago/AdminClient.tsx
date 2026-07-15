@@ -835,7 +835,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                                 key: n._id, isNl: true,
                                 onClick: () => openNewsletter(n),
                                 onCtx: e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, kind: "newsletter", newsletter: n }); },
-                                title: n.subject || <span style={{ color: TEXT_MUTED, fontWeight: 400 }}>Untitled newsletter</span>,
+                                title: n.subject || <span style={{ color: TEXT_MUTED, fontStyle: "italic" }}>Untitled newsletter</span>,
                                 meta: lockLine(activeLocks[n._id], "writing", <>Newsletter{n.author ? <> &middot; {n.author}</> : null}</>),
                                 date: (n.createdAt ?? n.updatedAt ?? "").slice(0, 10) || "\u2014",
                               }))}
@@ -843,7 +843,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                                 key: post._id,
                                 onClick: () => startEdit(post),
                                 onCtx: e => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, kind: "post", post }); },
-                                title: post.headline || <span style={{ color: TEXT_MUTED, fontWeight: 400 }}>No headline</span>,
+                                title: post.headline || <span style={{ color: TEXT_MUTED, fontStyle: "italic" }}>No headline</span>,
                                 meta: lockLine(activeLocks[post._id], "editing", [post.section, post.byline].filter(Boolean).join(" \u00b7 ") || "\u00a0"),
                                 // Archive rows show just the year; live posts keep their full date.
                                 date: isArchive ? (post.date || "").slice(0, 4) : post.date,

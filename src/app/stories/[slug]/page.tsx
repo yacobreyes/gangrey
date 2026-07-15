@@ -119,9 +119,9 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
       if (already || sqliteMeterCount(meterId, month) < METER_LIMIT) { unlocked = true; metered = !already; }
     }
   }
-  // Archive pieces were imported with blank paragraph blocks that render as
-  // huge gaps — drop them so those posts read with normal spacing.
-  const cleanBody = post.section === "Archive" ? stripEmptyBlocks(post.body) : post.body;
+  // Drop blank paragraph blocks (an Archive-import relic) so posts read with
+  // normal spacing instead of huge empty gaps between paragraphs.
+  const cleanBody = stripEmptyBlocks(post.body);
   const bodyToRender = unlocked ? cleanBody : previewBody(cleanBody);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org";

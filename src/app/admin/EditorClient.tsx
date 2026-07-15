@@ -105,11 +105,12 @@ function GrowField({ value, onChange, ...rest }: React.TextareaHTMLAttributes<HT
   return <textarea ref={ref} rows={1} value={value} onChange={onChange} {...rest} />;
 }
 
-// Load a post body into the editor, dropping the Archive import's blank
-// paragraph blocks so recovered pieces don't show huge gaps.
-function bodyToEditor(body: PortableTextBlock[] | undefined, section?: string): JSONContent {
+// Load a post body into the editor, dropping blank paragraph blocks (a relic
+// of the Archive import, but harmless to strip anywhere) so posts don't show
+// huge empty gaps between paragraphs.
+function bodyToEditor(body: PortableTextBlock[] | undefined): JSONContent {
   if (!body?.length) return EMPTY_DOC;
-  return portableTextToTiptap(section === "Archive" ? stripEmptyBlocks(body) : body);
+  return portableTextToTiptap(stripEmptyBlocks(body));
 }
 
 type FormState = {
@@ -178,7 +179,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
     slug: post.slug,
     section: post.section ?? "",
     date: post.date ?? new Date().toISOString().slice(0, 10),
-    body: bodyToEditor(post.body, post.section),
+    body: bodyToEditor(post.body),
     status: post.status === "published" || !post.status ? "published" : post.status === "scheduled" ? "scheduled" : "draft",
     access: post.access === "paid" ? "paid" : "free",
     seoHeadline: post.seoHeadline ?? "",
@@ -251,7 +252,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
         const list = await r.json() as SanityPost[];
         const fresh = Array.isArray(list) ? list.find(p => p.slug === post.slug) : null;
         if (!fresh || !alive) return;
-        const freshBody = bodyToEditor(fresh.body, fresh.section);
+        const freshBody = bodyToEditor(fresh.body);
         setForm(f => ({
           ...f,
           headline: fresh.headline ?? f.headline,
@@ -384,7 +385,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
     const snap = versions[i];
     if (!snap) return;
     if (!confirm("Restore this version? Your current text will be replaced.")) return;
-    const body = bodyToEditor(snap.body, form.section);
+    const body = bodyToEditor(snap.body);
     setForm(f => ({ ...f, headline: snap.headline, subheadline: snap.subheadline, body }));
     if (editor) editor.commands.setContent(body);
   }, [versions, editor]);

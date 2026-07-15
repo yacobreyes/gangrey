@@ -99,7 +99,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ slug: 
 
       <article className="story-article">
         <div className="story-body">
-          <PortableText value={post.section === "Archive" ? stripEmptyBlocks(post.body) : post.body} components={storyPtComponents} />
+          <PortableText value={stripEmptyBlocks(post.body)} components={storyPtComponents} />
         </div>
       </article>
 

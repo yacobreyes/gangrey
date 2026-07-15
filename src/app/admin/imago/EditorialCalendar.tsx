@@ -8,7 +8,9 @@ import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
 
 const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
 const CARD_LINE = "#e6e4e0";
-const STATUS_DOT: Record<string, string> = { draft: "#c9a227", scheduled: "#490000", published: "#1a7f37", sent: "#1a7f37" };
+// Status dots follow the Imago convention: scheduled = gold, published = green,
+// draft = neutral gray.
+const STATUS_DOT: Record<string, string> = { draft: "#c2c0bd", scheduled: "#c9a227", published: "#1a7f37", sent: "#1a7f37" };
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
@@ -60,10 +62,10 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
     <div key={it.id} draggable={draggable(it)}
       onDragStart={() => draggable(it) && setDrag(it)} onDragEnd={() => { setDrag(null); setDragOver(null); }}
       onClick={() => openItem(it)} title={it.title}
-      style={{ display: "flex", alignItems: "center", gap: 5, cursor: draggable(it) ? "grab" : "pointer", padding: "3px 5px", borderRadius: 5, marginBottom: 3, background: drag?.id === it.id ? "#eef0f2" : it.kind === "newsletter" ? "#f4f1fb" : "#f7f7f7", border: `1px solid ${it.kind === "newsletter" ? "#e0d8f3" : CARD_LINE}` }}>
+      style={{ display: "flex", alignItems: "center", gap: 5, cursor: draggable(it) ? "grab" : "pointer", padding: "3px 5px", borderRadius: 5, marginBottom: 3, background: drag?.id === it.id ? "#eef0f2" : it.kind === "newsletter" ? "#f9f1f1" : "#f7f7f7", border: `1px solid ${it.kind === "newsletter" ? "#ecdcdc" : CARD_LINE}` }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: STATUS_DOT[it.status] ?? TEXT_MUTED, flexShrink: 0 }} />
       {it.kind === "newsletter" && (
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#6b5bb5" strokeWidth="2.4" style={{ flexShrink: 0 }}><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={CRIMSON} strokeWidth="2.4" style={{ flexShrink: 0 }}><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
       )}
       <span style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 600, color: TEXT_DARK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.title || "Untitled"}</span>
     </div>
