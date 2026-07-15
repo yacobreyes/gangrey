@@ -53,11 +53,15 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
     rescheduleCalendarItem(it.kind, it.id, date).catch(() => {});
   }
 
-  // Create a blank story on a given day and jump into the editor to fill it in.
+  // Create a blank draft on a given day and drop it onto the calendar in place
+  // — no jump into the editor. Click the new "Untitled" chip to open it.
   async function addStory(date: string) {
     if (creating) return;
     setCreating(true);
-    try { const { slug } = await createStoryOnDate(date); router.push(`/admin/imago/posts/${slug}`); }
+    try {
+      const { slug } = await createStoryOnDate(date);
+      setItems(prev => [...prev, { id: `post-${slug}`, kind: "story", title: "", date, status: "draft", slug }]);
+    }
     finally { setCreating(false); }
   }
 
