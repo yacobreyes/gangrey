@@ -503,10 +503,11 @@ export function sqliteDeletePost(id: string): void {
 
 // Patch a few whitelisted post columns (editorial workflow fields) without a
 // full save — used by the Calendar board's stage/assignee changes.
-export function sqliteSetPostFields(id: string, fields: { stage?: string; assignee?: string | null }): void {
+export function sqliteSetPostFields(id: string, fields: { stage?: string; assignee?: string | null; date?: string }): void {
   const sets: string[] = [], args: Record<string, unknown> = { id };
   if (fields.stage !== undefined) { sets.push("stage = @stage"); args.stage = fields.stage; }
   if (fields.assignee !== undefined) { sets.push("assignee = @assignee"); args.assignee = fields.assignee; }
+  if (fields.date !== undefined) { sets.push("date = @date"); args.date = fields.date; }
   if (!sets.length) return;
   db().prepare(`UPDATE posts SET ${sets.join(", ")} WHERE id = @id`).run(args);
 }

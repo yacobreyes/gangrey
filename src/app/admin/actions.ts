@@ -384,6 +384,15 @@ export async function setPostAssignee(id: string, assignee: string | null) {
   await mutate([{ patch: { id, set: { assignee: assignee || null } } }]);
 }
 
+// Move a piece's target/publish date — used by dragging on the Calendar's
+// day/week/month views to reschedule.
+export async function setPostDate(id: string, date: string) {
+  await requireAuth();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+  if (isSqliteBackend()) { const { sqliteSetPostFields } = await import("@/lib/storage/sqlite"); sqliteSetPostFields(id, { date }); return; }
+  await mutate([{ patch: { id, set: { date } } }]);
+}
+
 export async function unpublishPost(id: string) {
   await requireAuth();
   if (isSqliteBackend()) { sqliteSetStatus(id, "draft"); return; }
