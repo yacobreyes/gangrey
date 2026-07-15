@@ -108,6 +108,14 @@ function migrate(d: any) {
     CREATE INDEX IF NOT EXISTS idx_events_ts ON analytics_events (ts);
     CREATE INDEX IF NOT EXISTS idx_events_slug_ts ON analytics_events (slug, ts);
     CREATE INDEX IF NOT EXISTS idx_events_kind_ts ON analytics_events (kind, ts);
+
+    -- Old story URLs → their current slug, so renaming a slug 301s the old
+    -- link instead of 404ing (preserves inbound links and search rankings).
+    CREATE TABLE IF NOT EXISTS slug_redirects (
+      from_slug TEXT PRIMARY KEY,
+      to_slug   TEXT NOT NULL,
+      created_at TEXT
+    );
   `);
 
   // Additive column migrations — CREATE TABLE IF NOT EXISTS never alters an
@@ -232,6 +240,28 @@ export function sqliteSlugForId(id: string): string | null {
 // When a post's slug changes, everything keyed by slug — analytics events,
 // view/like/read counters, comments — must move with it, or it's orphaned
 // (stale analytics rows that 404, lost view counts). Re-point them all.
+// Record that oldSlug now lives at newSlug (301). Collapses chains so an old
+// URL always points straight at the current slug, never through a hop.
+export function sqliteAddSlugRedirect(oldSlug: string, newSlug: string): void {
+  if (!oldSlug || oldSlug === newSlug) return;
+  const now = new Date().toISOString();
+  const d = db();
+  // Any redirect that pointed at the old slug should now point at the new one.
+  d.prepare(`UPDATE slug_redirects SET to_slug = ?, created_at = ? WHERE to_slug = ?`).run(newSlug, now, oldSlug);
+  // The old slug now redirects forward…
+  d.prepare(`INSERT INTO slug_redirects (from_slug, to_slug, created_at) VALUES (?, ?, ?)
+             ON CONFLICT(from_slug) DO UPDATE SET to_slug = excluded.to_slug, created_at = excluded.created_at`).run(oldSlug, newSlug, now);
+  // …and the new slug must not itself redirect (it's live now).
+  d.prepare(`DELETE FROM slug_redirects WHERE from_slug = ?`).run(newSlug);
+}
+
+// The current slug an old URL should 301 to, or null if there's no redirect.
+export function sqliteRedirectTarget(slug: string): string | null {
+  if (!slug) return null;
+  const row = db().prepare(`SELECT to_slug FROM slug_redirects WHERE from_slug = ?`).get(slug) as { to_slug?: string } | undefined;
+  return row?.to_slug ?? null;
+}
+
 export function sqliteRenameSlugData(oldSlug: string, newSlug: string): void {
   if (!oldSlug || oldSlug === newSlug) return;
   const safe = (s: string) => s.replace(/[^a-zA-Z0-9-_]/g, "-");

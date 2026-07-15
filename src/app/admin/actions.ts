@@ -201,7 +201,7 @@ export async function savePost(formData: FormData) {
     // If the slug changed, carry the story's slug-keyed data (analytics events,
     // view/like counters, comments) over to the new slug so nothing is orphaned
     // (stale analytics rows that 404, lost view counts).
-    const { sqliteSlugForId, sqliteRenameSlugData } = await import("@/lib/storage/sqlite");
+    const { sqliteSlugForId, sqliteRenameSlugData, sqliteAddSlugRedirect } = await import("@/lib/storage/sqlite");
     const prevSlug = sqliteSlugForId(doc._id as string); // captured before the write below
     sqliteSavePost({
       _id: doc._id as string, slug, section, headline: sq(headline) as string,
@@ -217,8 +217,9 @@ export async function savePost(formData: FormData) {
     });
     // Homepage pins — a pin only makes sense for a live story, so clear both
     // when this isn't published.
-    // Post row is written — now migrate slug-keyed data if the slug changed.
-    if (prevSlug && prevSlug !== slug) sqliteRenameSlugData(prevSlug, slug);
+    // Post row is written — now migrate slug-keyed data if the slug changed,
+    // and 301 the old URL to the new one so inbound links don't break.
+    if (prevSlug && prevSlug !== slug) { sqliteRenameSlugData(prevSlug, slug); sqliteAddSlugRedirect(prevSlug, slug); }
     // Warm the featured-photo derivatives on publish so the first reader doesn't
     // wait on a cold resize (only published stories are reader-visible).
     if (status === "published" && imageAssetId) warmImageDerivatives(imageAssetId, imageCrops);

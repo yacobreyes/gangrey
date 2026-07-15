@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { PortableText } from "@portabletext/react";
 import { getPost } from "@/lib/sanity";
@@ -80,7 +80,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function StoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const post = await getPost(slug);
-  if (!post) notFound();
+  if (!post) {
+    // A renamed story leaves a 301 behind so old links/rankings survive.
+    const { isSqliteBackend, sqliteRedirectTarget } = await import("@/lib/storage/sqlite");
+    if (isSqliteBackend()) {
+      const target = sqliteRedirectTarget(slug);
+      if (target && target !== slug) permanentRedirect(`/stories/${target}`);
+    }
+    notFound();
+  }
   // A scheduled story is hidden from listings until its time — but getPost
   // returns it regardless, so guard the direct URL too. Not-yet-due scheduled
   // (and trashed) posts 404 for the public; admins preview via /preview.
