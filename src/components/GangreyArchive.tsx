@@ -68,12 +68,32 @@ export default function GangreyArchive({ posts }: { posts: Post[] }) {
     return posts.filter(p => new Date(p.date).getUTCFullYear().toString() === activeYear);
   }, [posts, results, activeYear, searchMode]);
 
+  // Browse mode groups by year; search mode must NOT — it has to preserve the
+  // server's relevance (bm25) ordering, so a title match lands at the top
+  // instead of being re-bucketed under whatever year it happens to be from.
   const byYear: Record<string, Post[]> = {};
   for (const p of filtered) {
     const y = new Date(p.date).getUTCFullYear().toString();
     (byYear[y] = byYear[y] ?? []).push(p);
   }
   const years = Object.keys(byYear).sort((a, b) => +b - +a);
+
+  const row = (post: Post) => {
+    const plain = truncate(plainText(post.body));
+    return (
+      <div key={post._id} className="gr-row">
+        <div className="gr-row-left">
+          <div className="gr-date">{fmtDate(post.date)}</div>
+          <Link href={`/stories/${post.slug}`} className="gr-headline">{post.headline}</Link>
+          {post.byline && <div className="gr-byline">By {post.byline}</div>}
+          {plain && <p className="gr-excerpt">{plain}</p>}
+        </div>
+        <div className="gr-row-right">
+          <div className="gr-time">{readingTime(post.body)} min</div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -155,28 +175,15 @@ export default function GangreyArchive({ posts }: { posts: Post[] }) {
       <div style={{ marginTop: 48 }}>
         {filtered.length === 0
           ? <p className="gr-no-results">No stories{!searchMode && activeYear ? ` from ${activeYear}` : ""}{query.trim() ? ` matching "${query.trim()}"` : ""}.</p>
+          : searchMode
+          ? <div className="gr-stories gr-search-list">{filtered.map(row)}</div>
           : years.map(year => (
             <div key={year} id={`year-${year}`} className="gr-year-block">
               <div className="gr-year-col">
                 <div className="gr-year-label">{year}</div>
               </div>
               <div className="gr-stories">
-                {byYear[year].map(post => {
-                  const plain = truncate(plainText(post.body));
-                  return (
-                    <div key={post._id} className="gr-row">
-                      <div className="gr-row-left">
-                        <div className="gr-date">{fmtDate(post.date)}</div>
-                        <Link href={`/stories/${post.slug}`} className="gr-headline">{post.headline}</Link>
-                        {post.byline && <div className="gr-byline">By {post.byline}</div>}
-                        {plain && <p className="gr-excerpt">{plain}</p>}
-                      </div>
-                      <div className="gr-row-right">
-                        <div className="gr-time">{readingTime(post.body)} min</div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {byYear[year].map(row)}
               </div>
             </div>
           ))

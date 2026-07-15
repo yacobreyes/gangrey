@@ -548,7 +548,12 @@ export function sqliteSearchPosts(query: string, opts: { limit?: number; publicO
   const args: Record<string, unknown> = { limit, ...(opts.section ? { section: opts.section } : {}) };
   if (ftsHasTable(d)) {
     // Prefix-match each term so partial words hit ("shrimp" → "shrimper").
-    const match = q.replace(/["]/g, " ").split(/\s+/).filter(Boolean).map(t => `"${t}"*`).join(" ");
+    // Strip punctuation from each term first, so a stray dash/quote the user
+    // typed (e.g. "young writers —") can't become an empty phrase that
+    // scrambles ranking or errors the whole query.
+    const terms = q.toLowerCase().split(/\s+/).map(t => t.replace(/[^\p{L}\p{N}]+/gu, "")).filter(Boolean);
+    if (!terms.length) return [];
+    const match = terms.map(t => `"${t}"*`).join(" ");
     try {
       const rows = d.prepare(`
         SELECT p.* FROM posts_fts f JOIN posts p ON p.id = f.id
