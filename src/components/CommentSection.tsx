@@ -54,8 +54,11 @@ export default function CommentSection({ slug }: { slug: string }) {
           localStorage.setItem("efemera_commenter_email", email.trim());
         } catch {}
         setText("");
-        // Stays up — the comment publishes only after they confirm by email.
         setSubmitted(true);
+        // Comment is live immediately — refresh the list so they see it.
+        const updated = await fetch(`/api/comments?slug=${encodeURIComponent(slug)}`).then(r => r.json());
+        if (Array.isArray(updated)) setComments(updated);
+        setTimeout(() => setSubmitted(false), 3000);
       }
     } finally {
       setSubmitting(false);
@@ -96,7 +99,7 @@ export default function CommentSection({ slug }: { slug: string }) {
         )}
 
         {submitted ? (
-          <p style={{ fontFamily: "var(--font-subhead)", fontSize: "0.9rem", color: "#392a22" }}>Almost there — check your email and tap the link to publish your comment.</p>
+          <p style={{ fontFamily: "var(--font-subhead)", fontSize: "0.9rem", color: "#392a22" }}>Thanks — your comment is posted. You&apos;re now on the Gangrey list, too.</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
             {/* Honeypot: off-screen, non-focusable, hidden from assistive tech.

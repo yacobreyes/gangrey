@@ -1087,7 +1087,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
               {!isMobile && (
                 <div style={{ margin: "0 0 1.2rem" }}>
                   <h1 className="admin-h1">Comments</h1>
-                  <p className="admin-sub">Published once the commenter confirms by email. {adminComments.filter(c => c.approved === false).length} unconfirmed.</p>
+                  <p className="admin-sub">Comments post immediately and subscribe the writer. Delete anything you don&apos;t want to keep.</p>
                 </div>
               )}
               {commentsLoading ? (
