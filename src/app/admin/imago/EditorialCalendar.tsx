@@ -170,10 +170,14 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
   return (
     <div>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", marginBottom: "1.2rem", flexWrap: "wrap" }}>
-        <div>
-          <h1 style={{ fontFamily: "var(--font-headline)", fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.02em", color: TEXT_DARK, margin: 0 }}>Calendar</h1>
-          <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: "0.35rem 0 0" }}>Stories and newsletters, sorted by publication date.</p>
-        </div>
+        {/* The mobile top bar already shows "Calendar", so hide the in-panel
+            title there like the other panels do. */}
+        {!isMobile && (
+          <div>
+            <h1 style={{ fontFamily: "var(--font-headline)", fontSize: "2rem", fontWeight: 800, letterSpacing: "-0.02em", color: TEXT_DARK, margin: 0 }}>Calendar</h1>
+            <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, margin: "0.35rem 0 0" }}>Stories and newsletters, sorted by publication date.</p>
+          </div>
+        )}
         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
           <button onClick={() => addStory(ymd(cursor))} disabled={creating}
             style={{ border: "none", borderRadius: 8, padding: "0.45rem 0.85rem", fontFamily: FONT, fontSize: "0.8rem", fontWeight: 700, cursor: creating ? "default" : "pointer", background: CRIMSON, color: "white", opacity: creating ? 0.6 : 1, display: "inline-flex", alignItems: "center", gap: 5 }}>

@@ -929,7 +929,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
           {/* ABOUT EDITOR — admin only */}
           {activePanel === "about" && isAdmin && (
             <div>
-            <h1 className="admin-h1" style={{ margin: "0 0 1.2rem" }}>About Page</h1>
+            {!isMobile && <h1 className="admin-h1" style={{ margin: "0 0 1.2rem" }}>About Page</h1>}
             <form onSubmit={e => { e.preventDefault(); const fd = new FormData(); fd.set("body", JSON.stringify(tiptapToPortableText(aboutDoc))); startTransition(async () => { try { await saveAbout(fd); setAboutSaved(true); setTimeout(() => setAboutSaved(false), 2000); } catch (err: any) { setError(err.message); } }); }} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.04)", padding: "1.75rem 2rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.1rem", padding: "0 0 0.5rem", background: "transparent", borderBottom: `1px solid ${BORDER}` }}>

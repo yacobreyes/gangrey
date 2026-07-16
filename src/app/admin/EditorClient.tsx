@@ -98,11 +98,21 @@ const EMPTY_DOC: JSONContent = { type: "doc", content: [{ type: "paragraph" }] }
 
 // A headline/subheadline field that wraps and grows with its text instead of
 // scrolling a long title out of view. Behaves like the old <input> otherwise.
-function GrowField({ value, onChange, ...rest }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void }) {
+function GrowField({ value, onChange, style, ...rest }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void }) {
   const ref = useRef<HTMLTextAreaElement>(null);
-  const resize = () => { const t = ref.current; if (t) { t.style.height = "auto"; t.style.height = `${t.scrollHeight}px`; } };
-  useLayoutEffect(resize, [value]);
-  return <textarea ref={ref} rows={1} value={value} onChange={onChange} {...rest} />;
+  const native = useRef(false);
+  // Collapse to 0 before measuring — "auto" doesn't fully shrink a textarea, so
+  // an empty field measured tall and left a big gap under the headline.
+  const resize = () => { const t = ref.current; if (t && !native.current) { t.style.height = "0px"; t.style.height = `${t.scrollHeight}px`; } };
+  useLayoutEffect(() => {
+    const t = ref.current;
+    native.current = !!t && "fieldSizing" in t.style;
+    if (native.current) return;
+    const raf = requestAnimationFrame(resize);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  const merged = { fieldSizing: "content", ...(style as React.CSSProperties) } as React.CSSProperties;
+  return <textarea ref={ref} rows={1} value={value} onChange={e => { onChange(e); resize(); }} style={merged} {...rest} />;
 }
 
 // Load a post body into the editor, dropping blank paragraph blocks (a relic
@@ -892,8 +902,8 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                 ) : (
                   <>
                     <select style={INPUT} value={form.access} onChange={e => updateForm({ access: e.target.value as "free" | "paid" })} disabled={readOnly}>
-                      <option value="free">Free — anyone can read</option>
-                      <option value="paid">Paid — members only</option>
+                      <option value="free">Free</option>
+                      <option value="paid">Paid</option>
                     </select>
                     <p style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, margin: "0.4rem 0 0", lineHeight: 1.5 }}>
                       Paid stories show a preview + join prompt to non-members.
