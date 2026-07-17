@@ -456,6 +456,11 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
       <style>{`
         html { background: white !important; }
         body { background: #f5f8fa !important; }
+        /* iOS Safari paints its floating-toolbar underhang with the BODY
+           background. On mobile the bottom tab bar is white, so a gray body
+           showed as a gray band beneath it; match it white. The gray canvas
+           itself is painted by .admin-main, so nothing else changes. */
+        @media (max-width: 700px) { body { background: #ffffff !important; } }
         .admin-layout { display: flex; min-height: 100vh; }
         .admin-sidebar {
           width: ${sidebarOpen ? "248px" : "66px"};
