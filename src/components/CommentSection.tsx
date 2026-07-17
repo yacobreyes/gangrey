@@ -138,7 +138,10 @@ export default function CommentSection({ slug }: { slug: string }) {
               style={{ ...S, width: "100%", resize: "vertical", lineHeight: 1.6, borderColor: errors.text ? "#490000" : "#b8b8ba" }}
             />
             {errors.text && <p style={{ ...ERR, marginTop: "-0.3rem" }}>{errors.text}</p>}
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
+              <p style={{ fontFamily: "var(--font-subhead)", fontSize: "0.75rem", color: "#8a8a8c", margin: 0 }}>
+                Posting subscribes you to the Gangrey newsletter. Unsubscribe anytime.
+              </p>
               <button
                 onClick={submit}
                 disabled={submitting}
