@@ -16,6 +16,8 @@ const inputStyle: React.CSSProperties = {
   border: `1px solid ${LINE}`, borderRadius: 2, outline: "none",
   color: "#000000", width: "100%", boxSizing: "border-box", background: "#ffffff",
 };
+// Single-line fields share one fixed height so inputs and the select line up.
+const fieldStyle: React.CSSProperties = { ...inputStyle, height: 46 };
 
 export default function SubmitForm() {
   const [name, setName] = useState("");
@@ -79,22 +81,22 @@ export default function SubmitForm() {
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
         <div style={{ flex: "1 1 200px" }}>
           <label style={labelStyle} htmlFor="sub-name">Your name</label>
-          <input id="sub-name" style={inputStyle} value={name} onChange={e => setName(e.target.value)} required autoComplete="name" />
+          <input id="sub-name" style={fieldStyle} value={name} onChange={e => setName(e.target.value)} required autoComplete="name" />
         </div>
         <div style={{ flex: "1 1 200px" }}>
           <label style={labelStyle} htmlFor="sub-email">Email</label>
-          <input id="sub-email" type="email" style={inputStyle} value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" placeholder="you@email.com" />
+          <input id="sub-email" type="email" style={fieldStyle} value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" placeholder="you@email.com" />
         </div>
       </div>
 
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
         <div style={{ flex: "2 1 260px" }}>
           <label style={labelStyle} htmlFor="sub-title">Title of your story</label>
-          <input id="sub-title" style={inputStyle} value={title} onChange={e => setTitle(e.target.value)} required />
+          <input id="sub-title" style={fieldStyle} value={title} onChange={e => setTitle(e.target.value)} required />
         </div>
         <div style={{ flex: "1 1 180px" }}>
           <label style={labelStyle} htmlFor="sub-cat">Category</label>
-          <select id="sub-cat" style={{ ...inputStyle, appearance: "auto" }} value={category} onChange={e => setCategory(e.target.value)} required>
+          <select id="sub-cat" style={{ ...fieldStyle, appearance: "auto" }} value={category} onChange={e => setCategory(e.target.value)} required>
             <option value="" disabled>Choose one…</option>
             {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
