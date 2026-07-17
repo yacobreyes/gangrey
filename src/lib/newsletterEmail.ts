@@ -269,8 +269,8 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean; web?: b
             ${img}
             <div>${renderBody(card.body ?? [], CLIP_BODY)}</div>
           </div>
-          <div style="position:absolute;top:-11px;left:40px;width:92px;height:22px;background:${TAPE};transform:rotate(${TAPE_ROT[c][0]});box-shadow:0 1px 3px rgba(0,0,0,0.18);"></div>
-          <div style="position:absolute;top:-11px;right:40px;width:92px;height:22px;background:${TAPE};transform:rotate(${TAPE_ROT[c][1]});box-shadow:0 1px 3px rgba(0,0,0,0.18);"></div>
+          <div style="position:absolute;top:-11px;left:9%;width:20%;max-width:92px;height:22px;background:${TAPE};transform:rotate(${TAPE_ROT[c][0]});box-shadow:0 1px 3px rgba(0,0,0,0.18);"></div>
+          <div style="position:absolute;top:-11px;right:9%;width:20%;max-width:92px;height:22px;background:${TAPE};transform:rotate(${TAPE_ROT[c][1]});box-shadow:0 1px 3px rgba(0,0,0,0.18);"></div>
         </div>
       </div>
     </div>`;
