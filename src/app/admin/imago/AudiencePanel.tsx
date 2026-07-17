@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { compMember, revokeMember, deleteMember, syncMembers } from "../memberActions";
-import { addSubscriber, removeSubscriber, getMeterFunnel, type Subscriber } from "../newsletterActions";
+import { addSubscriber, removeSubscriber, getMeterFunnel, getEngagement, type Subscriber } from "../newsletterActions";
 import { listMembers } from "../memberActions";
 import type { Member } from "@/lib/membership";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
@@ -41,6 +41,10 @@ export default function AudiencePanel({
   // Metered-paywall funnel for the current month.
   const [funnel, setFunnel] = useState<{ month: string; readers: number; walled: number; limit: number } | null>(null);
   useEffect(() => { getMeterFunnel().then(setFunnel).catch(() => {}); }, []);
+  // Newsletter engagement (open pixel): open rate of the last send, plus
+  // active/inactive counts once at least 3 sends have gone out.
+  const [engage, setEngage] = useState<{ sends: number; openRate: number | null; active: number; inactive: number; neutral: number } | null>(null);
+  useEffect(() => { getEngagement().then(setEngage).catch(() => {}); }, []);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -134,6 +138,30 @@ export default function AudiencePanel({
         Your subscribers and members.
       </p>
 
+      {engage && engage.sends > 0 && (() => {
+        const stat = (n: string | number, label: string, sub?: string, accent = false) => (
+          <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "0.9rem 1.1rem", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", flex: "1 1 140px" }}>
+            <div style={{ fontFamily: FONT, fontSize: "1.6rem", fontWeight: 800, color: accent ? CRIMSON : TEXT_DARK, lineHeight: 1 }}>{n}</div>
+            <div style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: TEXT_MUTED, marginTop: 6 }}>{label}</div>
+            {sub && <div style={{ fontFamily: FONT, fontSize: "0.72rem", color: TEXT_MUTED, marginTop: 2 }}>{sub}</div>}
+          </div>
+        );
+        return (
+          <div style={{ marginBottom: "1.5rem" }}>
+            <div style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: TEXT_MUTED, marginBottom: "0.6rem" }}>Newsletter engagement</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.7rem" }}>
+              {stat(engage.openRate === null ? "\u2014" : engage.openRate + "%", "Open rate", "last send", true)}
+              {engage.sends >= 3
+                ? stat(engage.active, "Active subscribers", "opened 2 of the last 3 sends")
+                : stat("\u2014", "Active subscribers", `needs 3 sends (${engage.sends} so far)`)}
+              {engage.sends >= 3
+                ? stat(engage.inactive, "Inactive subscribers", "opened none of the last 3")
+                : stat("\u2014", "Inactive subscribers", `needs 3 sends (${engage.sends} so far)`)}
+            </div>
+          </div>
+        );
+      })()}
+
       {funnel && funnel.readers > 0 && (() => {
         const monthName = new Date(funnel.month + "-01T12:00:00").toLocaleDateString("en-US", { month: "long", year: "numeric" });
         const convRate = funnel.readers ? Math.round((paidCount / funnel.readers) * 100) : 0;
@@ -207,7 +235,7 @@ export default function AudiencePanel({
                         {!active ? ` · ${m.status === "canceled" ? "Canceled" : m.status === "past_due" ? "Past due" : m.status}` : ""}
                       </span>
                     ) : (
-                      <span>{row.subscriber?.status === "inactive" ? "Unsubscribed" : "Subscriber"}</span>
+                      <span>{(row.subscriber?.status as string) === "unsubscribed" ? "Unsubscribed" : row.subscriber?.status === "active" ? "Subscriber \u00b7 Active" : row.subscriber?.status === "inactive" ? "Subscriber \u00b7 Inactive" : "Subscriber"}</span>
                     )}
                   </p>
                 </div>

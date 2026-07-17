@@ -260,9 +260,36 @@ export async function getMeterFunnel(): Promise<{ month: string; readers: number
 
 export async function getSubscribers(): Promise<Subscriber[]> {
   await requireAdmin();
-  // No open-tracking pixel data on self-hosted yet, so no status reconcile.
   return sqliteDocsByType<Subscriber & { _id: string }>("subscriber")
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+}
+
+// Engagement summary for the Subscribers panel, computed from the open pixel
+// (openedSends on each subscriber) against the published sends. Activity
+// statuses need at least 3 sends to mean anything; they reclassify on every
+// open after that (see /api/track-open).
+export async function getEngagement(): Promise<{
+  sends: number; openRate: number | null; active: number; inactive: number; neutral: number;
+}> {
+  await requireAdmin();
+  const sends = sqliteDocsByType<{ _id: string; status?: string; sentAt?: string }>("newsletter")
+    .filter(n => n.status === "published")
+    .sort((a, b) => (b.sentAt ?? "").localeCompare(a.sentAt ?? ""));
+  const subs = sqliteDocsByType<Subscriber & { openedSends?: string[] }>("subscriber")
+    .filter(su => (su.status as string) !== "unsubscribed");
+  const last = sends[0]?._id;
+  const opened = last ? subs.filter(su => (su.openedSends ?? []).includes(last)).length : 0;
+  let active = 0, inactive = 0, neutral = 0;
+  for (const su of subs) {
+    if (su.status === "active") active++;
+    else if (su.status === "inactive") inactive++;
+    else neutral++;
+  }
+  return {
+    sends: sends.length,
+    openRate: last && subs.length ? Math.round((opened / subs.length) * 100) : null,
+    active, inactive, neutral,
+  };
 }
 
 export async function removeSubscriber(email: string) {
