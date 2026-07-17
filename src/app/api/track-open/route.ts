@@ -8,17 +8,12 @@ export const dynamic = "force-dynamic";
 // a subscriber actually opened (not just whether they opened one, ever).
 const PIXEL = Buffer.from("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==", "base64");
 
-// "active" = opened at least REQUIRED of the last LOOKBACK sends.
-// "inactive" = opened none of them (despite LOOKBACK sends having gone out).
-// "neutral" = everything in between. Kept consistent with classifyByOpens()
-// in src/app/admin/newsletterActions.ts.
-const LOOKBACK = 3;
-const REQUIRED = 2;
-function classifyByOpens(openedCount: number, lookbackCount: number): "active" | "neutral" | "inactive" {
-  if (lookbackCount === 0) return "neutral";
-  if (openedCount >= REQUIRED) return "active";
-  if (openedCount >= 1) return "neutral";
-  return "inactive";
+// Status rule (kept consistent with getEngagement in newsletterActions):
+// judged on sends since the subscriber joined, only once 3+ exist. Opening
+// 50%+ of them = active, under 50% = inactive; before that, neutral.
+function classifyByOpens(openedCount: number, sendCount: number): "active" | "neutral" | "inactive" {
+  if (sendCount < 3) return "neutral";
+  return openedCount / sendCount >= 0.5 ? "active" : "inactive";
 }
 
 export async function GET(req: NextRequest) {
@@ -27,17 +22,17 @@ export async function GET(req: NextRequest) {
 
   if (id && nid) {
     try {
-      const sub = sqliteGetDoc<{ openedSends?: string[] }>(id);
+      const sub = sqliteGetDoc<{ openedSends?: string[]; createdAt?: string }>(id);
       if (sub) {
         const openedSends = Array.from(new Set([...(sub.openedSends ?? []), nid])).slice(-20);
 
-        const recentSends = sqliteDocsByType<{ _id: string; status?: string; sentAt?: string }>("newsletter")
-          .filter(n => n.status === "published")
-          .sort((a, b) => (b.sentAt ?? "").localeCompare(a.sentAt ?? ""))
-          .slice(0, LOOKBACK)
+        // Sends since this subscriber joined; their percentage is judged
+        // against these, not the full history from before they existed.
+        const since = sqliteDocsByType<{ _id: string; status?: string; sentAt?: string }>("newsletter")
+          .filter(n => n.status === "published" && !!n.sentAt && (!sub.createdAt || (n.sentAt ?? "") >= sub.createdAt))
           .map(n => n._id);
-        const openedRecent = recentSends.filter(sid => openedSends.includes(sid)).length;
-        const status = classifyByOpens(openedRecent, recentSends.length);
+        const openedCount = since.filter(sid => openedSends.includes(sid)).length;
+        const status = classifyByOpens(openedCount, since.length);
 
         sqliteMutate([{ patch: { id, set: { status, openedSends, lastOpenedAt: new Date().toISOString() } } }]);
       }

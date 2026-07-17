@@ -43,7 +43,7 @@ export default function AudiencePanel({
   useEffect(() => { getMeterFunnel().then(setFunnel).catch(() => {}); }, []);
   // Newsletter engagement (open pixel): open rate of the last send, plus
   // active/inactive counts once at least 3 sends have gone out.
-  const [engage, setEngage] = useState<{ sends: number; openRate: number | null; active: number; inactive: number; neutral: number } | null>(null);
+  const [engage, setEngage] = useState<{ sends: number; openRate: number | null; active: number; inactive: number; pending: number } | null>(null);
   useEffect(() => { getEngagement().then(setEngage).catch(() => {}); }, []);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -152,10 +152,10 @@ export default function AudiencePanel({
             <div style={{ display: "flex", flexWrap: "wrap", gap: "0.7rem" }}>
               {stat(engage.openRate === null ? "\u2014" : engage.openRate + "%", "Open rate", "last send", true)}
               {engage.sends >= 3
-                ? stat(engage.active, "Active subscribers", "opened 2 of the last 3 sends")
+                ? stat(engage.active, "Active subscribers", "opened 50%+ of their sends")
                 : stat("\u2014", "Active subscribers", `needs 3 sends (${engage.sends} so far)`)}
               {engage.sends >= 3
-                ? stat(engage.inactive, "Inactive subscribers", "opened none of the last 3")
+                ? stat(engage.inactive, "Inactive subscribers", "opened under 50%")
                 : stat("\u2014", "Inactive subscribers", `needs 3 sends (${engage.sends} so far)`)}
             </div>
           </div>

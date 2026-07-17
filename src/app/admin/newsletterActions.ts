@@ -264,31 +264,33 @@ export async function getSubscribers(): Promise<Subscriber[]> {
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
 }
 
-// Engagement summary for the Subscribers panel, computed from the open pixel
-// (openedSends on each subscriber) against the published sends. Activity
-// statuses need at least 3 sends to mean anything; they reclassify on every
-// open after that (see /api/track-open).
+// Engagement summary for the Subscribers panel, computed live from the open
+// pixel (openedSends on each subscriber) against the published sends. A
+// subscriber is judged only on sends that went out after they joined, and
+// only once at least 3 of those exist: opening 50%+ of them = active, under
+// 50% = inactive. Recomputed here on every load, so it shifts with each send.
 export async function getEngagement(): Promise<{
-  sends: number; openRate: number | null; active: number; inactive: number; neutral: number;
+  sends: number; openRate: number | null; active: number; inactive: number; pending: number;
 }> {
   await requireAdmin();
   const sends = sqliteDocsByType<{ _id: string; status?: string; sentAt?: string }>("newsletter")
-    .filter(n => n.status === "published")
+    .filter(n => n.status === "published" && n.sentAt)
     .sort((a, b) => (b.sentAt ?? "").localeCompare(a.sentAt ?? ""));
   const subs = sqliteDocsByType<Subscriber & { openedSends?: string[] }>("subscriber")
     .filter(su => (su.status as string) !== "unsubscribed");
   const last = sends[0]?._id;
   const opened = last ? subs.filter(su => (su.openedSends ?? []).includes(last)).length : 0;
-  let active = 0, inactive = 0, neutral = 0;
+  let active = 0, inactive = 0, pending = 0;
   for (const su of subs) {
-    if (su.status === "active") active++;
-    else if (su.status === "inactive") inactive++;
-    else neutral++;
+    const since = sends.filter(n => !su.createdAt || (n.sentAt ?? "") >= su.createdAt);
+    if (since.length < 3) { pending++; continue; }
+    const openedCount = since.filter(n => (su.openedSends ?? []).includes(n._id)).length;
+    if (openedCount / since.length >= 0.5) active++; else inactive++;
   }
   return {
     sends: sends.length,
     openRate: last && subs.length ? Math.round((opened / subs.length) * 100) : null,
-    active, inactive, neutral,
+    active, inactive, pending,
   };
 }
 
