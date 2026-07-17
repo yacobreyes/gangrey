@@ -33,7 +33,16 @@ export default async function GangreyPage() {
   // which guarantees unique posts at the source (and keeps genuine reposts
   // like "Eating Jack Hooker's Cow", June 2005 + May 2010). The old
   // headline-dedupe existed for the first import's slug-variant duplicates.
-  const deduped = gangrey;
+  //
+  // Ship ONLY the fields the list renders. Serializing the full post objects
+  // (every optional field, a synthetic body block, per-post overhead) put a
+  // ~4.7MB payload on this page and made the Archive click feel stuck.
+  const deduped = gangrey.map(p => ({
+    _id: p._id, slug: p.slug, headline: p.headline, date: p.date,
+    byline: p.byline || undefined,
+    excerpt: (p.body?.[0] as { children?: { text?: string }[] } | undefined)?.children?.[0]?.text || undefined,
+    readingTime: p.readingTime,
+  }));
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#ffffff", color: "#000000" }}>

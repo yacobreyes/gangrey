@@ -59,7 +59,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
               </div>
             )}
             <form action="/api/member/logout" method="post">
-              <button type="submit" style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "var(--font-subhead)", fontSize: 12, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "#8a8a8c" }}>
+              <button type="submit" style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "var(--font-subhead)", fontSize: 12, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "#000000" }}>
                 Sign out
               </button>
             </form>

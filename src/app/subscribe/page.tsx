@@ -5,6 +5,10 @@ import MagFooter from "@/components/MagFooter";
 import CheckoutButton from "@/components/CheckoutButton";
 import SubscribeButton from "@/components/SubscribeButton";
 import type { SubscriptionItem } from "@/lib/checkoutCatalog";
+import { listFoundingMemberNames } from "@/lib/membership";
+
+// Founding members read from the live member list on every request.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Gangrey | Subscribe",
@@ -36,7 +40,12 @@ const PAID_TIERS: { key: SubscriptionItem; name: string; price: string; per: str
   },
 ];
 
-export default function SubscribePage() {
+export default async function SubscribePage() {
+  // Founding members, in the order they joined. Names come from Stripe
+  // checkout; the section keeps its placeholder until the first one lands.
+  let foundingNames: string[] = [];
+  try { foundingNames = await listFoundingMemberNames(); } catch {}
+
   return (
     <div className="subscribe-page">
       <style>{`
@@ -104,6 +113,14 @@ export default function SubscribePage() {
           font-family: var(--font-body);
           font-size: 17px; font-style: italic; color: #392a22;
         }
+        .founding-names {
+          margin: 0; padding: 0; list-style: none;
+          display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 26px;
+        }
+        .founding-names li {
+          font-family: var(--font-headline);
+          font-size: 19px; font-weight: 700; color: #000000;
+        }
         @media (max-width: 900px) {
           .subscribe-main { padding: 20px 20px 48px; }
           .tiers-grid { grid-template-columns: 1fr 1fr; gap: 28px 20px; }
@@ -149,7 +166,9 @@ export default function SubscribePage() {
 
         <div className="founding">
           <h2>Our Founding Members</h2>
-          <p className="founding-placeholder">Founding members will be recognized here.</p>
+          {foundingNames.length === 0
+            ? <p className="founding-placeholder">Founding members will be recognized here.</p>
+            : <ul className="founding-names">{foundingNames.map(n => <li key={n}>{n}</li>)}</ul>}
         </div>
       </main>
       <MagFooter />

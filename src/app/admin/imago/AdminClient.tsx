@@ -634,13 +634,14 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
           {isMobile && (
             <div style={{ position: "sticky", top: 0, zIndex: 200, background: "white", borderBottom: `1px solid ${CARD_LINE}`, boxShadow: "0 1px 3px rgba(0,0,0,0.04)", paddingTop: "var(--safe-top)" }}>
               {MOBILE_PUSHED.includes(activePanel) ? (
-                /* Pushed panel: back chevron + centered title */
-                <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0 0.75rem", height: 48, boxSizing: "border-box" }}>
+                /* Pushed panel: back chevron + title, styled to match the main
+                   tabs' title (Media Library et al) so every page reads the same */
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.35rem", padding: "0 1.1rem 0 0.75rem", height: 48, boxSizing: "border-box" }}>
                   <button onClick={() => tryNav("more")} style={{ display: "flex", alignItems: "center", gap: 2, background: "none", border: "none", color: CRIMSON, fontFamily: FONT, fontSize: "0.94rem", fontWeight: 600, cursor: "pointer", padding: "0.25rem 0.35rem" }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                     Back
                   </button>
-                  <span style={{ fontFamily: FONT, fontSize: "1rem", fontWeight: 700, color: TEXT_DARK, marginLeft: "auto", marginRight: "auto", transform: "translateX(-22px)" }}>{PANEL_TITLES[activePanel] ?? ""}</span>
+                  <span style={{ fontFamily: FONT, fontSize: "0.82rem", fontWeight: 600, color: TEXT_MUTED }}>{PANEL_TITLES[activePanel] ?? ""}</span>
                 </div>
               ) : (
                 /* Main tab: wordmark left, contextual title right */
@@ -1087,7 +1088,6 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
               {!isMobile && (
                 <div style={{ margin: "0 0 1.2rem" }}>
                   <h1 className="admin-h1">Comments</h1>
-                  <p className="admin-sub">Comments post immediately and subscribe the writer. Delete anything you don&apos;t want to keep.</p>
                 </div>
               )}
               {commentsLoading ? (

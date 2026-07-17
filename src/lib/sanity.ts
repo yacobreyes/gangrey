@@ -122,7 +122,7 @@ export async function getArchivePosts(): Promise<SanityPost[]> {
   // portable-text bodies. Scoped to the Archive section (was querying every
   // published post site-wide) and capped per-post, since list views only ever
   // show a short excerpt.
-  const text = sqliteBodyTextBySlug(true, "Archive");
+  const text = sqliteBodyTextBySlug(true, "Archive", 200);
   return sqliteAllPublishedPostsLight().filter(p => p.section === "Archive").map(p => straightenPost({
     ...p,
     body: [{ _type: "block", style: "normal", children: [{ _type: "span", text: text[p.slug] ?? "" }] }] as SanityPost["body"],

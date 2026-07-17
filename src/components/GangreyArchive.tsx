@@ -8,7 +8,11 @@ type Post = {
   slug: string;
   date: string;
   byline?: string;
-  body: unknown[];
+  // Browse rows ship a precomputed excerpt (no body); search results from
+  // /api/search still carry a body to excerpt from.
+  body?: unknown[];
+  excerpt?: string;
+  readingTime?: number;
   status?: string;
   scheduledAt?: string;
   section?: string;
@@ -24,6 +28,11 @@ function plainText(body: unknown[]): string {
   return (body as { children?: { text?: string }[] }[])
     .flatMap(b => b.children?.map(c => c.text ?? "") ?? [])
     .join(" ").replace(/\s+/g, " ").trim();
+}
+function readingTimeOf(post: Post) {
+  // Prefer the stored reading time; the shipped body is only a short excerpt.
+  if (post.readingTime) return post.readingTime;
+  return readingTime(post.body ?? []);
 }
 function readingTime(body: unknown[]) {
   const words = plainText(body).split(/\s+/).filter(Boolean).length;
@@ -79,7 +88,7 @@ export default function GangreyArchive({ posts }: { posts: Post[] }) {
   const years = Object.keys(byYear).sort((a, b) => +b - +a);
 
   const row = (post: Post) => {
-    const plain = truncate(plainText(post.body));
+    const plain = truncate(post.excerpt ?? plainText(post.body ?? []));
     return (
       <div key={post._id} className="gr-row">
         <div className="gr-row-left">
@@ -89,7 +98,7 @@ export default function GangreyArchive({ posts }: { posts: Post[] }) {
           {plain && <p className="gr-excerpt">{plain}</p>}
         </div>
         <div className="gr-row-right">
-          <div className="gr-time">{readingTime(post.body)} min</div>
+          <div className="gr-time">{readingTimeOf(post)} min</div>
         </div>
       </div>
     );

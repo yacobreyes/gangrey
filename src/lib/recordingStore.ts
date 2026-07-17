@@ -335,14 +335,24 @@ const END_BAND =
   '                    <span style="flex:1;background:#e9e1d2;transform-origin:left;animation:bandIn .55s .72s cubic-bezier(.2,.7,.2,1) both"></span>\n' +
   '                    <span style="flex:1;background:#2f4a72;transform-origin:left;animation:bandIn .55s .89s cubic-bezier(.2,.7,.2,1) both"></span>\n' +
   '                  </div>';
+// Red, white, and blue (the end band's own flag palette), one color per star.
 const END_STARS =
+  '<div style="display:flex;justify-content:center;gap:20px;margin:40px auto 0;font-size:15px;line-height:1">' +
+  '<span style="display:inline-block;color:#8f2020;animation:starIn .5s .55s cubic-bezier(.2,.7,.2,1) both">★</span>' +
+  '<span style="display:inline-block;color:#e9e1d2;text-shadow:0 0 1px rgba(0,0,0,.35);animation:starIn .5s .72s cubic-bezier(.2,.7,.2,1) both">★</span>' +
+  '<span style="display:inline-block;color:#2f4a72;animation:starIn .5s .89s cubic-bezier(.2,.7,.2,1) both">★</span>' +
+  '</div>';
+// The monochrome version earlier installs carry, so they can be upgraded.
+const END_STARS_MONO =
   '<div style="display:flex;justify-content:center;gap:20px;margin:40px auto 0;color:#8f2020;font-size:15px;line-height:1">' +
   '<span style="display:inline-block;animation:starIn .5s .55s cubic-bezier(.2,.7,.2,1) both">★</span>' +
   '<span style="display:inline-block;animation:starIn .5s .72s cubic-bezier(.2,.7,.2,1) both">★</span>' +
   '<span style="display:inline-block;animation:starIn .5s .89s cubic-bezier(.2,.7,.2,1) both">★</span>' +
   '</div>';
 export function patchEndStars(template: string): string {
-  if (template.includes("@keyframes starIn")) return template; // already applied
+  // Recolor a previously-applied monochrome row in place.
+  if (template.includes(END_STARS_MONO)) return template.replace(END_STARS_MONO, END_STARS);
+  if (template.includes("@keyframes starIn")) return template; // already current
   const bandKf = "@keyframes bandGlow{0%,100%{box-shadow:0 0 0 rgba(143,32,32,0)}50%{box-shadow:0 8px 30px rgba(143,32,32,.35)}}";
   if (!template.includes(END_BAND) || !template.includes(bandKf)) return template;
   return template

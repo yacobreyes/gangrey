@@ -39,6 +39,7 @@ export async function GET(req: Request) {
 
     await upsertMember({
       email,
+      name: session.customer_details?.name ?? undefined,
       tier,
       status,
       stripeCustomerId: typeof session.customer === "string" ? session.customer : session.customer?.id,

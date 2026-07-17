@@ -11,6 +11,8 @@ export type MemberStatus = "active" | "trialing" | "past_due" | "canceled" | "in
 export interface Member {
   _id: string;
   email: string;
+  // Display name from Stripe checkout; shown on the founding members page.
+  name?: string;
   tier: MemberTier;
   status: MemberStatus;
   stripeCustomerId?: string;
@@ -62,6 +64,7 @@ export async function getMemberByEmail(email: string): Promise<Member | null> {
 // Create/update a member from Stripe webhook data. Idempotent via a fixed _id.
 export async function upsertMember(input: {
   email: string;
+  name?: string;
   tier: MemberTier;
   status: MemberStatus;
   stripeCustomerId?: string;
@@ -88,6 +91,7 @@ export async function upsertMember(input: {
           email,
           tier: input.tier,
           status: input.status,
+          ...(input.name ? { name: input.name } : {}),
           ...(input.stripeCustomerId ? { stripeCustomerId: input.stripeCustomerId } : {}),
           ...(input.stripeSubscriptionId ? { stripeSubscriptionId: input.stripeSubscriptionId } : {}),
           ...(input.currentPeriodEnd ? { currentPeriodEnd: input.currentPeriodEnd } : {}),
@@ -102,6 +106,16 @@ export async function upsertMember(input: {
 // Admin: list every member (comped + Stripe), newest first.
 export async function listAllMembers(): Promise<Member[]> {
   return sqliteDocsByType<Member>("member").sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+}
+
+// Public: founding members' display names for the subscribe page, oldest
+// first (the order they joined). Only current members with a name are shown;
+// emails are never exposed.
+export async function listFoundingMemberNames(): Promise<string[]> {
+  return sqliteDocsByType<Member>("member")
+    .filter(m => m.tier === "founding" && (m.status === "active" || m.status === "trialing") && !!m.name?.trim())
+    .sort((a, b) => (a.createdAt ?? "").localeCompare(b.createdAt ?? ""))
+    .map(m => m.name!.trim());
 }
 
 // Admin: backfill — add every existing member to the subscriber list. Needed
