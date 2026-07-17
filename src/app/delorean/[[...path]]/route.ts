@@ -55,7 +55,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
   }
 
   const ext = path.extname(file).toLowerCase();
-  return new NextResponse(new Uint8Array(fs.readFileSync(file)), {
+  let body: Buffer | Uint8Array = fs.readFileSync(file);
+  if (ext === ".html") {
+    // Strip the mirrored WordPress credit footer ("Proudly powered by
+    // WordPress" / the wordpress.org link) at serve time, since the mirror
+    // files themselves are a faithful snapshot.
+    const html = body.toString("utf-8")
+      .replace(/<footer[^>]*id=["']colophon["'][\s\S]*?<\/footer>/gi, "")
+      .replace(/<div[^>]*class=["'][^"']*site-info[^"']*["'][\s\S]*?<\/div>/gi, "")
+      .replace(/<a[^>]*href=["'][^"']*wordpress\.org[^"']*["'][^>]*>[\s\S]*?<\/a>/gi, "");
+    body = Buffer.from(html, "utf-8");
+  }
+  return new NextResponse(new Uint8Array(body), {
     headers: {
       "Content-Type": MIME[ext] ?? "application/octet-stream",
       // Member-gated: must never be cached publicly or served without a
