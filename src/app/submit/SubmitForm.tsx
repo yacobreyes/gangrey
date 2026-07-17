@@ -102,8 +102,8 @@ export default function SubmitForm() {
       </div>
 
       <div>
-        <label style={labelStyle} htmlFor="sub-cover">Cover letter <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, color: "#8a8a8c" }}>(optional)</span></label>
-        <textarea id="sub-cover" style={{ ...inputStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} value={coverLetter} onChange={e => setCoverLetter(e.target.value)} placeholder="A short note about you and the story. Publishing history welcome, not required." />
+        <label style={labelStyle} htmlFor="sub-cover">Cover letter</label>
+        <textarea id="sub-cover" style={{ ...inputStyle, minHeight: 90, resize: "vertical", lineHeight: 1.5 }} value={coverLetter} onChange={e => setCoverLetter(e.target.value)} required placeholder="A short note about you and the story. Publishing history welcome, not required." />
       </div>
 
       <div>

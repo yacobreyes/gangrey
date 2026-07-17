@@ -21,6 +21,7 @@ export type SubmissionInput = {
   email: string;
   title: string;
   category: string;
+  coverLetter: string;
   text: string;
 };
 
@@ -38,6 +39,7 @@ export function validateSubmission(input: SubmissionInput): SubmissionValidation
   if (!EMAIL_RE.test(input.email)) return { ok: false, error: "Enter a valid email address." };
   if (!input.title.trim()) return { ok: false, error: "Give your story a title." };
   if (!SUBMISSION_CATEGORIES.includes(input.category)) return { ok: false, error: "Choose a category." };
+  if (!input.coverLetter.trim()) return { ok: false, error: "Add a cover letter." };
   if (!input.text.trim()) return { ok: false, error: "Paste your story before submitting." };
 
   const wordCount = countWords(input.text);

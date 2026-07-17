@@ -35,7 +35,7 @@ export async function POST(req: Request) {
   // The API is the enforcement point (can't be bypassed by posting directly);
   // the form uses the same validateSubmission() for its live word counter, so
   // the two can never disagree on what's allowed.
-  const result = validateSubmission({ name, email, title, category, text });
+  const result = validateSubmission({ name, email, title, category, coverLetter, text });
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
   const { wordCount } = result;
 

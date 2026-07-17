@@ -7,6 +7,7 @@ function validInput(overrides: Partial<Parameters<typeof validateSubmission>[0]>
     email: "yacob@gangrey.org",
     title: "The Boy with the Toy Gun",
     category: "Essay",
+    coverLetter: "A short note about me and the story.",
     text: "word ".repeat(10).trim(),
     ...overrides,
   };
@@ -82,7 +83,7 @@ describe("validateSubmission", () => {
 
   it("checks fields in the same order the form presents them (name before email before title...)", () => {
     // Everything blank — should fail on name first, not email.
-    const result = validateSubmission({ name: "", email: "", title: "", category: "", text: "" });
+    const result = validateSubmission({ name: "", email: "", title: "", category: "", coverLetter: "", text: "" });
     expect(result).toEqual({ ok: false, error: "Add your name." });
   });
 });
