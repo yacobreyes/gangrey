@@ -138,7 +138,7 @@ export default function AudiencePanel({
         Your subscribers and members.
       </p>
 
-      {engage && engage.sends > 0 && (() => {
+      {engage && (() => {
         const stat = (n: string | number, label: string, sub?: string, accent = false) => (
           <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "0.9rem 1.1rem", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", flex: "1 1 140px" }}>
             <div style={{ fontFamily: FONT, fontSize: "1.6rem", fontWeight: 800, color: accent ? CRIMSON : TEXT_DARK, lineHeight: 1 }}>{n}</div>
