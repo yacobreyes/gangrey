@@ -49,7 +49,7 @@ export default function SubmitPage() {
         <h2 style={{ fontFamily: "var(--font-headline)", fontSize: 22, fontWeight: 800, letterSpacing: "-.02em", color: "#000000", margin: "8px 0 18px" }}>Submission Guidelines</h2>
         <div style={{ fontFamily: "var(--font-body)", fontSize: 14.5, lineHeight: 1.6, color: "#392a22" }}>
           <h3 style={GUIDE_LABEL}>How to submit</h3>
-          <p style={{ margin: "0 0 18px" }}>Paste the full text into the submission form. A cover letter is required.</p>
+          <p style={{ margin: "0 0 18px" }}>Paste the full text into the submission form, along with a short cover letter.</p>
 
           <h3 style={GUIDE_LABEL}>Eligibility</h3>
           <p style={{ margin: "0 0 18px" }}>We do not accept AI-generated writing. All work must be your own.</p>
