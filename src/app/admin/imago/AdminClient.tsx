@@ -461,7 +461,11 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
            showed as a gray band beneath it; match it white. The gray canvas
            itself is painted by .admin-main, so nothing else changes. */
         @media (max-width: 700px) { body { background: #ffffff !important; } }
-        .admin-layout { display: flex; min-height: 100vh; }
+        /* 100dvh (dynamic viewport) tracks the CURRENT visible height as iOS
+           Safari's toolbar shows/hides. Plain 100vh uses the toolbar-hidden
+           height, so with the toolbar up the gray canvas stopped short of the
+           tab bar and white body peeked through. dvh makes it fill exactly. */
+        .admin-layout { display: flex; min-height: 100vh; min-height: 100dvh; }
         .admin-sidebar {
           width: ${sidebarOpen ? "248px" : "66px"};
           min-width: ${sidebarOpen ? "248px" : "66px"};
