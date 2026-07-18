@@ -460,7 +460,16 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
            background. On mobile the bottom tab bar is white, so a gray body
            showed as a gray band beneath it; match it white. The gray canvas
            itself is painted by .admin-main, so nothing else changes. */
-        @media (max-width: 700px) { body { background: #ffffff !important; } }
+        @media (max-width: 700px) {
+          body { background: #ffffff !important; }
+          /* Lock Imago to a fixed-height app shell on phones: the document
+             itself never scrolls (so there's no rubber-band bounce exposing
+             the body), and the gray canvas (.admin-main) is the only scroller,
+             with overscroll contained so it can't chain to a page bounce. */
+          html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+          .admin-layout { height: 100dvh; min-height: 0; }
+          .admin-main { overscroll-behavior: contain; }
+        }
         /* 100dvh (dynamic viewport) tracks the CURRENT visible height as iOS
            Safari's toolbar shows/hides. Plain 100vh uses the toolbar-hidden
            height, so with the toolbar up the gray canvas stopped short of the
