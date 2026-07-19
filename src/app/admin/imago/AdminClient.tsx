@@ -134,6 +134,10 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
   const [editing, setEditing] = useState<SanityPost | null>(null);
 
   const [aboutDoc, setAboutDoc] = useState<JSONContent>(EMPTY_DOC);
+  // Stable seed for the About editor: set once when the page loads, never from
+  // the editor's own edits. Feeding the live aboutDoc back as initialContent
+  // made the editor re-sync (and flash) on the post-save refresh.
+  const [aboutInitial, setAboutInitial] = useState<JSONContent>(EMPTY_DOC);
   // About Save button label: flips to "Saved" on a successful save, then
   // returns to "Save" after a couple seconds.
   const [aboutSaved, setAboutSaved] = useState(false);
@@ -244,7 +248,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
     if (newsletters.length === 0) refreshNewsletters();
 
     fetch("/api/about").then(r => r.json()).then(data => {
-      if (data?.body?.length) setAboutDoc(portableTextToTiptap(data.body));
+      if (data?.body?.length) { const d = portableTextToTiptap(data.body); setAboutInitial(d); setAboutDoc(d); }
     }).catch(() => {});
 
     // Warm side-panel data in the background so opening Media / Subscribers /
@@ -961,7 +965,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                   </button>
                 </div>
                 <div style={{ minHeight: 240, padding: "1rem 0 0" }}>
-                  <RichBodyEditor initialContent={aboutDoc} onChange={setAboutDoc} onEditor={setAboutEditor} onToolbar={setAboutToolbar} />
+                  <RichBodyEditor initialContent={aboutInitial} onChange={setAboutDoc} onEditor={setAboutEditor} onToolbar={setAboutToolbar} />
                 </div>
               </div>
               {error && <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: CRIMSON, margin: 0 }}>{error}</p>}
