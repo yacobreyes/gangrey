@@ -27,6 +27,12 @@ function isActiveMember(m: Member): boolean {
 // transition, but they're one person and belong in one list.
 type Row = { email: string; member?: Member; subscriber?: Subscriber };
 
+// Survives panel unmounts (the panel is conditionally rendered, so it remounts
+// on every visit). Lets a re-open paint from the last data instead of flashing.
+type Funnel = { month: string; readers: number; walled: number; limit: number };
+type Engage = { sends: number; openRate: number | null; active: number; inactive: number; pending: number };
+const audCache: { members?: Member[]; funnel?: Funnel | null; engage?: Engage | null } = {};
+
 export default function AudiencePanel({
   subscribers, setSubscribers, subscribersLoading,
 }: {
@@ -34,22 +40,25 @@ export default function AudiencePanel({
   setSubscribers: (updater: Subscriber[] | ((prev: Subscriber[]) => Subscriber[])) => void;
   subscribersLoading: boolean;
 }) {
-  const [members, setMembers] = useState<Member[]>([]);
-  const [membersLoading, setMembersLoading] = useState(true);
+  // Seed from the module cache so re-opening the panel paints instantly with
+  // the last-known data (then refreshes in the background) instead of flashing
+  // an empty/loading state on every visit.
+  const [members, setMembers] = useState<Member[]>(audCache.members ?? []);
+  const [membersLoading, setMembersLoading] = useState(audCache.members === undefined);
   const [email, setEmail] = useState("");
   const [mode, setMode] = useState<AddMode>("subscribe");
   // Metered-paywall funnel for the current month.
-  const [funnel, setFunnel] = useState<{ month: string; readers: number; walled: number; limit: number } | null>(null);
-  useEffect(() => { getMeterFunnel().then(setFunnel).catch(() => {}); }, []);
+  const [funnel, setFunnel] = useState(audCache.funnel ?? null);
   // Newsletter engagement (open pixel): open rate of the last send, plus
   // active/inactive counts once at least 3 sends have gone out.
-  const [engage, setEngage] = useState<{ sends: number; openRate: number | null; active: number; inactive: number; pending: number } | null>(null);
-  useEffect(() => { getEngagement().then(setEngage).catch(() => {}); }, []);
+  const [engage, setEngage] = useState(audCache.engage ?? null);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    listMembers().then(setMembers).catch(() => {}).finally(() => setMembersLoading(false));
+    listMembers().then(m => { audCache.members = m; setMembers(m); }).catch(() => {}).finally(() => setMembersLoading(false));
+    getMeterFunnel().then(f => { audCache.funnel = f; setFunnel(f); }).catch(() => {});
+    getEngagement().then(e => { audCache.engage = e; setEngage(e); }).catch(() => {});
     // One-time backfill for members created before the subscriber list existed —
     // runs silently in the background so it's never a manual chore.
     syncMembers().catch(() => {});

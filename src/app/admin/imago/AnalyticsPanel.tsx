@@ -56,13 +56,19 @@ function delta(d: number) {
   return <span style={{ fontSize: "0.72rem", fontWeight: 700, color: up ? TEXT_MUTED : CRIMSON }}>{up ? "▲" : "▼"} {Math.abs(d)}%</span>;
 }
 
+// Persists the default-view data across panel unmounts so re-opening is instant.
+const anCache: { data?: Data } = {};
+
 export default function AnalyticsPanel() {
   const [range, setRange] = useState("7d");
   // A selected calendar day takes priority over `range` when set — lets you
   // jump to "yesterday" or any specific date, like Parse.ly's day picker.
   const [date, setDate] = useState<string | null>(null);
-  const [data, setData] = useState<Data | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Seed the default view from the module cache so re-opening Analytics paints
+  // the last numbers instantly and refreshes quietly, instead of flashing a
+  // spinner every visit.
+  const [data, setData] = useState<Data | null>(anCache.data ?? null);
+  const [loading, setLoading] = useState(anCache.data === undefined);
   // Author filter: narrows every number on the panel to one writer's stories.
   const [author, setAuthor] = useState<string | null>(null);
   const [authorMenuOpen, setAuthorMenuOpen] = useState(false);
@@ -87,6 +93,9 @@ export default function AnalyticsPanel() {
     fetch(`/api/analytics?${qs}`).then(res => res.json()).then(res => {
       if (!res.error) {
         setData(res);
+        // Cache only the default view (7d, all authors) — that's what a fresh
+        // open shows; filtered views still fetch fresh.
+        if (r === "7d" && !d && !a) anCache.data = res;
         if (Array.isArray(res.authors)) setAuthorOptions(res.authors);
       }
     }).catch(() => {}).finally(() => setLoading(false));
