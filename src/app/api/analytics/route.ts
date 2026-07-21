@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAuthed } from "@/lib/adminAuth";
 import {
   sqliteAnalyticsOverview, sqliteAnalyticsSeries, sqliteAnalyticsTopContent,
-  sqliteAnalyticsBreakdown, sqliteAnalyticsRealtime, sqliteAnalyticsTrending,
+  sqliteAnalyticsBreakdown, sqliteAnalyticsRealtime, sqliteAnalyticsTrending, sqliteAnalyticsTopPages,
   sqliteAllPostsAdminLight,
 } from "@/lib/storage/sqlite";
 
@@ -82,6 +82,9 @@ export async function GET(req: NextRequest) {
     // Only surface stories that still exist (a slug in titleBySlug) — otherwise
     // rows from deleted/renamed posts show a bare slug and 404 on click.
     top: sqliteAnalyticsTopContent(since, until, 40, author).filter(t => t.slug in titleBySlug).slice(0, 10).map(t => ({ ...t, title: titleBySlug[t.slug] })),
+    // Non-story pages (archive listing, homepage...) — separate from Top
+    // Stories. Only shown for the all-authors view (pages have no byline).
+    topPages: author ? [] : sqliteAnalyticsTopPages(since, until, 10),
     sources: sqliteAnalyticsBreakdown("source", since, until, 10, author),
     sections: sqliteAnalyticsBreakdown("section", since, until, 10, author),
     authors: sqliteAnalyticsBreakdown("byline", since, until, 50),

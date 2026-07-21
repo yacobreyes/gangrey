@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import PageVisitTracker from "@/components/PageVisitTracker";
 import { getArchivePosts } from "@/lib/sanity";
 import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
@@ -46,6 +47,7 @@ export default async function GangreyPage() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#ffffff", color: "#000000" }}>
+      <PageVisitTracker label="Archive" />
       <style>{`
         .gr-wrap { width: 100%; max-width: 1290px; margin: 0 auto; padding: 20px 32px 60px; box-sizing: border-box; flex: 1; }
         @media (max-width: 900px) {

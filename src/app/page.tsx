@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import PageVisitTracker from "@/components/PageVisitTracker";
 import HomeClient from "@/components/HomeClient";
 import { getPostsLight, getAboutPage, getLately, getWelcome } from "@/lib/sanity";
 import { ptToParagraphs } from "@/lib/parseBody";
@@ -32,5 +33,5 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   }
   const lately = latelyResult.status === "fulfilled" ? latelyResult.value : null;
   const welcome = welcomeResult.status === "fulfilled" ? welcomeResult.value : null;
-  return <HomeClient posts={posts} aboutParagraphs={aboutParagraphs} lately={lately} welcome={welcome} initialTab={initialTab} searchQuery={q ?? ""} />;
+  return (<><PageVisitTracker label="Home" /><HomeClient posts={posts} aboutParagraphs={aboutParagraphs} lately={lately} welcome={welcome} initialTab={initialTab} searchQuery={q ?? ""} /></>);
 }

@@ -16,6 +16,7 @@ type Data = {
   series: number[];
   prevSeries: number[];
   top: Top[];
+  topPages?: { page: string; views: number; visitors: number }[];
   sources: Bd[]; sections: Bd[]; authors: Bd[]; devices: Bd[];
   trending: { slug: string; title: string; recent: number; score: number }[];
   realtime: { active: number; reading: { slug: string; title: string; views: number }[] };
@@ -303,6 +304,32 @@ export default function AnalyticsPanel() {
               </table>
             </div>
           </div>
+
+          {/* Top Pages — non-story pages (archive, home, sections), kept out of
+              Top Stories. Only meaningful for the all-authors view. */}
+          {!author && data.topPages && data.topPages.length > 0 && (
+            <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: "0 1px 3px rgba(0,0,0,0.04)", padding: "1.1rem 1.25rem" }}>
+              <h2 style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: TEXT_MUTED, margin: "0 0 0.75rem" }}>Top Pages</h2>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: FONT }}>
+                <thead>
+                  <tr style={{ textAlign: "left", color: TEXT_MUTED, fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    <th style={{ padding: "0 0 0.5rem" }}>Page</th>
+                    <th style={{ padding: "0 0.5rem 0.5rem", textAlign: "right" }}>Views</th>
+                    <th style={{ padding: "0 0 0.5rem", textAlign: "right" }}>Visitors</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.topPages.map(p => (
+                    <tr key={p.page} style={{ borderTop: `1px solid ${BORDER}` }}>
+                      <td style={{ padding: "0.55rem 0.5rem 0.55rem 0", fontSize: "0.86rem", fontWeight: 600, color: TEXT_DARK }}>{p.page}</td>
+                      <td style={{ padding: "0.55rem 0.5rem", textAlign: "right", fontSize: "0.85rem", fontWeight: 600, color: TEXT_DARK }}>{fmtN(p.views)}</td>
+                      <td style={{ padding: "0.55rem 0", textAlign: "right", fontSize: "0.85rem", color: TEXT_MUTED }}>{fmtN(p.visitors)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* Breakdowns */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: "1rem" }}>

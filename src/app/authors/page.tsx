@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import PageVisitTracker from "@/components/PageVisitTracker";
 import { sqliteAllPublishedPosts } from "@/lib/storage/sqlite";
 import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
@@ -35,6 +36,7 @@ export default async function AuthorsPage() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#ffffff" }}>
+      <PageVisitTracker label="Authors" />
       <style>{`
         .authors-main { width: 100%; max-width: 1290px; margin: 0 auto; padding: 20px 32px 60px; box-sizing: border-box; flex: 1; }
         @media (max-width: 900px) { .authors-main { padding: 20px 20px 64px; } }

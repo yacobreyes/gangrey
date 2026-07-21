@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import PageVisitTracker from "@/components/PageVisitTracker";
 import { getPostsLight } from "@/lib/sanity";
 import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
@@ -24,6 +25,7 @@ export default async function LatestPage() {
 
   return (
     <div className="listing-page">
+      <PageVisitTracker label="Latest" />
       <style>{`
         .listing-page { min-height: 100vh; display: flex; flex-direction: column; background: #ffffff; color: #000000; }
         .listing-main { width: 100%; max-width: 1290px; margin: 0 auto; padding: 20px 32px 60px; box-sizing: border-box; flex: 1; }

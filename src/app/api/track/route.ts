@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   if (!rateLimit(ip, "track", 600, 60 * 1000)) return NextResponse.json({ ok: false }, { status: 429 });
 
-  let body: { s?: string; k?: string; sid?: string; r?: string; ms?: number };
+  let body: { s?: string; k?: string; sid?: string; r?: string; ms?: number; page?: boolean };
   try { body = await req.json(); } catch { return NextResponse.json({ ok: false }, { status: 400 }); }
   const slug = String(body.s ?? "").slice(0, 200);
   const session = String(body.sid ?? "").slice(0, 40);
@@ -56,9 +56,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // Pageview: enrich with section/byline (server-side, trusted) + referrer channel.
   const selfHost = hostOf(process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org");
   const { host, source } = sourceFromHost(hostOf(String(body.r ?? "")), selfHost);
+
+  // Non-story pages (archive listing, homepage, sections...) record under a
+  // "page:" slug so they surface in Top Pages, never Top Stories.
+  if (body.page) {
+    sqliteRecordEvent({
+      ts: now, kind: "view", slug: `page:${slug}`, section: "Page", byline: "",
+      ref_host: host, source, device, session,
+    });
+    return NextResponse.json({ ok: true });
+  }
+
+  // Story pageview: enrich with section/byline (server-side, trusted).
   const post = sqliteGetPost(slug);
   sqliteRecordEvent({
     ts: now, kind: "view", slug,

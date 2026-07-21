@@ -970,7 +970,7 @@ export function sqliteAnalyticsTopContent(since: number, until: number, limit = 
   const args = { since, until, limit, ...(author ? { author } : {}) };
   const views = db().prepare(`
     SELECT e.slug slug, e.section section, e.byline byline, COUNT(*) v, COUNT(DISTINCT e.session) u
-    FROM analytics_events e ${j} WHERE e.kind='view' AND e.ts>=@since AND e.ts<@until AND e.slug != '' ${c}
+    FROM analytics_events e ${j} WHERE e.kind='view' AND e.ts>=@since AND e.ts<@until AND e.slug != '' AND e.slug NOT LIKE 'page:%' ${c}
     GROUP BY e.slug ORDER BY v DESC LIMIT @limit`).all(args) as Row[];
   const eng = db().prepare(`
     SELECT slug, COALESCE(SUM(engaged_ms),0) e, COUNT(DISTINCT session) n FROM analytics_events
@@ -988,6 +988,17 @@ export function sqliteAnalyticsTopContent(since: number, until: number, limit = 
   });
 }
 
+// Top non-story pages (archive listing, homepage, sections...), tracked under
+// the "page:" slug prefix so they never mix into Top Stories.
+export function sqliteAnalyticsTopPages(since: number, until: number, limit = 12): { page: string; views: number; visitors: number }[] {
+  const rows = db().prepare(`
+    SELECT substr(slug, 6) page, COUNT(*) v, COUNT(DISTINCT session) u
+    FROM analytics_events
+    WHERE kind='view' AND ts>=? AND ts<? AND slug LIKE 'page:%'
+    GROUP BY slug ORDER BY v DESC LIMIT ?`).all(since, until, limit) as Row[];
+  return rows.map(r => ({ page: String(r.page ?? ""), views: num(r.v), visitors: num(r.u) }));
+}
+
 // Generic "views grouped by <column>" for referrers/sources/sections/authors/device.
 export function sqliteAnalyticsBreakdown(column: "source" | "section" | "byline" | "device" | "ref_host", since: number, until: number, limit = 12, author?: string): { key: string; views: number }[] {
   // byline/section are snapshotted into each event at view time, so events
@@ -1001,7 +1012,7 @@ export function sqliteAnalyticsBreakdown(column: "source" | "section" | "byline"
     ? db().prepare(
         `SELECT COALESCE(NULLIF(p.BREAKCOL, ''), e.BREAKCOL) k, COUNT(*) v
          FROM analytics_events e LEFT JOIN posts p ON p.slug = e.slug
-         WHERE e.kind='view' AND e.ts>=@since AND e.ts<@until ${c} GROUP BY k ORDER BY v DESC LIMIT @limit`.replaceAll("BREAKCOL", column)
+         WHERE e.kind='view' AND e.ts>=@since AND e.ts<@until AND e.slug NOT LIKE 'page:%' ${c} GROUP BY k ORDER BY v DESC LIMIT @limit`.replaceAll("BREAKCOL", column)
       ).all(args)
     : db().prepare(
         `SELECT e.BREAKCOL k, COUNT(*) v FROM analytics_events e ${author ? AUTHOR_JOIN : ""}
@@ -1019,7 +1030,7 @@ export function sqliteAnalyticsRealtime(windowMs = 5 * 60_000, author?: string):
   const a = db().prepare(`SELECT COUNT(DISTINCT e.session) u FROM analytics_events e ${j} WHERE e.ts>=@since ${c}`).get(args) as Row;
   const reading = db().prepare(`
     SELECT e.slug slug, COUNT(DISTINCT e.session) views FROM analytics_events e ${j}
-    WHERE e.kind='view' AND e.ts>=@since AND e.slug != '' ${c} GROUP BY e.slug ORDER BY views DESC LIMIT 10`).all(args) as Row[];
+    WHERE e.kind='view' AND e.ts>=@since AND e.slug != '' AND e.slug NOT LIKE 'page:%' ${c} GROUP BY e.slug ORDER BY views DESC LIMIT 10`).all(args) as Row[];
   return { active: num(a.u), reading: reading.map(r => ({ slug: String(r.slug), views: num(r.views) })) };
 }
 
@@ -1030,8 +1041,8 @@ export function sqliteAnalyticsTrending(limit = 10, author?: string): { slug: st
   const recentSince = now - 3 * 3600_000;      // last 3h
   const baseSince = now - 27 * 3600_000;       // prior 24h before that
   const j = author ? AUTHOR_JOIN : "", c = author ? AUTHOR_COND : "";
-  const recent = db().prepare(`SELECT e.slug slug, COUNT(*) v FROM analytics_events e ${j} WHERE e.kind='view' AND e.ts>=@since AND e.slug!='' ${c} GROUP BY e.slug`).all({ since: recentSince, ...(author ? { author } : {}) }) as Row[];
-  const base = db().prepare(`SELECT e.slug slug, COUNT(*) v FROM analytics_events e ${j} WHERE e.kind='view' AND e.ts>=@since AND e.ts<@until AND e.slug!='' ${c} GROUP BY e.slug`).all({ since: baseSince, until: recentSince, ...(author ? { author } : {}) }) as Row[];
+  const recent = db().prepare(`SELECT e.slug slug, COUNT(*) v FROM analytics_events e ${j} WHERE e.kind='view' AND e.ts>=@since AND e.slug!='' AND e.slug NOT LIKE 'page:%' ${c} GROUP BY e.slug`).all({ since: recentSince, ...(author ? { author } : {}) }) as Row[];
+  const base = db().prepare(`SELECT e.slug slug, COUNT(*) v FROM analytics_events e ${j} WHERE e.kind='view' AND e.ts>=@since AND e.ts<@until AND e.slug!='' AND e.slug NOT LIKE 'page:%' ${c} GROUP BY e.slug`).all({ since: baseSince, until: recentSince, ...(author ? { author } : {}) }) as Row[];
   const baseRate = new Map(base.map(r => [String(r.slug), num(r.v) / 24])); // per-hour baseline
   const scored = recent.map(r => {
     const slug = String(r.slug), rec = num(r.v);

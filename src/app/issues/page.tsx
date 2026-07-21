@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import PageVisitTracker from "@/components/PageVisitTracker";
 import Link from "next/link";
 import { getAllIssues } from "@/lib/sanity";
 import MagHeader from "@/components/MagHeader";
@@ -23,6 +24,7 @@ export default async function IssuesPage() {
 
   return (
     <div className="issues-page">
+      <PageVisitTracker label="Issues" />
       <style>{`
         .issues-page { min-height: 100vh; display: flex; flex-direction: column; background: #ffffff; color: #000000; }
         .issues-main { flex: 1; width: 100%; max-width: 1290px; margin: 0 auto; padding: 20px 32px 42px; box-sizing: border-box; }
