@@ -308,6 +308,7 @@ export type CalItem = {
   date: string;    // YYYY-MM-DD placement date
   status: string;  // draft | scheduled | published (stories); + sent (newsletters)
   slug?: string;   // story slug, for the editor link
+  assignee?: string; // assigned editor (stories) — shared with the story editor
 };
 
 export async function getCalendarItems(): Promise<CalItem[]> {
@@ -325,7 +326,7 @@ export async function getCalendarItems(): Promise<CalItem[]> {
     if (p.status === "trashed") continue;
     const date = p.status === "scheduled" && p.scheduledAt ? ymd(p.scheduledAt) : ymd(p.date);
     if (!ok(date)) continue;
-    items.push({ id: p._id, kind: "story", title: p.headline || "Untitled", byline: p.byline || undefined, date, status: p.status ?? "draft", slug: p.slug });
+    items.push({ id: p._id, kind: "story", title: p.headline || "Untitled", byline: p.byline || undefined, date, status: p.status ?? "draft", slug: p.slug, assignee: p.assignee || undefined });
   }
 
   // Newsletters that have a place on the calendar: scheduled ones on their

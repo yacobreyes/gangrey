@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getCalendarItems, createStoryOnDate, rescheduleCalendarItem, type CalItem } from "../actions";
+import { getCalendarItems, createStoryOnDate, rescheduleCalendarItem, setPostAssignee, type CalItem } from "../actions";
 import type { FlatplanUser } from "@/lib/users";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
 
@@ -24,8 +24,10 @@ function startOfWeek(d: Date): Date { return addDays(d, -d.getDay()); } // Sunda
 function draggable(it: CalItem): boolean { return it.status !== "published" && it.status !== "sent"; }
 
 export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?: FlatplanUser[] }) {
-  void initialUsers;
   const router = useRouter();
+  // Editors available to assign (all active staff; everyone is admin or editor).
+  const users = useMemo(() => initialUsers.filter(u => u.active !== false), [initialUsers]);
+  const editorNames = useMemo(() => users.map(u => [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email).filter(Boolean), [users]);
   const [view, setView] = useState<View>("week");
   const [items, setItems] = useState<CalItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +54,25 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
     setItems(prev => prev.map(p => p.id === it.id ? { ...p, date } : p));
     rescheduleCalendarItem(it.kind, it.id, date).catch(() => {});
   }
+
+  // Assign a story to an editor (shared with the story editor's Editor field).
+  function assign(it: CalItem, name: string | null) {
+    setItems(prev => prev.map(p => p.id === it.id ? { ...p, assignee: name ?? undefined } : p));
+    setPostAssignee(it.id, name).catch(() => {});
+  }
+  const initials = (name: string) => name.split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
+  // Read-only initials badge shown on a chip when a story has an editor.
+  const avatar = (name: string) => (
+    <span title={`Editor: ${name}`} style={{ flexShrink: 0, width: 16, height: 16, borderRadius: "50%", background: CRIMSON, color: "white", fontFamily: FONT, fontSize: 8, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{initials(name)}</span>
+  );
+  // Inline editor picker for the roomy views (agenda rows, day view).
+  const assignSelect = (it: CalItem) => (
+    <select value={it.assignee ?? ""} onClick={e => e.stopPropagation()} onChange={e => assign(it, e.target.value || null)}
+      style={{ fontFamily: FONT, fontSize: "0.7rem", color: it.assignee ? TEXT_DARK : TEXT_MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, padding: "0.15rem 0.3rem", background: "white", maxWidth: 130 }}>
+      <option value="">Assign editor</option>
+      {Array.from(new Set([...(it.assignee ? [it.assignee] : []), ...editorNames])).map(n => <option key={n} value={n}>{n}</option>)}
+    </select>
+  );
 
   // Create a blank draft on a given day and drop it onto the calendar in place
   // — no jump into the editor. Click the new "Untitled" chip to open it.
@@ -81,6 +102,15 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={CRIMSON} strokeWidth="2.4" style={{ flexShrink: 0 }}><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
       )}
       <span style={{ minWidth: 0, flex: 1, fontFamily: FONT, fontSize: "0.72rem", fontWeight: 600, color: TEXT_DARK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.title || "Untitled"}</span>
+      {it.kind === "story" && it.assignee && avatar(it.assignee)}
+    </div>
+  );
+
+  // Chip plus an inline editor picker — for the roomy layouts (day, agenda).
+  const chipRow = (it: CalItem) => (
+    <div key={it.id}>
+      {chip(it)}
+      {it.kind === "story" && draggable(it) && <div style={{ margin: "-1px 0 8px 2px" }}>{assignSelect(it)}</div>}
     </div>
   );
 
@@ -159,7 +189,7 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
                 <div style={{ fontFamily: FONT, fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: TEXT_MUTED, marginBottom: 3 }}>{DOW[d.getDay()]}</div>
                 {dayNum(d.getDate(), day === todayStr, 16)}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>{(itemsByDay[day] ?? []).map(chip)}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>{(itemsByDay[day] ?? []).map(chipRow)}</div>
             </div>
           );
         })}
@@ -195,7 +225,7 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
         <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
           {navHeader}
           <div {...dayDrop(ymd(cursor))} style={{ padding: "1rem 1.1rem", minHeight: 200, background: dragOver === ymd(cursor) ? "#f0f2f4" : "white" }}>
-            {(itemsByDay[ymd(cursor)] ?? []).map(chip)}
+            {(itemsByDay[ymd(cursor)] ?? []).map(chipRow)}
             <button onClick={() => addStory(ymd(cursor))} disabled={creating}
               style={{ marginTop: 6, background: "none", border: `1px dashed ${BORDER}`, borderRadius: 6, padding: "0.4rem 0.6rem", fontFamily: FONT, fontSize: "0.78rem", fontWeight: 600, color: TEXT_MUTED, cursor: "pointer", width: "100%", textAlign: "left" }}>+ Add a story</button>
           </div>

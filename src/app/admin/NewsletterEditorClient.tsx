@@ -118,6 +118,7 @@ export type InitialNewsletter = {
   issue: string;
   intro: string;
   classics?: boolean;
+  copyEditor?: string;
   lastEditedBy?: string;
   lastEditedAt?: string;
 } | null;
@@ -156,8 +157,8 @@ function cardsFromStored(cards: StoredCard[], classics = false): NlEditorCard[] 
 }
 
 export default function NewsletterEditorClient({
-  newsletterId, initial, initialVersions, isNew = false, newIsClassics = false,
-}: { newsletterId: string; initial: InitialNewsletter; initialVersions: NlVersion[]; isNew?: boolean; newIsClassics?: boolean }) {
+  newsletterId, initial, initialVersions, isNew = false, newIsClassics = false, editors = [],
+}: { newsletterId: string; initial: InitialNewsletter; initialVersions: NlVersion[]; isNew?: boolean; newIsClassics?: boolean; editors?: string[] }) {
   const router = useRouter();
   useEffect(() => { router.prefetch("/admin/imago"); }, [router]);
   const [nlExiting, setNlExiting] = useState(false);
@@ -222,6 +223,7 @@ export default function NewsletterEditorClient({
   // carry their own `classics` flag; brand-new ones take it from the
   // "New newsletter" type-picker modal via ?classics=1.
   const [nlClassics] = useState(initial?.classics ?? newIsClassics);
+  const [nlCopyEditor, setNlCopyEditor] = useState(initial?.copyEditor ?? "");
   const [nlCards, setNlCards] = useState<NlEditorCard[]>(() => cardsFromStored(initial?.cards ?? [], nlClassics));
   const [nlVersions, setNlVersions] = useState<NlVersion[]>(initialVersions);
 
@@ -581,15 +583,16 @@ export default function NewsletterEditorClient({
     issue: nlIssue,
     intro: nlIntro,
     classics: nlClassics,
+    copyEditor: nlCopyEditor,
     wordCount: nlCards.flatMap(card => (card.doc.content ?? []).flatMap((n: JSONContent) => (n.content ?? []).map((c: JSONContent) => c.text ?? ""))).join(" ").trim().split(/\s+/).filter(Boolean).length,
     cards: nlCards.map(card => ({ headline: card.headline, deck: card.deck, body: tiptapToPortableText(card.doc), image: card.image ?? null, cardType: card.cardType, byline: card.byline, sourceSlug: card.sourceSlug, date: card.date })),
-  }), [newsletterId, nlStatus, nlScheduledAt, nlSubject, nlPreview, nlAuthor, nlVolume, nlIssue, nlIntro, nlClassics, nlCards]);
+  }), [newsletterId, nlStatus, nlScheduledAt, nlSubject, nlPreview, nlAuthor, nlVolume, nlIssue, nlIntro, nlClassics, nlCopyEditor, nlCards]);
 
   // Cheap dirty-check signature (raw tiptap docs, no portable-text conversion)
   // so typing doesn't re-run the expensive conversion above on every keystroke.
   const nlSignature = useCallback(() => JSON.stringify({
     status: nlStatus, scheduledAt: nlScheduledAt, subject: nlSubject, preview: nlPreview, author: nlAuthor,
-    volume: nlVolume, issue: nlIssue, intro: nlIntro, classics: nlClassics,
+    volume: nlVolume, issue: nlIssue, intro: nlIntro, classics: nlClassics, copyEditor: nlCopyEditor,
     cards: nlCards.map(c => ({ headline: c.headline, deck: c.deck, doc: c.doc, image: c.image ?? null, cardType: c.cardType, byline: c.byline, sourceSlug: c.sourceSlug, date: c.date })),
   }), [nlStatus, nlScheduledAt, nlSubject, nlPreview, nlAuthor, nlVolume, nlIssue, nlIntro, nlClassics, nlCards]);
 
@@ -1444,6 +1447,13 @@ export default function NewsletterEditorClient({
                 </div>
               </>
             )}
+            <div>
+              <label style={{ fontFamily: FONT, fontSize: "0.75rem", fontWeight: 600, color: TEXT_MUTED, display: "block", marginBottom: "0.3rem" }}>Copy editor</label>
+              <select value={nlCopyEditor} onChange={e => setNlCopyEditor(e.target.value)} disabled={nlReadOnly} style={INPUT}>
+                <option value="">— Unassigned —</option>
+                {Array.from(new Set([...(nlCopyEditor ? [nlCopyEditor] : []), ...editors])).map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
             <div>
               <label style={{ fontFamily: FONT, fontSize: "0.75rem", fontWeight: 600, color: TEXT_MUTED, display: "block", marginBottom: "0.3rem" }}>Subject line<span style={{ color: CRIMSON }}>*</span></label>
               <input value={nlSubject} onChange={e => setNlSubject(straightenQuotes(e.target.value))} readOnly={nlReadOnly} placeholder="Add a subject line" style={INPUT} />

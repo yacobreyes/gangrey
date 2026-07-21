@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { savePost, deletePost, restorePost, uploadImage, unpublishPost, getVersions, updateMediaAsset } from "./actions";
+import { savePost, deletePost, restorePost, uploadImage, unpublishPost, getVersions, updateMediaAsset, setPostAssignee } from "./actions";
 import ScheduleModal from "@/components/ScheduleModal";
 import type { PostVersion } from "./actions";
 import { tiptapToPortableText, portableTextToTiptap, stripEmptyBlocks } from "@/lib/tiptapConvert";
@@ -138,7 +138,7 @@ type FormState = {
 
 type MediaAsset = { _id: string; url: string; originalFilename?: string; title?: string; description?: string; altText?: string };
 
-export default function EditorClient({ post, defaultByline = "", isNew = false }: { post: SanityPost; defaultByline?: string; isNew?: boolean }) {
+export default function EditorClient({ post, defaultByline = "", isNew = false, editors = [] }: { post: SanityPost; defaultByline?: string; isNew?: boolean; editors?: string[] }) {
   const router = useRouter();
 
   // Every open starts in read-only view mode so you can watch the current
@@ -206,6 +206,9 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
   const [lastSaved, setLastSaved] = useState<FormState>(initialForm);
   const [lastSavedImg, setLastSavedImg] = useState({ id: post.image?.asset?._ref ?? post.image?.url ?? "", caption: post.image?.caption ?? "", alt: post.image?.alt ?? "", crops: JSON.stringify(post.image?.crops ?? {}) });
   const [editorTab, setEditorTab] = useState<"content" | "metadata" | "seo" | "versions">("content");
+  // The assigned editor (shared with the Calendar's assignment). Persists
+  // immediately on change; a full save never touches it.
+  const [assignee, setAssignee] = useState<string>(post.assignee ?? "");
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
   const [isPending, startTransition] = useTransition();
   const [showEllipsis, setShowEllipsis] = useState(false);
@@ -885,6 +888,16 @@ export default function EditorClient({ post, defaultByline = "", isNew = false }
                   <option>Narratives</option>
                   <option>Essays</option>
                   <option value="Archive">Archive</option>
+                </select>
+              </div>
+              <div>
+                <label style={LABEL}>Editor</label>
+                <select style={INPUT} value={assignee} disabled={readOnly}
+                  onChange={e => { const v = e.target.value; setAssignee(v); setPostAssignee(post._id, v || null).catch(() => {}); }}>
+                  <option value="">— Unassigned —</option>
+                  {/* Keep the current editor selectable even if they're no longer
+                      in the active list, so the field never silently blanks. */}
+                  {Array.from(new Set([...(assignee ? [assignee] : []), ...editors])).map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
               </div>
               <div>

@@ -123,6 +123,7 @@ export type NlPayload = {
   cards?: NlCard[];
   status?: "draft" | "published" | "scheduled";
   scheduledAt?: string;
+  copyEditor?: string;
 };
 
 function slugify(str: string) {
@@ -193,6 +194,7 @@ export async function saveNewsletter(payload: NlPayload): Promise<{ id: string; 
     classics: payload.classics ?? false,
     wordCount: payload.wordCount ?? 0,
     cards: payload.cards ?? [],
+    copyEditor: payload.copyEditor ?? "",
     status: payload.status ?? existing?.status ?? "draft",
     // Who scheduled it — shown in the editor's view-mode banner. Cleared
     // whenever the newsletter isn't scheduled.

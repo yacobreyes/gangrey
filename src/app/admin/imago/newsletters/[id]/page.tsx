@@ -1,6 +1,7 @@
 import { isAuthed } from "@/lib/adminAuth";
 import { redirect } from "next/navigation";
 import { sqliteGetDoc, sqliteDocsByType } from "@/lib/storage/sqlite";
+import { listAllUsers } from "@/lib/users";
 import NewsletterEditorClient, { type InitialNewsletter } from "../../../NewsletterEditorClient";
 import type { NlVersion } from "../../../newsletterActions";
 
@@ -43,12 +44,19 @@ export default async function EditNewsletterPage({ params, searchParams }: { par
         issue: draft.issue ?? "",
         intro: draft.intro ?? "",
         classics: !!draft.classics,
+        copyEditor: (draft as { copyEditor?: string }).copyEditor ?? "",
         lastEditedBy: draft.lastEditedBy ?? "",
         lastEditedAt: draft.lastEditedAt ?? "",
       }
     : null;
 
   const versions: NlVersion[] = rawVersions ?? [];
+  // Copy-editor options: every active staff member (all are admin or editor).
+  let editors: string[] = [];
+  try {
+    editors = (await listAllUsers()).filter(u => u.active !== false)
+      .map(u => [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email).filter(Boolean);
+  } catch {}
 
-  return <NewsletterEditorClient newsletterId={id} initial={initial} initialVersions={versions} isNew={isNew} newIsClassics={isNewClassics} />;
+  return <NewsletterEditorClient newsletterId={id} initial={initial} initialVersions={versions} isNew={isNew} newIsClassics={isNewClassics} editors={editors} />;
 }
