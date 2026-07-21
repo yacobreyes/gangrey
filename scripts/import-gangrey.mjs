@@ -2,6 +2,12 @@
 /**
  * Gangrey Archive Importer
  *
+ * RETIRED: this standalone script writes to Sanity, which the site migrated
+ * off of in July 2026. It is kept only as a record of how the archive was
+ * originally harvested. The live path is the admin route
+ * (/api/admin/import-gangrey), which writes to the local SQLite store. Do not
+ * run the --write mode; it targets the removed Sanity backend.
+ *
  * Fetches gangrey.com pages from the Wayback Machine, parses each story, and
  * imports them into Sanity as section:"Gangrey Redux" posts.
  *

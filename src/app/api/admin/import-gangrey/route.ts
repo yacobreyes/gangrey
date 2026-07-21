@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import { requireAdminOrCronSecret } from "@/lib/adminAuth";
-import { listCandidates, fetchWayback, parseGangreyPage, toSanityDoc, writeDocs, sleep, diagnoseHomepage, probeUrl, buildDateMap, applyDateHints, listFeedCaptures, harvestFeedDates, parseFeedDatesDiag, type Candidate } from "@/lib/gangreyImport";
+import { listCandidates, fetchWayback, parseGangreyPage, toArchiveDoc, writeDocs, sleep, diagnoseHomepage, probeUrl, buildDateMap, applyDateHints, listFeedCaptures, harvestFeedDates, parseFeedDatesDiag, type Candidate } from "@/lib/gangreyImport";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -47,7 +47,7 @@ async function getCandidates(fresh = false): Promise<Candidate[]> {
   return list;
 }
 
-// Imports a batch of Gangrey stories from the Wayback Machine into Sanity.
+// Imports a batch of Gangrey stories from the Wayback Machine into the store.
 // Batched via ?offset & ?limit so each call stays under the function timeout;
 // the admin page loops through batches. Gated to the admin Google session.
 export async function GET(req: NextRequest) {
@@ -249,7 +249,7 @@ export async function GET(req: NextRequest) {
       try {
         const story = parseGangreyPage(r.html, r.c.original, r.c.timestamp, r.c.dateHint);
         if (!story) { results.push({ skipped: r.c.original }); continue; }
-        docs.push(toSanityDoc(story));
+        docs.push(toArchiveDoc(story));
         results.push({ headline: story.headline, slug: story.slug });
       } catch (e) {
         results.push({ error: String(e) });
@@ -261,7 +261,7 @@ export async function GET(req: NextRequest) {
   let written = 0;
   if (!dry && docs.length) {
     try { written = await writeDocs(docs); }
-    catch (e) { return NextResponse.json({ error: `Sanity write failed: ${String(e)}`, offset, results }, { status: 502 }); }
+    catch (e) { return NextResponse.json({ error: `Archive write failed: ${String(e)}`, offset, results }, { status: 502 }); }
   }
 
   const nextOffset = offset + slice.length;

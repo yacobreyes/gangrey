@@ -1,6 +1,6 @@
 // Shared logic for importing the Gangrey archive from the Wayback Machine.
-// Used by the admin-triggered API route (runs on Vercel, which has the Sanity
-// write token + internet). Mirrors scripts/import-gangrey.mjs.
+// Used by the admin-triggered API route. Writes land in the local SQLite
+// store. Mirrors scripts/import-gangrey.mjs.
 import { parse } from "node-html-parser";
 import type { PortableTextBlock } from "@portabletext/types";
 
@@ -549,7 +549,7 @@ export function parseGangreyPage(html: string, pageUrl: string, timestamp: strin
   return { headline, byline, date, subheadline, slug, body };
 }
 
-export function toSanityDoc(s: GangreyStory) {
+export function toArchiveDoc(s: GangreyStory) {
   const words = s.body.map(b => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ch = (b as any).children as { text?: string }[] | undefined;
@@ -571,24 +571,9 @@ export function toSanityDoc(s: GangreyStory) {
 }
 
 export async function writeDocs(docs: unknown[]): Promise<number> {
-  // Self-hosted: the same createOrReplace mutations apply to the local store,
-  // so the Wayback archive import works without Sanity.
-  if (process.env.STORAGE_BACKEND === "sqlite") {
-    const { sqliteMutate } = await import("./storage/sqlite");
-    sqliteMutate(docs.map(doc => ({ createOrReplace: doc })));
-    return docs.length;
-  }
-  const token = process.env.SANITY_API_WRITE_TOKEN ?? process.env.SANITY_WRITE_TOKEN;
-  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
-  const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production";
-  if (!token || !projectId) throw new Error("Missing Sanity write token or project id in environment");
-  const mutations = docs.map(doc => ({ createOrReplace: doc }));
-  const res = await fetch(`https://${projectId}.api.sanity.io/v2024-01-01/data/mutate/${dataset}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ mutations }),
-  });
-  if (!res.ok) throw new Error(`Sanity mutate failed: ${await res.text()}`);
-  const j = await res.json();
-  return j?.results?.length ?? docs.length;
+  // SQLite is the only backend (see isSqliteBackend). The imported stories are
+  // written as createOrReplace mutations against the local store.
+  const { sqliteMutate } = await import("./storage/sqlite");
+  sqliteMutate(docs.map(doc => ({ createOrReplace: doc })));
+  return docs.length;
 }
