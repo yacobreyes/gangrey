@@ -68,7 +68,7 @@ export default function EditorialCalendar({ initialUsers = [] }: { initialUsers?
   // Inline editor picker for the roomy views (agenda rows, day view).
   const assignSelect = (it: CalItem) => (
     <select value={it.assignee ?? ""} onClick={e => e.stopPropagation()} onChange={e => assign(it, e.target.value || null)}
-      style={{ fontFamily: FONT, fontSize: "0.7rem", color: it.assignee ? TEXT_DARK : TEXT_MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, padding: "0.15rem 0.3rem", background: "white", maxWidth: 130 }}>
+      style={{ fontFamily: FONT, fontSize: "0.7rem", color: it.assignee ? TEXT_DARK : TEXT_MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, padding: "0.2rem 1.6rem 0.2rem 0.55rem", background: "white", maxWidth: 170 }}>
       <option value="">Assign editor</option>
       {Array.from(new Set([...(it.assignee ? [it.assignee] : []), ...editorNames])).map(n => <option key={n} value={n}>{n}</option>)}
     </select>
