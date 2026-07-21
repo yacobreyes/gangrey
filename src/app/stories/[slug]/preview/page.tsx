@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { isAuthed } from "@/lib/adminAuth";
-import { postImageUrl } from "@/lib/sanityImage";
+import { postImageUrl } from "@/lib/contentImage";
 import { sqliteGetPost } from "@/lib/storage/sqlite";
 import { PortableText } from "@portabletext/react";
 import Link from "next/link";

@@ -1,12 +1,8 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SanityImageSource = any;
+type ImageSource = any;
 
-// Sanity was fully removed — images are local /media/... files served by the
-// /media route. urlFor survives only so legacy imports compile; nothing should
-// reach it anymore.
-export function urlFor(_source: SanityImageSource): never {
-  throw new Error("Sanity image builder was removed — post images are local /media URLs (use postImageUrl).");
-}
+// Images are local /media/... files served by the /media route. Use
+// postImageUrl below to build a resized, cropped derivative URL.
 
 // A manual crop rectangle, stored as fractions (0..1) of the source image.
 export type CropRect = { x: number; y: number; w: number; h: number };
@@ -31,7 +27,7 @@ export function ratioKey(width?: number, height?: number): string {
 // + cropped by the /media route). Components use this instead of reading
 // `image.url` directly so resize/crop params stay in one place.
 export function postImageUrl(
-  image: { asset?: SanityImageSource; url?: string; crops?: ImageCrops } | undefined | null,
+  image: { asset?: ImageSource; url?: string; crops?: ImageCrops } | undefined | null,
   width?: number,
   height?: number,
 ): string | null {

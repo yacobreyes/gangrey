@@ -1,6 +1,6 @@
 import AdminClient from "../AdminClient";
 import { getCurrentUser } from "@/lib/adminAuth";
-import { getMediaLibrary, listSubscribers } from "@/lib/sanity";
+import { getMediaLibrary, listSubscribers } from "@/lib/content";
 import { listAllUsers } from "@/lib/users";
 
 export const dynamic = "force-dynamic";

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import PageVisitTracker from "@/components/PageVisitTracker";
-import { getPostsLight } from "@/lib/sanity";
+import { getPostsLight } from "@/lib/content";
 import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
 import StoryRowList from "@/components/StoryRowList";

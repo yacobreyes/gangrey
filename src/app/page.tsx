@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import PageVisitTracker from "@/components/PageVisitTracker";
 import HomeClient from "@/components/HomeClient";
-import { getPostsLight, getAboutPage, getLately, getWelcome } from "@/lib/sanity";
+import { getPostsLight, getAboutPage, getLately, getWelcome } from "@/lib/content";
 import { ptToParagraphs } from "@/lib/parseBody";
 
 export const revalidate = 60;

@@ -1,4 +1,4 @@
-import { getAllPostsAdmin, getArchivePostsAdmin } from "@/lib/sanity";
+import { getAllPostsAdmin, getArchivePostsAdmin } from "@/lib/content";
 import { isAuthed } from "@/lib/adminAuth";
 import { sqliteGetPost } from "@/lib/storage/sqlite";
 import { NextRequest, NextResponse } from "next/server";

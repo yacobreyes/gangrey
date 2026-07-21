@@ -1,4 +1,4 @@
-import { getAllPosts } from "@/lib/sanity";
+import { getAllPosts } from "@/lib/content";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";

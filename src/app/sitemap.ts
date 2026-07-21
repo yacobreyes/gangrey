@@ -1,5 +1,5 @@
 import { MetadataRoute } from "next";
-import { getPostsLight, getAllIssues } from "@/lib/sanity";
+import { getPostsLight, getAllIssues } from "@/lib/content";
 
 // Sitemap: the map Google crawls to discover and prioritize pages. Includes
 // the public landing pages (previously missing — only the homepage and stories

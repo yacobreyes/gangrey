@@ -1,4 +1,4 @@
-import { getPostsLight } from "@/lib/sanity";
+import { getPostsLight } from "@/lib/content";
 import StoryRowList from "@/components/StoryRowList";
 
 // "Keep reading" at the foot of a story: up to three more pieces, preferring the

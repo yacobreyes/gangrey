@@ -1,5 +1,5 @@
-import { getPostsLight } from "@/lib/sanity";
-import { postImageUrl } from "@/lib/sanityImage";
+import { getPostsLight } from "@/lib/content";
+import { postImageUrl } from "@/lib/contentImage";
 
 export const dynamic = "force-dynamic";
 

@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs";
 import type { PortableTextBlock } from "@portabletext/types";
-import type { SanityPost } from "@/lib/sanity";
+import type { Post } from "@/lib/content";
 
 // Self-contained SQLite storage backend for Imago. The entire database is one
 // file on disk (DATA_DIR/imago.db) — no external service, no account, no
@@ -229,7 +229,7 @@ function ensureColumn(d: any, table: string, col: string, decl: string) {
 
 type PostRow = Record<string, any>;
 
-function rowToPost(r: PostRow): SanityPost {
+function rowToPost(r: PostRow): Post {
   const image = r.image ? JSON.parse(r.image) : null;
   return {
     _id: r.id,
@@ -390,7 +390,7 @@ const PUBLIC_WHERE = `status != 'trashed' AND (
   (status = 'scheduled' AND scheduled_at IS NOT NULL AND scheduled_at <= datetime('now'))
 )`;
 
-export function sqliteAllPublishedPosts(): SanityPost[] {
+export function sqliteAllPublishedPosts(): Post[] {
   const rows = db().prepare(`SELECT * FROM posts WHERE ${PUBLIC_WHERE} ORDER BY date DESC, COALESCE(sort_order, 0) ASC`).all();
   return rows.map(rowToPost);
 }
@@ -405,12 +405,12 @@ const LIGHT_COLS = `id, slug, section, headline, subheadline, byline, date, stat
   reading_time, sort_order, created_at, updated_at, last_edited_by, last_edited_at,
   pinned_hero, pinned_top, archive_free, stage, assignee`;
 
-export function sqliteAllPublishedPostsLight(): SanityPost[] {
+export function sqliteAllPublishedPostsLight(): Post[] {
   const rows = db().prepare(`SELECT ${LIGHT_COLS} FROM posts WHERE ${PUBLIC_WHERE} ORDER BY date DESC, COALESCE(sort_order, 0) ASC`).all();
   return rows.map((r: PostRow) => rowToPost({ ...r, body: "[]" }));
 }
 
-export function sqliteAllPostsAdminLight(excludeArchive = false): SanityPost[] {
+export function sqliteAllPostsAdminLight(excludeArchive = false): Post[] {
   const where = excludeArchive ? `WHERE section != 'Archive'` : "";
   const rows = db().prepare(`SELECT ${LIGHT_COLS} FROM posts ${where} ORDER BY COALESCE(updated_at, created_at) DESC`).all();
   return rows.map((r: PostRow) => rowToPost({ ...r, body: "[]" }));
@@ -446,13 +446,13 @@ export function sqliteBodyTextBySlug(publishedOnly = true, section?: string, max
   return out;
 }
 
-export function sqliteAllPostsAdmin(excludeArchive = false): SanityPost[] {
+export function sqliteAllPostsAdmin(excludeArchive = false): Post[] {
   const where = excludeArchive ? `WHERE section != 'Archive'` : "";
   const rows = db().prepare(`SELECT * FROM posts ${where} ORDER BY COALESCE(updated_at, created_at) DESC`).all();
   return rows.map(rowToPost);
 }
 
-export function sqliteGetPost(slug: string): SanityPost | null {
+export function sqliteGetPost(slug: string): Post | null {
   const row = db().prepare(`SELECT * FROM posts WHERE slug = ?`).get(slug);
   return row ? rowToPost(row) : null;
 }
@@ -538,7 +538,7 @@ export function sqliteRescheduleItem(kind: "story" | "newsletter", id: string, d
 
 // Full-text search over posts. Uses the FTS5 index; falls back to a LIKE scan
 // if FTS is unavailable. `publicOnly` restricts to reader-visible posts.
-export function sqliteSearchPosts(query: string, opts: { limit?: number; publicOnly?: boolean; section?: string } = {}): SanityPost[] {
+export function sqliteSearchPosts(query: string, opts: { limit?: number; publicOnly?: boolean; section?: string } = {}): Post[] {
   const q = query.trim();
   if (!q) return [];
   const limit = opts.limit ?? 50;

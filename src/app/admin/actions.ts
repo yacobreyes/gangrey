@@ -5,7 +5,7 @@ import { parseBody } from "@/lib/parseBody";
 import { requireAuth, requireAdmin } from "@/lib/adminAuth";
 import { fullName } from "@/lib/users";
 import { straightenQuotes, straightenBlocks } from "@/lib/straighten";
-import { postImageUrl } from "@/lib/sanityImage";
+import { postImageUrl } from "@/lib/contentImage";
 import {
   sqliteSavePost, sqliteDeletePost, sqliteSetStatus,
   sqliteSnapshotVersion, sqliteGetVersions, sqliteSetSingleton, sqliteMutate,
@@ -317,7 +317,7 @@ export async function getCalendarItems(): Promise<CalItem[]> {
   const ymd = (s?: string) => (s ?? "").slice(0, 10);
   const ok = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
 
-  const { getAllPostsAdmin, getAllNewslettersAdmin } = await import("@/lib/sanity");
+  const { getAllPostsAdmin, getAllNewslettersAdmin } = await import("@/lib/content");
 
   // Stories (excluding the bulk Archive import). Scheduled stories land on
   // their auto-publish date; everything else on its pub date.

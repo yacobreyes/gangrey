@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { CROP_RATIOS, type CropRect, type ImageCrops } from "@/lib/sanityImage";
+import { CROP_RATIOS, type CropRect, type ImageCrops } from "@/lib/contentImage";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
 
 const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";

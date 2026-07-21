@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminOrCronSecret } from "@/lib/adminAuth";
 import { sqliteAllPostsAdminLight } from "@/lib/storage/sqlite";
-import { postImageUrl } from "@/lib/sanityImage";
+import { postImageUrl } from "@/lib/contentImage";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";

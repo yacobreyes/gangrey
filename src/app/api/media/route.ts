@@ -1,5 +1,5 @@
 import { isAuthed } from "@/lib/adminAuth";
-import { getMediaLibrary } from "@/lib/sanity";
+import { getMediaLibrary } from "@/lib/content";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";

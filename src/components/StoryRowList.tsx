@@ -1,11 +1,11 @@
 import Link from "next/link";
-import type { SanityPost } from "@/lib/sanity";
-import { postImageUrl } from "@/lib/sanityImage";
+import type { Post } from "@/lib/content";
+import { postImageUrl } from "@/lib/contentImage";
 import { postReadingTime } from "@/lib/readingTime";
 
 // Horizontal story rows (thumbnail / kicker+headline+byline / reading time)
 // shared by The Latest and Life, in Brief.
-export default function StoryRowList({ posts }: { posts: SanityPost[] }) {
+export default function StoryRowList({ posts }: { posts: Post[] }) {
   return (
     <div className="srl">
       <style>{`

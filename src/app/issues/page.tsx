@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import PageVisitTracker from "@/components/PageVisitTracker";
 import Link from "next/link";
-import { getAllIssues } from "@/lib/sanity";
+import { getAllIssues } from "@/lib/content";
 import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
 

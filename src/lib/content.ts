@@ -5,12 +5,9 @@ import {
   sqliteDocsByType, sqliteListMedia, sqliteGetMediaMeta,
 } from "./storage/sqlite";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SanityImageSource = any;
+type ImageSource = any;
 
-// Re-exported for legacy server-side call sites.
-export { urlFor } from "./sanityImage";
-
-export interface SanityPost {
+export interface Post {
   _id: string;
   _updatedAt?: string;
   _createdAt?: string;
@@ -21,7 +18,7 @@ export interface SanityPost {
   byline: string;
   date: string;
   body: import("@portabletext/types").PortableTextBlock[];
-  image?: { asset: SanityImageSource; url?: string; caption?: string; alt?: string; crops?: import("./sanityImage").ImageCrops };
+  image?: { asset: ImageSource; url?: string; caption?: string; alt?: string; crops?: import("./contentImage").ImageCrops };
   status?: "draft" | "published" | "scheduled" | "trashed";
   scheduledAt?: string;
   scheduledBy?: string;
@@ -54,7 +51,7 @@ const sQ = (s?: string) => (typeof s === "string" ? straightenQuotes(s) : s);
 
 // Enforce straight quotes on the way out so existing/archive content (which
 // was imported with curly quotes) renders in house style everywhere.
-function straightenPost(p: SanityPost): SanityPost {
+function straightenPost(p: Post): Post {
   return {
     ...p,
     headline: sQ(p.headline) as string,
@@ -71,7 +68,7 @@ function straightenPost(p: SanityPost): SanityPost {
   };
 }
 
-export async function getAllPosts(): Promise<SanityPost[]> {
+export async function getAllPosts(): Promise<Post[]> {
   return sqliteAllPublishedPosts().map(straightenPost);
 }
 
@@ -81,7 +78,7 @@ export async function getAllPosts(): Promise<SanityPost[]> {
 // drastically shrinking the payload shipped to the browser.
 // `withSearch` pulls each post's full body text for client-side search. Default
 // (false) keeps the homepage payload small for fast navigation back to it.
-export async function getPostsLight(withSearch = false): Promise<SanityPost[]> {
+export async function getPostsLight(withSearch = false): Promise<Post[]> {
   // Light rows only — with the imported archive, full bodies here meant
   // parsing ~2,500 stories per request AND shipping them to the browser.
   // searchText is computed from a targeted slug->text query only when a
@@ -98,7 +95,7 @@ export async function getPostsLight(withSearch = false): Promise<SanityPost[]> {
 // shipping every post's body; the client then refetches the searchable version.
 // `excludeArchive` drops the bulk-imported Archive pieces (2500+) which would
 // otherwise make the editorial dashboard slow to load and unwieldy to scroll.
-export async function getAllPostsAdmin(withSearch = false, excludeArchive = false): Promise<SanityPost[]> {
+export async function getAllPostsAdmin(withSearch = false, excludeArchive = false): Promise<Post[]> {
   const posts = sqliteAllPostsAdminLight(excludeArchive);
   if (!withSearch) return posts.map(straightenPost);
   const text = sqliteBodyTextBySlug(false);
@@ -106,7 +103,7 @@ export async function getAllPostsAdmin(withSearch = false, excludeArchive = fals
 }
 
 // Archive pieces only, for the dashboard's Archive panel.
-export async function getArchivePostsAdmin(): Promise<SanityPost[]> {
+export async function getArchivePostsAdmin(): Promise<Post[]> {
   return sqliteAllPostsAdminLight(false).filter(p => p.section === "Archive").map(straightenPost);
 }
 
@@ -116,7 +113,7 @@ export async function getArchivePostsAdmin(): Promise<SanityPost[]> {
 // ONLY archive posts and only their plain text (pt::text), then wrap it in a
 // single synthetic block so the GangreyArchive component (which reads
 // body[].children[].text for search/excerpt/reading-time) works unchanged.
-export async function getArchivePosts(): Promise<SanityPost[]> {
+export async function getArchivePosts(): Promise<Post[]> {
   // Plain text wrapped in one synthetic block, so the archive page's
   // search/excerpt/reading-time logic works without parsing thousands of full
   // portable-text bodies. Scoped to the Archive section (was querying every
@@ -125,7 +122,7 @@ export async function getArchivePosts(): Promise<SanityPost[]> {
   const text = sqliteBodyTextBySlug(true, "Archive", 200);
   return sqliteAllPublishedPostsLight().filter(p => p.section === "Archive").map(p => straightenPost({
     ...p,
-    body: [{ _type: "block", style: "normal", children: [{ _type: "span", text: text[p.slug] ?? "" }] }] as SanityPost["body"],
+    body: [{ _type: "block", style: "normal", children: [{ _type: "span", text: text[p.slug] ?? "" }] }] as Post["body"],
   }));
 }
 
@@ -174,7 +171,7 @@ export async function listSubscribers(): Promise<AdminSubscriber[]> {
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
 }
 
-export async function getPost(slug: string): Promise<SanityPost | null> {
+export async function getPost(slug: string): Promise<Post | null> {
   const p = sqliteGetPost(slug);
   return p ? straightenPost(p) : null;
 }
@@ -183,7 +180,7 @@ export async function getAllSlugs(): Promise<string[]> {
   return sqliteAllPostsAdminLight(false).map(p => p.slug);
 }
 
-export interface SanityIssue {
+export interface Issue {
   _id: string;
   slug: string;
   number: number;
@@ -194,21 +191,21 @@ export interface SanityIssue {
   newsletterId?: string;
 }
 
-export async function getAllIssues(): Promise<SanityIssue[]> {
-  return sqliteDocsByType<Omit<SanityIssue, "slug"> & { slug?: { current?: string } | string }>("issue")
+export async function getAllIssues(): Promise<Issue[]> {
+  return sqliteDocsByType<Omit<Issue, "slug"> & { slug?: { current?: string } | string }>("issue")
     .map(i => ({ ...i, slug: typeof i.slug === "object" && i.slug ? (i.slug.current ?? "") : ((i.slug as string) ?? "") }))
-    .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? "")) as SanityIssue[];
+    .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? "")) as Issue[];
 }
 
-export interface SanityAbout {
+export interface AboutContent {
   body: import("@portabletext/types").PortableTextBlock[];
 }
 
-export async function getAboutPage(): Promise<SanityAbout | null> {
-  return sqliteGetSingleton<SanityAbout>("about");
+export async function getAboutPage(): Promise<AboutContent | null> {
+  return sqliteGetSingleton<AboutContent>("about");
 }
 
-export interface SanityLately {
+export interface LatelyContent {
   reading?: string;
   readingAuthor?: string;
   readingUrl?: string;
@@ -219,12 +216,12 @@ export interface SanityLately {
   watchingUrl?: string;
 }
 
-export async function getLately(): Promise<SanityLately | null> {
-  return sqliteGetSingleton<SanityLately>("lately");
+export async function getLately(): Promise<LatelyContent | null> {
+  return sqliteGetSingleton<LatelyContent>("lately");
 }
 
-export interface SanityWelcome { headline: string; body: string; }
+export interface WelcomeContent { headline: string; body: string; }
 
-export async function getWelcome(): Promise<SanityWelcome | null> {
-  return sqliteGetSingleton<SanityWelcome>("welcome");
+export async function getWelcome(): Promise<WelcomeContent | null> {
+  return sqliteGetSingleton<WelcomeContent>("welcome");
 }

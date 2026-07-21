@@ -17,10 +17,10 @@ import { straightenQuotes } from "@/lib/straighten";
 import { downscaleImage } from "@/lib/downscaleImage";
 import type { JSONContent } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
-import type { SanityPost } from "@/lib/sanity";
+import type { Post } from "@/lib/content";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
 import { portableToLines, relativeTime, dayLabel, colorForName } from "@/lib/editorDiff";
-import type { ImageCrops } from "@/lib/sanityImage";
+import type { ImageCrops } from "@/lib/contentImage";
 import CropModal from "@/components/admin/CropModal";
 import VersionCompare from "@/components/admin/VersionCompare";
 
@@ -138,7 +138,7 @@ type FormState = {
 
 type MediaAsset = { _id: string; url: string; originalFilename?: string; title?: string; description?: string; altText?: string };
 
-export default function EditorClient({ post, defaultByline = "", isNew = false, editors = [] }: { post: SanityPost; defaultByline?: string; isNew?: boolean; editors?: string[] }) {
+export default function EditorClient({ post, defaultByline = "", isNew = false, editors = [] }: { post: Post; defaultByline?: string; isNew?: boolean; editors?: string[] }) {
   const router = useRouter();
 
   // Every open starts in read-only view mode so you can watch the current
@@ -262,7 +262,7 @@ export default function EditorClient({ post, defaultByline = "", isNew = false, 
       try {
         const r = await fetch(`/api/posts-admin?slug=${encodeURIComponent(post.slug)}`, { cache: "no-store" });
         if (!r.ok || !alive) return;
-        const list = await r.json() as SanityPost[];
+        const list = await r.json() as Post[];
         const fresh = Array.isArray(list) ? list.find(p => p.slug === post.slug) : null;
         if (!fresh || !alive) return;
         const freshBody = bodyToEditor(fresh.body);

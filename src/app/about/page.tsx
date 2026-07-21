@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PortableText } from "@portabletext/react";
-import { getAboutPage } from "@/lib/sanity";
+import { getAboutPage } from "@/lib/content";
 import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
 

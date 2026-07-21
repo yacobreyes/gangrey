@@ -1,11 +1,11 @@
 import { getCurrentUser } from "@/lib/adminAuth";
 import { fullName, listAllUsers } from "@/lib/users";
 import { redirect } from "next/navigation";
-import type { SanityPost } from "@/lib/sanity";
+import type { Post } from "@/lib/content";
 import { sqliteGetPost } from "@/lib/storage/sqlite";
 import EditorClient from "../../../EditorClient";
 
-async function loadPost(slug: string): Promise<SanityPost | null> {
+async function loadPost(slug: string): Promise<Post | null> {
   return sqliteGetPost(slug);
 }
 
@@ -41,7 +41,7 @@ export default async function EditPostPage({ params, searchParams }: { params: P
   // For new drafts, render immediately with empty state — first auto-save creates the doc
   if (id.startsWith("untitled-")) {
     const existing = await loadPost(id);
-    const post: SanityPost = existing ?? {
+    const post: Post = existing ?? {
       _id: `post-${id}`,
       slug: id,
       headline: "",

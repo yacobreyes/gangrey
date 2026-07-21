@@ -1,6 +1,6 @@
 import AdminClient from "./AdminClient";
 import { getCurrentUser } from "@/lib/adminAuth";
-import { getAllNewslettersAdmin, getAllPostsAdmin } from "@/lib/sanity";
+import { getAllNewslettersAdmin, getAllPostsAdmin } from "@/lib/content";
 import { listAllUsers } from "@/lib/users";
 
 export const dynamic = "force-dynamic";

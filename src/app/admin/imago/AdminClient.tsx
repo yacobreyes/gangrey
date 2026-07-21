@@ -11,7 +11,7 @@ import type { ToolbarHandles } from "@/components/RichBodyEditor";
 import { getActiveLocks, type LockHolder } from "../lockActions";
 import { listUsers } from "../userActions";
 import type { JSONContent, Editor } from "@tiptap/react";
-import type { SanityPost, AdminNewsletterListItem, AdminMediaAsset } from "@/lib/sanity";
+import type { Post, AdminNewsletterListItem, AdminMediaAsset } from "@/lib/content";
 import type { FlatplanUser } from "@/lib/users";
 import { straightenQuotes } from "@/lib/straighten";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
@@ -96,7 +96,7 @@ const CARD_LINE = "#e6e4e0";
 
 export type CurrentUser = { name: string; email: string; role: "admin" | "editor" };
 
-export default function AdminClient({ posts: initialPosts, initialNewsletters = [], initialMedia = [], initialSubscribers = [], initialUsers = [], initialAuth = false, initialPanel = "dashboard", initialPostTab = "drafts", currentUser = null }: { posts: SanityPost[]; initialNewsletters?: AdminNewsletterListItem[]; initialMedia?: AdminMediaAsset[]; initialSubscribers?: Subscriber[]; initialUsers?: FlatplanUser[]; initialAuth?: boolean; initialPanel?: Panel; initialPostTab?: "drafts" | "scheduled" | "published"; currentUser?: CurrentUser | null }) {
+export default function AdminClient({ posts: initialPosts, initialNewsletters = [], initialMedia = [], initialSubscribers = [], initialUsers = [], initialAuth = false, initialPanel = "dashboard", initialPostTab = "drafts", currentUser = null }: { posts: Post[]; initialNewsletters?: AdminNewsletterListItem[]; initialMedia?: AdminMediaAsset[]; initialSubscribers?: Subscriber[]; initialUsers?: FlatplanUser[]; initialAuth?: boolean; initialPanel?: Panel; initialPostTab?: "drafts" | "scheduled" | "published"; currentUser?: CurrentUser | null }) {
   const router = useRouter();
   const [auth] = useState(initialAuth);
   const isAdmin = currentUser?.role === "admin";
@@ -106,7 +106,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
     await signOut({ callbackUrl: "/admin/imago" });
   }
 
-  const [posts, setPosts] = useState<SanityPost[]>(initialPosts);
+  const [posts, setPosts] = useState<Post[]>(initialPosts);
   const [activePanel, setActivePanel] = useState<Panel>(initialPanel);
 
   // Live "who's editing" presence for the dashboard rows, keyed by document id.
@@ -128,10 +128,10 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
   const [postTab, setPostTab] = useState<"drafts" | "scheduled" | "published">(initialPostTab);
   // Archive pieces are lazy-loaded the first time the Archive tab is opened —
   // they're excluded from the main dashboard fetch (2500+ would be slow).
-  const [archivePosts, setArchivePosts] = useState<SanityPost[]>([]);
+  const [archivePosts, setArchivePosts] = useState<Post[]>([]);
   const [archiveLoading, setArchiveLoading] = useState(false);
   const [archiveLoaded, setArchiveLoaded] = useState(false);
-  const [editing, setEditing] = useState<SanityPost | null>(null);
+  const [editing, setEditing] = useState<Post | null>(null);
 
   const [aboutDoc, setAboutDoc] = useState<JSONContent>(EMPTY_DOC);
   // Stable seed for the About editor: set once when the page loads, never from
@@ -181,7 +181,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
   type AdminComment = { _id: string; name: string; email?: string; text: string; slug: string; approved?: boolean; _createdAt: string };
   const [adminComments, setAdminComments] = useState<AdminComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
-  type ContextMenuState = { x: number; y: number; kind: "post"; post: SanityPost } | { x: number; y: number; kind: "newsletter"; newsletter: NlListItem };
+  type ContextMenuState = { x: number; y: number; kind: "post"; post: Post } | { x: number; y: number; kind: "newsletter"; newsletter: NlListItem };
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [editorTab, setEditorTab] = useState<"content" | "metadata">("content");
@@ -341,7 +341,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
     router.push(`/admin/imago/posts/untitled-${Date.now()}?new=1`);
   }
 
-  function startEdit(post: SanityPost) {
+  function startEdit(post: Post) {
     router.push(`/admin/imago/posts/${post.slug}`);
   }
 

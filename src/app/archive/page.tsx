@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import PageVisitTracker from "@/components/PageVisitTracker";
-import { getArchivePosts } from "@/lib/sanity";
+import { getArchivePosts } from "@/lib/content";
 import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
 import GangreyArchive from "@/components/GangreyArchive";

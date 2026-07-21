@@ -1,6 +1,6 @@
 import Link from "next/link";
-import type { SanityPost } from "@/lib/sanity";
-import { postImageUrl } from "@/lib/sanityImage";
+import type { Post } from "@/lib/content";
+import { postImageUrl } from "@/lib/contentImage";
 import { plainTextFromBlocks, postReadingTime } from "@/lib/readingTime";
 
 const plainText = plainTextFromBlocks;
@@ -12,7 +12,7 @@ function sectionLabel(section: string) {
   return section;
 }
 
-export default function StoryCardGrid({ posts, variant = "default" }: { posts: SanityPost[]; variant?: "default" | "archive" }) {
+export default function StoryCardGrid({ posts, variant = "default" }: { posts: Post[]; variant?: "default" | "archive" }) {
   if (variant === "archive") return <ArchiveCardGrid posts={posts} />;
   return (
     <div className="sg-grid">
@@ -105,7 +105,7 @@ export default function StoryCardGrid({ posts, variant = "default" }: { posts: S
 }
 
 // Text-forward "archive clipping" cards for Gangrey Redux, which have no photos.
-function ArchiveCardGrid({ posts }: { posts: SanityPost[] }) {
+function ArchiveCardGrid({ posts }: { posts: Post[] }) {
   return (
     <div className="ag-grid">
       <style>{`

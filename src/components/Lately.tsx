@@ -1,4 +1,4 @@
-import type { SanityLately } from "@/lib/sanity";
+import type { LatelyContent } from "@/lib/content";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
 
 function MaybeLink({ url, children }: { url?: string; children: React.ReactNode }) {
@@ -18,7 +18,7 @@ const ROW_VALUE: React.CSSProperties = {
   fontFamily: FONT, fontSize: "0.85rem", color: TEXT_DARK, lineHeight: 1.4,
 };
 
-export default function Lately({ data }: { data: SanityLately | null }) {
+export default function Lately({ data }: { data: LatelyContent | null }) {
   if (!data || (!data.reading && !data.listening && !data.watching)) return null;
 
   return (

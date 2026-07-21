@@ -1,5 +1,5 @@
 import type { PortableTextBlock } from "@portabletext/types";
-import type { SanityPost } from "./sanity";
+import type { Post } from "./content";
 
 // Assumed reading speed, in words per minute.
 const WORDS_PER_MINUTE = 265;
@@ -18,6 +18,6 @@ export function readingTimeFromText(text: string): number {
 
 // Effective reading time for a post: the manually-set value when present,
 // otherwise an estimate from the body's word count.
-export function postReadingTime(post: Pick<SanityPost, "body" | "readingTime">): number {
+export function postReadingTime(post: Pick<Post, "body" | "readingTime">): number {
   return post.readingTime ?? readingTimeFromText(plainTextFromBlocks(post.body));
 }

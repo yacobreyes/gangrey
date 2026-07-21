@@ -1,4 +1,4 @@
-import { getAboutPage } from "@/lib/sanity";
+import { getAboutPage } from "@/lib/content";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/adminAuth";
 import { parseBody } from "@/lib/parseBody";

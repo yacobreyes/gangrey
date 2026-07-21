@@ -2,22 +2,22 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import type { SanityPost, SanityLately, SanityWelcome } from "@/lib/sanity";
-import { postImageUrl } from "@/lib/sanityImage";
+import type { Post, LatelyContent, WelcomeContent } from "@/lib/content";
+import { postImageUrl } from "@/lib/contentImage";
 import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
 import { postReadingTime } from "@/lib/readingTime";
 
 type Tab = "Home" | "About" | "Micro-Memoirs" | "Narratives" | "Essays" | "Archive";
 
-function portableToPlainText(blocks: SanityPost["body"]): string {
+function portableToPlainText(blocks: Post["body"]): string {
   return blocks
     .filter(b => b._type === "block")
     .map(b => (b.children as { text: string }[]).map(c => c.text).join(""))
     .join(" ");
 }
 
-function sectionLabel(section: SanityPost["section"]) {
+function sectionLabel(section: Post["section"]) {
   if (section === "Archive") return "From the Archive";
   return section;
 }
@@ -27,10 +27,10 @@ export default function Feed({
   onMastheadClick,
   searchQuery = "",
 }: {
-  posts: SanityPost[];
+  posts: Post[];
   aboutParagraphs: string[];
-  lately: SanityLately | null;
-  welcome: SanityWelcome | null;
+  lately: LatelyContent | null;
+  welcome: WelcomeContent | null;
   initialTab: Tab;
   onMastheadClick?: () => void;
   searchQuery?: string;

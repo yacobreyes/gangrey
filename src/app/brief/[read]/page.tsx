@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getAllPosts } from "@/lib/sanity";
+import { getAllPosts } from "@/lib/content";
 import { postReadingTime } from "@/lib/readingTime";
 import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";

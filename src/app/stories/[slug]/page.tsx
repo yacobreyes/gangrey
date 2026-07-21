@@ -1,8 +1,8 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { PortableText } from "@portabletext/react";
-import { getPost } from "@/lib/sanity";
-import { postImageUrl } from "@/lib/sanityImage";
+import { getPost } from "@/lib/content";
+import { postImageUrl } from "@/lib/contentImage";
 import CommentSection from "@/components/CommentSection";
 import RelatedStories from "@/components/RelatedStories";
 import LikeButton from "@/components/LikeButton";
