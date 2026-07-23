@@ -938,11 +938,14 @@ export function sqliteAnalyticsOverview(since: number, until: number, author?: s
 } {
   const j = author ? AUTHOR_JOIN : "", c = author ? AUTHOR_COND : "";
   const args = { since, until, ...(author ? { author } : {}) };
-  const v = db().prepare(`SELECT COUNT(*) c, COUNT(DISTINCT e.session) u FROM analytics_events e ${j} WHERE e.kind='view' AND e.ts>=@since AND e.ts<@until ${c}`).get(args) as Row;
+  // Exclude non-story pageviews (archive/home/latest, filed under a "page:"
+  // slug) so the headline Views/visitors match the rest of the panel, which
+  // all excludes them too. Those land in the separate Top Pages card.
+  const v = db().prepare(`SELECT COUNT(*) c, COUNT(DISTINCT e.session) u FROM analytics_events e ${j} WHERE e.kind='view' AND e.ts>=@since AND e.ts<@until AND e.slug NOT LIKE 'page:%' ${c}`).get(args) as Row;
   // Average engaged time is per *engaged session*, not per pageview — dividing
   // by all views (bounces, bots, prefetches that never engage) drags the
   // average to ~0 and the KPI perpetually reads "0s".
-  const e = db().prepare(`SELECT COALESCE(SUM(e.engaged_ms),0) s, COUNT(DISTINCT e.session) n FROM analytics_events e ${j} WHERE e.kind='engage' AND e.ts>=@since AND e.ts<@until ${c}`).get(args) as Row;
+  const e = db().prepare(`SELECT COALESCE(SUM(e.engaged_ms),0) s, COUNT(DISTINCT e.session) n FROM analytics_events e ${j} WHERE e.kind='engage' AND e.ts>=@since AND e.ts<@until AND e.slug NOT LIKE 'page:%' ${c}`).get(args) as Row;
   const views = num(v.c), engagedMs = num(e.s), engagedSessions = num(e.n);
   return { views, visitors: num(v.u), engagedMs, avgEngagedMs: engagedSessions ? Math.round(engagedMs / engagedSessions) : 0 };
 }
@@ -953,7 +956,7 @@ export function sqliteAnalyticsSeries(since: number, until: number, buckets: num
   const span = Math.max(1, until - since);
   const width = span / buckets;
   const j = author ? AUTHOR_JOIN : "", c = author ? AUTHOR_COND : "";
-  const rows = db().prepare(`SELECT e.ts ts FROM analytics_events e ${j} WHERE e.kind='view' AND e.ts>=@since AND e.ts<@until ${c}`).all({ since, until, ...(author ? { author } : {}) }) as Row[];
+  const rows = db().prepare(`SELECT e.ts ts FROM analytics_events e ${j} WHERE e.kind='view' AND e.ts>=@since AND e.ts<@until AND e.slug NOT LIKE 'page:%' ${c}`).all({ since, until, ...(author ? { author } : {}) }) as Row[];
   const out = new Array(buckets).fill(0);
   for (const r of rows) {
     const i = Math.min(buckets - 1, Math.floor((num(r.ts) - since) / width));
