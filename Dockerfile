@@ -21,6 +21,10 @@ ENV NEXT_PUBLIC_SANITY_PROJECT_ID=selfhosted
 # .env.selfhost.
 ARG NEXT_PUBLIC_GA_ID=""
 ENV NEXT_PUBLIC_GA_ID=$NEXT_PUBLIC_GA_ID
+# Per-deploy id for version-skew protection (baked into the client bundle so it
+# matches the server's navigation header). deploy.sh passes the git short SHA.
+ARG NEXT_DEPLOYMENT_ID=""
+ENV NEXT_DEPLOYMENT_ID=$NEXT_DEPLOYMENT_ID
 RUN npm run build
 
 FROM node:22-slim AS run
@@ -28,6 +32,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV STORAGE_BACKEND=sqlite
 ENV DATA_DIR=/data
+# Same deploy id at runtime so the server's navigation header matches the value
+# baked into the client bundle above.
+ARG NEXT_DEPLOYMENT_ID=""
+ENV NEXT_DEPLOYMENT_ID=$NEXT_DEPLOYMENT_ID
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public

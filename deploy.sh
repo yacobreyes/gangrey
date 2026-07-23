@@ -31,6 +31,14 @@ fi
 echo "==> Pulling latest code…"
 git pull --ff-only
 
+# Per-deploy id for Next.js version-skew protection. Baked into the build (see
+# next.config.ts / Dockerfile) so a browser tab left open across this deploy is
+# forced to hard-reload on its next navigation instead of silently failing to
+# switch pages. The short SHA changes whenever code changes, which is exactly
+# when we want to invalidate stale clients.
+export NEXT_DEPLOYMENT_ID="$(git rev-parse --short HEAD)"
+echo "==> Deploy id: ${NEXT_DEPLOYMENT_ID}"
+
 # Export NEXT_PUBLIC_* build args from .env.selfhost so `docker compose build`
 # can bake them in (build args aren't read from env_file). We extract only those
 # lines rather than `source`-ing the file — sourcing executes it as a shell

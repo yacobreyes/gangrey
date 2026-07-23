@@ -2,6 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["better-sqlite3", "sharp"],
+  // Version-skew protection. deploy.sh bakes the git short SHA into this at
+  // build time (via the NEXT_DEPLOYMENT_ID build arg). Next stamps it on every
+  // navigation RSC response; when a browser tab left open across a deploy
+  // requests a page from the new build, the id no longer matches and Next
+  // forces a full-page reload instead of silently failing the client-side
+  // navigation (the "clicking a link does nothing after a deploy" bug).
+  deploymentId: process.env.NEXT_DEPLOYMENT_ID || undefined,
   // STANDALONE=1 builds a self-contained Node server (for Docker/VPS installs
   // with the sqlite backend). Unset, the build stays Vercel-serverless.
   ...(process.env.STANDALONE ? { output: "standalone" as const } : {}),
