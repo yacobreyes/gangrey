@@ -27,9 +27,9 @@ const PAID_TIERS: { key: SubscriptionItem; name: string; price: string; per: str
   {
     key: "annual",
     name: "Annual Member",
-    price: "$80",
+    price: "$48",
     per: "/yr",
-    desc: "Get three issues a year, full access to the archive, a limited-edition bookmark, and discounted tickets to workshops with guest editors and contributors. Annual members save $16.",
+    desc: "Get three issues a year, full access to the archive, a limited-edition bookmark, and discounted tickets to workshops with guest editors and contributors.",
   },
   {
     key: "founding",

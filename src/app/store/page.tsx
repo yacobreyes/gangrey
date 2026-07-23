@@ -122,7 +122,7 @@ export default function StorePage() {
 
         <div className="store-band">
           <div>
-            <div className="store-band-title">Annual Member — $80/year</div>
+            <div className="store-band-title">Annual Member, $48/year</div>
           </div>
           <Link href="/subscribe" className="store-join">Join →</Link>
         </div>

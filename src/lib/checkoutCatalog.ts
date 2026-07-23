@@ -10,7 +10,7 @@ export const SUBSCRIPTION_CATALOG: Record<SubscriptionItem, {
   interval: "month" | "year";
 }> = {
   monthly: { name: "Gangrey Monthly Membership", amount: 800, interval: "month" },
-  annual: { name: "Gangrey Annual Membership", amount: 8000, interval: "year" },
+  annual: { name: "Gangrey Annual Membership", amount: 4800, interval: "year" },
   founding: { name: "Gangrey Founding Membership", amount: 10000, interval: "year" },
 };
 
