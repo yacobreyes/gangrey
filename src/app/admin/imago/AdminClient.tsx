@@ -1026,14 +1026,16 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
 
             return (
               <>
-                {/* Mobile: detail panel as overlay. Padded by the safe-area
-                    insets — the Imago shell is viewport-fit=cover, so a flat
-                    1rem put this card's header (and its close button)
-                    underneath the iOS status bar. The bottom clears the fixed
-                    tab bar so the last control can always be scrolled to. */}
+                {/* Mobile: detail panel as overlay, centred in the space
+                    between the iOS status bar and the tab bar. The padding is
+                    the safe area (the Imago shell is viewport-fit=cover, so a
+                    flat value put the header under the status bar) plus the
+                    tab bar's height. The card centres with `margin: auto`
+                    rather than `align-items: center`, which would put the top
+                    of a tall card out of scroll reach. */}
                 {isMobile && inspectAsset && (
-                  <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.5)", overflowY: "auto", padding: "calc(1rem + var(--safe-top, 0px)) 1rem calc(78px + var(--safe-bottom, 0px))" }} onClick={e => { if (e.target === e.currentTarget) setInspectAsset(null); }}>
-                    <div style={{ background: "white", borderRadius: 8, padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.5)", overflowY: "auto", display: "flex", padding: "calc(1rem + var(--safe-top, 0px)) 1rem calc(78px + var(--safe-bottom, 0px))" }} onClick={e => { if (e.target === e.currentTarget) setInspectAsset(null); }}>
+                    <div style={{ background: "white", borderRadius: 8, padding: "1.25rem", width: "100%", margin: "auto", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
                         <span style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, color: TEXT_DARK }}>Image detail</span>
                         <button onClick={() => setInspectAsset(null)} style={{ background: "none", border: "none", cursor: "pointer", color: TEXT_MUTED, fontSize: "1.5rem", lineHeight: 1, padding: 0 }}>×</button>
