@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { sqliteAllPostsAdminLight, sqliteDocsByType, sqliteMutate } from "@/lib/storage/sqlite";
 import { deliverNewsletter } from "@/app/admin/newsletterActions";
+import { notify } from "@/lib/push";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +31,23 @@ async function runSqlite(): Promise<{ published: number; newslettersSent: number
     const r = await deliverNewsletter(nl._id).catch((e): { ok: boolean; error?: string } => ({ ok: false, error: String(e) }));
     if (r.ok) newslettersSent++;
     else newsletterErrors.push(`${nl._id}: ${("error" in r && r.error) || "unknown error"}`);
+  }
+
+  // Scheduled work happens while nobody is watching, so report it. A failed
+  // send is the one that genuinely needs chasing; successes are worth a quiet
+  // confirmation that the thing you scheduled actually went out.
+  if (newsletterErrors.length) {
+    notify({
+      title: "Scheduled send failed",
+      body: newsletterErrors[0],
+      url: "/admin/imago",
+      tag: "cron-error",
+    });
+  } else if (newslettersSent > 0 || duePosts.length > 0) {
+    const parts: string[] = [];
+    if (duePosts.length) parts.push(`${duePosts.length} story${duePosts.length === 1 ? "" : "s"} published`);
+    if (newslettersSent) parts.push(`${newslettersSent} newsletter${newslettersSent === 1 ? "" : "s"} sent`);
+    notify({ title: "Scheduled work ran", body: parts.join(", "), url: "/admin/imago", tag: "cron-ok" });
   }
 
   return { published: duePosts.length, newslettersSent, ...(newsletterErrors.length ? { newsletterErrors } : {}) };

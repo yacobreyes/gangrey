@@ -5,6 +5,7 @@ import { straightenQuotes } from "@/lib/straighten";
 import { submissionEmailHtml, escapeHtml } from "@/lib/submissionEmail";
 import { validateSubmission } from "@/lib/submissionValidation";
 import { rateLimit } from "@/lib/rateLimit";
+import { notify } from "@/lib/push";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,15 @@ export async function POST(req: Request) {
     console.log(`[submit] store failed: ${e instanceof Error ? e.message : e}`);
     return NextResponse.json({ error: "Couldn't save your submission. Try again." }, { status: 500 });
   }
+
+  // Tell the editors a story landed. Fire-and-forget by design: the submission
+  // is already saved, and a push failure must never fail this request.
+  notify({
+    title: "New submission",
+    body: `${title || "Untitled"} · ${category} · ${name}`,
+    url: "/admin/imago/submissions",
+    tag: "submission",
+  });
 
   // Confirmation email to the writer (best-effort: a send failure must not lose
   // the submission, which is already stored above). Sent from the submissions

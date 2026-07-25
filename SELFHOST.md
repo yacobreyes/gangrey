@@ -94,6 +94,34 @@ under `data/media` is not included, so sync that separately, e.g.
 
     rclone sync ./data/media remote:your-bucket/media
 
+## Notifications
+
+Imago can push a notification to your phone when something happens, instead of
+you opening it to check: a submission arrives, a member's card fails, a new
+member joins, or the scheduled cron publishes and sends.
+
+Generate the signing keys once, add them to `.env.selfhost`, redeploy:
+
+    node scripts/gen-vapid.mjs
+
+    VAPID_PUBLIC_KEY=...
+    VAPID_PRIVATE_KEY=...
+    VAPID_SUBJECT=mailto:you@gangrey.org
+
+Then in Imago open **More → Notifications** and turn them on for the device.
+Each device subscribes separately, and there's a "Send a test" button to
+confirm the chain works.
+
+Without the keys nothing breaks: the toggle explains it isn't set up and
+`notify()` is a no-op, like the other optional integrations.
+
+**On iPhone**, web push only reaches a site added to the home screen. Open
+gangrey.org/admin/imago in Safari, Share → Add to Home Screen, then turn
+notifications on from inside that app. The toggle says so if it detects you're
+in a normal Safari tab.
+
+Regenerating the keys unsubscribes every device, so do it once.
+
 ## Scheduled publishing
 
 Scheduling posts and newsletters needs a periodic tick (there's no Vercel cron

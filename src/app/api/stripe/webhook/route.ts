@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { upsertMember, updateMemberBySubscription, type MemberTier, type MemberStatus } from "@/lib/membership";
+import { notify } from "@/lib/push";
 
 // Stripe requires the raw, unparsed body to verify the webhook signature.
 export const runtime = "nodejs";
@@ -62,6 +63,27 @@ export async function POST(req: Request) {
           stripeCustomerId: typeof session.customer === "string" ? session.customer : session.customer?.id,
           stripeSubscriptionId: subId,
           currentPeriodEnd,
+        });
+        notify({
+          title: "New member",
+          body: `${email} joined (${tier})`,
+          url: "/admin/imago/members",
+          tag: `member-${email}`,
+        });
+        break;
+      }
+
+      // A card that stops working is silent churn: Stripe just stops
+      // collecting and the member lapses without anyone noticing. Surface it
+      // the moment it happens so it can be chased.
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const email = invoice.customer_email ?? "a member";
+        notify({
+          title: "Payment failed",
+          body: `${email}. The membership will lapse unless the card is updated.`,
+          url: "/admin/imago/members",
+          tag: "payment-failed",
         });
         break;
       }

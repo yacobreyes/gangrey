@@ -14,6 +14,7 @@ import type { JSONContent, Editor } from "@tiptap/react";
 import type { Post, AdminNewsletterListItem, AdminMediaAsset } from "@/lib/content";
 import type { FlatplanUser } from "@/lib/users";
 import { straightenQuotes } from "@/lib/straighten";
+import PushToggle from "./PushToggle";
 import { CRIMSON, TEXT_DARK, TEXT_MUTED, BORDER } from "@/lib/palette";
 
 // Every panel below is only ever rendered one at a time (gated on
@@ -933,6 +934,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
                   </button>
                 ))}
               </div>
+              <PushToggle />
               <button onClick={signOutEverywhere} style={{ width: "100%", marginTop: 18, background: "white", border: `1px solid ${CARD_LINE}`, borderRadius: 14, padding: "0.9rem", fontFamily: FONT, fontSize: "0.94rem", fontWeight: 600, color: CRIMSON, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                 Sign out
