@@ -1,0 +1,32 @@
+# Litestream: continuous replication of the Imago SQLite database.
+#
+# Every value comes from the environment (see .env.selfhost), so this tracked
+# file holds no secrets. Replication is skipped entirely when
+# LITESTREAM_REPLICA_URL is empty, which is what makes it safe to ship before
+# a bucket exists.
+#
+# LITESTREAM_REPLICA_URL examples:
+#   s3://my-bucket/imago                (AWS S3)
+#   s3://my-bucket/imago                (+ LITESTREAM_ENDPOINT for R2/B2/Hetzner)
+#
+# Note this replicates the DATABASE only. Uploaded media under /data/media is
+# not covered; see SELFHOST.md for syncing that separately.
+
+dbs:
+  - path: /data/imago.db
+    replicas:
+      - name: offsite
+        url: ${LITESTREAM_REPLICA_URL}
+        # Non-AWS S3-compatible providers (Cloudflare R2, Backblaze B2, Hetzner,
+        # MinIO) need their endpoint. Left empty for AWS itself.
+        endpoint: ${LITESTREAM_ENDPOINT}
+        region: ${LITESTREAM_REGION}
+        access-key-id: ${LITESTREAM_ACCESS_KEY_ID}
+        secret-access-key: ${LITESTREAM_SECRET_ACCESS_KEY}
+        # Keep a day of WAL segments so a point-in-time restore can land
+        # anywhere in the last 24h, and snapshot daily to bound restore time.
+        retention: 24h
+        snapshot-interval: 24h
+        # Push WAL frames roughly every 10s. This is the recovery-point window:
+        # a total loss of the box costs at most this much writing.
+        sync-interval: 10s

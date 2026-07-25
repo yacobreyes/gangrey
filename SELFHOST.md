@@ -53,6 +53,47 @@ image while the old container keeps serving, then swaps:
 OOM-kills itself on a 4GB box without it) and waits for a local 200 before
 declaring success.
 
+## Backups (offsite, continuous)
+
+The database replicates continuously to object storage with
+[Litestream](https://litestream.io): it ships write-ahead log frames every 10
+seconds rather than copying the file on a schedule, so the worst case after
+losing the box is roughly ten seconds of writing, and you can restore to *any*
+moment in the retention window rather than only to last night.
+
+It is off until you configure it. Add to `.env.selfhost`, then redeploy:
+
+    LITESTREAM_REPLICA_URL=s3://your-bucket/imago
+    LITESTREAM_ACCESS_KEY_ID=...
+    LITESTREAM_SECRET_ACCESS_KEY=...
+    # Only for non-AWS S3-compatible storage (Cloudflare R2, Backblaze B2,
+    # Hetzner, MinIO). Leave unset on AWS itself.
+    LITESTREAM_ENDPOINT=https://<account>.r2.cloudflarestorage.com
+    LITESTREAM_REGION=auto
+
+With those set, `docker-entrypoint.sh` wraps the app in `litestream replicate`.
+With them unset the app boots exactly as before, so a missing bucket can never
+keep the site down.
+
+Retention is 24h of WAL with a daily snapshot (`litestream.yml`), meaning
+point-in-time restore anywhere in the last day.
+
+**Restoring.** `restore.sh` pulls the database into a side file and prints the
+commands to swap it in. It deliberately does not overwrite the live database,
+because in an incident you want to look at the restored copy first:
+
+    ./restore.sh                        # newest available state
+    ./restore.sh 2026-07-25T14:30:00Z   # as of that UTC moment
+
+**Automatic recovery.** If the container starts and finds no database but a
+replica exists, it restores before serving. Replacing a destroyed box is
+therefore: bring up the container with the same `.env.selfhost`.
+
+**What is not covered.** This replicates the database only. Uploaded media
+under `data/media` is not included, so sync that separately, e.g.
+
+    rclone sync ./data/media remote:your-bucket/media
+
 ## Scheduled publishing
 
 Scheduling posts and newsletters needs a periodic tick (there's no Vercel cron

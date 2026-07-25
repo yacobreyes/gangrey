@@ -24,6 +24,12 @@ services:
       #   ADMIN_GOOGLE_EMAIL: the bootstrap owner's email
       # Optional integrations (features disable gracefully without them):
       #   STRIPE_SECRET_KEY, GANGREY_RESEND_KEY, NEWSLETTER_FROM
+      # Offsite backup (continuous SQLite replication). Unset → no replication,
+      # app boots normally. See SELFHOST.md "Backups".
+      #   LITESTREAM_REPLICA_URL      e.g. s3://gangrey-backups/imago
+      #   LITESTREAM_ENDPOINT         only for non-AWS S3 (R2, B2, Hetzner)
+      #   LITESTREAM_REGION
+      #   LITESTREAM_ACCESS_KEY_ID / LITESTREAM_SECRET_ACCESS_KEY
       # NEXTAUTH_URL is set in .env.selfhost (e.g. https://gangrey.org in prod,
       # http://localhost:3000 locally) so this tracked file stays environment-
       # agnostic and doesn't conflict on pull.

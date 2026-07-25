@@ -42,6 +42,24 @@ COPY --from=build /app/public ./public
 # The archive rebuild dataset — read at runtime by /api/admin/rebuild-archive
 # (a plain file, not a JS import, so it doesn't bloat the server bundle).
 COPY --from=build /app/scripts/archive-rebuild.json ./scripts/archive-rebuild.json
+
+# Litestream: streams the SQLite write-ahead log to object storage so the
+# recovery point is seconds rather than a nightly snapshot. Inert unless
+# LITESTREAM_REPLICA_URL is set (see docker-entrypoint.sh).
+ARG LITESTREAM_VERSION=0.3.13
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates curl \
+ && curl -fsSL "https://github.com/benbjohnson/litestream/releases/download/v${LITESTREAM_VERSION}/litestream-v${LITESTREAM_VERSION}-linux-amd64.tar.gz" \
+      -o /tmp/litestream.tar.gz \
+ && tar -C /usr/local/bin -xzf /tmp/litestream.tar.gz litestream \
+ && rm /tmp/litestream.tar.gz \
+ && apt-get purge -y curl && apt-get autoremove -y \
+ && rm -rf /var/lib/apt/lists/*
+COPY litestream.yml /etc/litestream.yml
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 EXPOSE 3000
 VOLUME ["/data"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["node", "server.js"]
