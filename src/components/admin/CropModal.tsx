@@ -107,7 +107,9 @@ export default function CropModal({
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: isMobile ? 0 : "2rem" }} onClick={onClose}>
       <div style={{ background: "white", borderRadius: isMobile ? 0 : 10, width: isMobile ? "100vw" : "min(680px, 96vw)", maxHeight: isMobile ? "100dvh" : "92vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 8px 40px rgba(0,0,0,0.25)" }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding: "1rem 1.5rem", borderBottom: `1px solid ${BORDER}` }}>
+        {/* Full-bleed sheet on mobile: pad by the top safe area so this title
+            clears the iOS status bar. */}
+        <div style={{ padding: isMobile ? "calc(1rem + var(--safe-top, 0px)) 1.5rem 1rem" : "1rem 1.5rem", borderBottom: `1px solid ${BORDER}` }}>
           <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1rem", margin: 0, color: TEXT_DARK }}>Set crops</p>
           <p style={{ fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, margin: "0.25rem 0 0" }}>
             Step {step + 1} of {CROP_RATIOS.length} · {ratio.key} — {ratio.label}
@@ -138,7 +140,7 @@ export default function CropModal({
           </div>
         </div>
 
-        <div style={{ padding: "0.85rem 1.5rem", borderTop: `1px solid ${BORDER}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem" }}>
+        <div style={{ padding: isMobile ? "0.85rem 1.5rem calc(0.85rem + var(--safe-bottom, 0px))" : "0.85rem 1.5rem", borderTop: `1px solid ${BORDER}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem" }}>
           <button type="button" onClick={onClose} style={{ background: "none", border: "none", fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, cursor: "pointer", padding: 0 }}>Cancel</button>
           <div style={{ display: "flex", gap: "0.5rem" }}>
             {step > 0 && (

@@ -107,8 +107,10 @@ export default function ImagePickerModal({
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
       <div style={{ background: "white", borderRadius: isMobile ? 0 : 10, width: isMobile ? "100vw" : "min(880px, 95vw)", height: isMobile ? "100dvh" : "min(600px, 90vh)", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 8px 40px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div style={{ padding: "1rem 1.5rem", borderBottom: `1px solid ${BORDER}` }}>
+        {/* Header. On mobile this is a full-bleed 100dvh sheet inside the
+            viewport-fit=cover Imago shell, so it must pad by the top safe area
+            or the title renders underneath the iOS status bar clock. */}
+        <div style={{ padding: isMobile ? "calc(1rem + var(--safe-top, 0px)) 1.5rem 1rem" : "1rem 1.5rem", borderBottom: `1px solid ${BORDER}` }}>
           <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1rem", margin: "0 0 0.75rem", color: TEXT_DARK }}>Add featured image</p>
           <div style={{ display: "flex", gap: 0, borderBottom: `2px solid ${BORDER}`, marginBottom: -1 }}>
             {(["library", "upload"] as const).map(t => (
@@ -195,8 +197,9 @@ export default function ImagePickerModal({
           )}
         </div>
 
-        {/* Footer */}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem", padding: "0.85rem 1.5rem", borderTop: `1px solid ${BORDER}`, background: "#ffffff" }}>
+        {/* Footer. Same reason as the header: pad by the bottom safe area so
+            these buttons clear the iOS home indicator on the full-bleed sheet. */}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem", padding: isMobile ? "0.85rem 1.5rem calc(0.85rem + var(--safe-bottom, 0px))" : "0.85rem 1.5rem", borderTop: `1px solid ${BORDER}`, background: "#ffffff" }}>
           <button type="button" onClick={onClose} style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 20, padding: "0.4rem 1.1rem", fontFamily: FONT, fontSize: "0.88rem", cursor: "pointer", color: TEXT_DARK }}>Cancel</button>
           <button type="button" onClick={handleUse} disabled={uploading || (tab === "library" && !selected) || (tab === "upload" && (!uploadFile || !caption.trim() || !alt.trim()))}
             style={{ background: CRIMSON, color: "white", border: "none", borderRadius: 20, padding: "0.4rem 1.1rem", fontFamily: FONT, fontSize: "0.88rem", fontWeight: 600, cursor: "pointer", opacity: (tab === "library" && !selected) || (tab === "upload" && (!uploadFile || !caption.trim() || !alt.trim())) ? 0.5 : 1 }}>

@@ -25,7 +25,9 @@ export default function VersionCompare({
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: isMobile ? 0 : "2rem" }} onClick={onClose}>
       <div style={{ background: "white", borderRadius: isMobile ? 0 : 10, width: isMobile ? "100vw" : "min(760px, 96vw)", height: isMobile ? "100dvh" : "min(720px, 92vh)", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 8px 40px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding: "1rem 1.5rem", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexShrink: 0 }}>
+        {/* Full-bleed 100dvh sheet on mobile: pad by the top safe area so the
+            title and its buttons clear the iOS status bar. */}
+        <div style={{ padding: isMobile ? "calc(1rem + var(--safe-top, 0px)) 1.5rem 1rem" : "1rem 1.5rem", borderBottom: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexShrink: 0 }}>
           <div style={{ minWidth: 0 }}>
             <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: "1rem", margin: 0, color: TEXT_DARK }}>Version history</p>
             <p style={{ fontFamily: FONT, fontSize: "0.75rem", color: TEXT_MUTED, margin: "0.2rem 0 0" }}>

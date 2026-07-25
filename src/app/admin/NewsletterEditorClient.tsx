@@ -863,10 +863,14 @@ export default function NewsletterEditorClient({
         />
       )}
 
-      {/* Preview modal — renders the actual email HTML */}
+      {/* Preview modal, rendering the actual email HTML. Centred within the
+          safe area rather than the physical screen: the Imago shell is
+          viewport-fit=cover, so centring a fixed 90vh card put its top edge
+          under the iOS status bar. Padding by the insets and clamping the
+          height to the padded box keeps it centred and whole. */}
       {showNlPreview && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }} onClick={() => setShowNlPreview(false)}>
-          <div style={{ background: "white", borderRadius: 8, width: "min(680px, 100%)", height: "90vh", overflow: "hidden", position: "relative", display: "flex", flexDirection: "column" }} onClick={e => e.stopPropagation()}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: "calc(1.5rem + var(--safe-top, 0px)) 1.5rem calc(1.5rem + var(--safe-bottom, 0px))" }} onClick={() => setShowNlPreview(false)}>
+          <div style={{ background: "white", borderRadius: 8, width: "min(680px, 100%)", height: "min(90dvh, 100%)", overflow: "hidden", position: "relative", display: "flex", flexDirection: "column" }} onClick={e => e.stopPropagation()}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.85rem 1.25rem", borderBottom: `1px solid ${BORDER}` }}>
               <span style={{ fontFamily: FONT, fontWeight: 700, color: TEXT_DARK }}>Email preview</span>
               <button type="button" onClick={() => setShowNlPreview(false)} style={{ background: "none", border: "none", fontSize: "1.4rem", cursor: "pointer", color: TEXT_MUTED }}>×</button>
