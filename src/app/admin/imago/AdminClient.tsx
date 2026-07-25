@@ -519,7 +519,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
 
       {/* Photo picker modal */}
       {showPhotoPicker && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 1100, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "2rem 1rem" }} onClick={e => { if (e.target === e.currentTarget) setShowPhotoPicker(false); }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 1100, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "calc(2rem + var(--safe-top, 0px)) 1rem calc(2rem + var(--safe-bottom, 0px))" }} onClick={e => { if (e.target === e.currentTarget) setShowPhotoPicker(false); }}>
           <div style={{ background: "white", borderRadius: 8, width: "100%", maxWidth: 720, padding: "1.5rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
               <h2 style={{ fontFamily: FONT, fontSize: "1.1rem", color: TEXT_DARK, margin: 0 }}>Choose from library</h2>
@@ -548,7 +548,7 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
 
       {/* Preview modal */}
       {showPreview && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "2rem 1rem" }} onClick={e => { if (e.target === e.currentTarget) setShowPreview(false); }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "calc(2rem + var(--safe-top, 0px)) 1rem calc(2rem + var(--safe-bottom, 0px))" }} onClick={e => { if (e.target === e.currentTarget) setShowPreview(false); }}>
           <div style={{ background: "white", borderRadius: 8, maxWidth: 680, width: "100%", padding: "2.5rem", position: "relative" }}>
             <button onClick={() => setShowPreview(false)} style={{ position: "absolute", top: "1rem", right: "1rem", background: "none", border: "none", fontSize: "1.4rem", cursor: "pointer", color: TEXT_MUTED }}>×</button>
             <p style={{ fontFamily: FONT, fontSize: "0.7rem", fontWeight: 700, color: TEXT_MUTED, textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 0.5rem" }}>{form.section}</p>
@@ -1026,9 +1026,13 @@ export default function AdminClient({ posts: initialPosts, initialNewsletters = 
 
             return (
               <>
-                {/* Mobile: detail panel as overlay */}
+                {/* Mobile: detail panel as overlay. Padded by the safe-area
+                    insets — the Imago shell is viewport-fit=cover, so a flat
+                    1rem put this card's header (and its close button)
+                    underneath the iOS status bar. The bottom clears the fixed
+                    tab bar so the last control can always be scrolled to. */}
                 {isMobile && inspectAsset && (
-                  <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.5)", overflowY: "auto", padding: "1rem" }} onClick={e => { if (e.target === e.currentTarget) setInspectAsset(null); }}>
+                  <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.5)", overflowY: "auto", padding: "calc(1rem + var(--safe-top, 0px)) 1rem calc(78px + var(--safe-bottom, 0px))" }} onClick={e => { if (e.target === e.currentTarget) setInspectAsset(null); }}>
                     <div style={{ background: "white", borderRadius: 8, padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
                         <span style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, color: TEXT_DARK }}>Image detail</span>
