@@ -107,7 +107,11 @@ export default function PushToggle() {
     setBusy(false);
   }
 
-  if (state === "loading" || state === "unsupported") return null;
+  // Render nothing until push is actually usable. "Not set up yet" was just
+  // clutter in the app: configuring the keys is a server job done from a
+  // terminal, so the panel has no business nagging about it here. The card
+  // appears once the server has keys, as the on/off toggle it's meant to be.
+  if (state === "loading" || state === "unsupported" || state === "unconfigured") return null;
 
   const card: React.CSSProperties = {
     background: "white", border: `1px solid ${CARD_LINE}`, borderRadius: 14,
@@ -132,14 +136,6 @@ export default function PushToggle() {
         <p style={sub}>
           To get notifications on iPhone, add Imago to your home screen first: tap
           Share, then Add to Home Screen, and open it from there.
-        </p>
-      )}
-
-      {state === "unconfigured" && (
-        <p style={sub}>
-          Not set up on the server yet. Generate the signing keys, add them to{" "}
-          <code>.env.selfhost</code>, and redeploy. SELFHOST.md has the command
-          under &ldquo;Notifications&rdquo;.
         </p>
       )}
 
