@@ -100,9 +100,17 @@ Imago can push a notification to your phone when something happens, instead of
 you opening it to check: a submission arrives, a member's card fails, a new
 member joins, or the scheduled cron publishes and sends.
 
-Generate the signing keys once, add them to `.env.selfhost`, redeploy:
+Generate the signing keys once. On the server there is no `node_modules` on the
+host (everything installs inside the Docker image), so run it through Docker,
+which is always available there:
 
-    node scripts/gen-vapid.mjs
+    cd ~/gangrey
+    docker run --rm -v "$PWD":/w -w /w node:22-slim node scripts/gen-vapid.mjs
+
+(Plain `node scripts/gen-vapid.mjs` works too anywhere Node is installed. The
+script deliberately uses only Node's built-in crypto, no dependencies.)
+
+Add the three lines it prints to `.env.selfhost`, then `./deploy.sh`:
 
     VAPID_PUBLIC_KEY=...
     VAPID_PRIVATE_KEY=...

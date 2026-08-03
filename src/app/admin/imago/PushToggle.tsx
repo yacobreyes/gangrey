@@ -137,9 +137,9 @@ export default function PushToggle() {
 
       {state === "unconfigured" && (
         <p style={sub}>
-          Not set up on the server yet. Generate keys with{" "}
-          <code>node scripts/gen-vapid.mjs</code> and add them to{" "}
-          <code>.env.selfhost</code>.
+          Not set up on the server yet. Generate the signing keys, add them to{" "}
+          <code>.env.selfhost</code>, and redeploy. SELFHOST.md has the command
+          under &ldquo;Notifications&rdquo;.
         </p>
       )}
 
