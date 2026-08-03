@@ -34,6 +34,20 @@ const nextConfig: NextConfig = {
     return [
       { source: "/recording", headers: noindex },
       { source: "/recording.html", headers: noindex },
+      // Build assets and the feed are not pages, but Google crawls them (it
+      // needs the JS to render) and then files them under "Crawled - currently
+      // not indexed", which makes an index-coverage validation fail forever on
+      // URLs that were never going to be search results.
+      //
+      // noindex (NOT a robots.txt Disallow) is the right tool: blocking these
+      // would stop Googlebot rendering the site and actively hurt ranking.
+      // This only says "don't list this as a result", not "don't fetch it".
+      //
+      // It matters more since deploymentId: every deploy re-stamps asset URLs
+      // with a new ?dpl=, so each release would otherwise mint a fresh batch of
+      // crawlable non-page URLs.
+      { source: "/_next/static/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex" }] },
+      { source: "/feed.xml", headers: [{ key: "X-Robots-Tag", value: "noindex" }] },
     ];
   },
   // Canonical host is the bare gangrey.org — 301 any www.gangrey.org request to
