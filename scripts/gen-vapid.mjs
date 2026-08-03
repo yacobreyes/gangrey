@@ -25,13 +25,24 @@ const { publicKey, privateKey } = generateKeyPairSync("ec", { namedCurve: "prime
 const pub = publicKey.export({ type: "spki", format: "der" }).subarray(-65).toString("base64url");
 const priv = privateKey.export({ format: "jwk" }).d;
 
-console.log(`
-Add these to .env.selfhost, then redeploy:
+// stdout carries ONLY valid KEY=value lines, so appending straight to the env
+// file is safe:
+//
+//     ... node scripts/gen-vapid.mjs >> .env.selfhost
+//
+// Everything a human needs goes to stderr, which `>>` does not capture but you
+// still see on screen. (Prose on stdout previously landed in the env file and
+// broke it with `unexpected character "," in variable name`.)
+console.log(`VAPID_PUBLIC_KEY=${pub}`);
+console.log(`VAPID_PRIVATE_KEY=${priv}`);
+console.log(`VAPID_SUBJECT=mailto:you@gangrey.org`);
 
-VAPID_PUBLIC_KEY=${pub}
-VAPID_PRIVATE_KEY=${priv}
-VAPID_SUBJECT=mailto:you@gangrey.org
+console.error(`
+Wrote three VAPID_* lines to stdout.
+
+Set VAPID_SUBJECT to your real address, then redeploy with ./deploy.sh
 
 Keep the private key secret. Anyone holding it can send notifications
-to every device that has subscribed.
+to every device that has subscribed. Generate this pair only once: new
+keys unsubscribe every device that already opted in.
 `);
