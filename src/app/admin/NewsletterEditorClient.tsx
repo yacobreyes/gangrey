@@ -265,6 +265,9 @@ export default function NewsletterEditorClient({
   const [nlSending, setNlSending] = useState(false);
   const [nlAudience, setNlAudience] = useState<"all" | "free" | "members">("all");
   const [nlImgPickerCard, setNlImgPickerCard] = useState<string | null>(null);
+  // Which card's featured-image menu is open, and where inside that image it
+  // was opened. Mirrors the story editor's click-the-image-for-a-menu pattern.
+  const [nlImgMenu, setNlImgMenu] = useState<{ cardId: string; x: number; y: number } | null>(null);
   const [showNlEllipsis, setShowNlEllipsis] = useState(false);
   const [showNlScheduler, setShowNlScheduler] = useState(false);
   const [showNlPreview, setShowNlPreview] = useState(false);
@@ -514,6 +517,59 @@ export default function NewsletterEditorClient({
       setNlCreatingDraft(null);
     }
   }
+  // --- Featured image, matching the story editor -----------------------------
+  // Both editors share the same picker modal, so they share these affordances
+  // too: a crimson pill when empty, and click-the-image-for-a-menu when set.
+  // The old floating Change/Remove buttons were hover-only, which meant they
+  // never appeared on a phone at all.
+
+  /** Empty state. Same pill as the story editor's "Add a featured image". */
+  function nlAddImageButton(cardId: string) {
+    return (
+      <button type="button" onClick={() => setNlImgPickerCard(cardId)} disabled={nlReadOnly}
+        style={{ fontFamily: FONT, fontSize: "0.85rem", color: CRIMSON, background: "none", border: `1px solid ${CRIMSON}`, borderRadius: 20, padding: "0.4rem 1rem", cursor: nlReadOnly ? "default" : "pointer", opacity: nlReadOnly ? 0.5 : 1, display: "block", margin: "0 0 1rem" }}>
+        Add a featured image
+      </button>
+    );
+  }
+
+  /** Opens the menu at the click point, clamped to stay inside the image. */
+  function nlOpenImageMenu(cardId: string, e: React.MouseEvent<HTMLImageElement>) {
+    if (nlReadOnly) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const MENU_W = 190, MENU_H = 88;
+    setNlImgMenu(prev => prev?.cardId === cardId ? null : {
+      cardId,
+      x: Math.min(e.clientX - r.left, r.width - MENU_W - 6),
+      y: Math.min(e.clientY - r.top, r.height - MENU_H - 6),
+    });
+  }
+
+  /** The menu itself, rendered inside each image's relative wrapper. */
+  function nlImageMenuFor(cardId: string) {
+    if (nlImgMenu?.cardId !== cardId) return null;
+    const item: React.CSSProperties = {
+      display: "block", width: "100%", background: "none", border: "none", textAlign: "left",
+      padding: "0.65rem 1rem", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
+      fontSize: "0.88rem", cursor: "pointer",
+    };
+    return (
+      <>
+        <div onClick={() => setNlImgMenu(null)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+        {/* lineHeight reset for the same reason as the story editor: some card
+            wrappers zero it out, which would squish this menu's text. */}
+        <div onClick={e => e.stopPropagation()}
+          style={{ position: "absolute", top: Math.max(0, nlImgMenu.y), left: Math.max(0, nlImgMenu.x), background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.14)", minWidth: 180, overflow: "hidden", zIndex: 41, lineHeight: "normal" }}>
+          <button type="button" style={{ ...item, color: TEXT_DARK }}
+            onClick={() => { setNlImgMenu(null); setNlImgPickerCard(cardId); }}>Change image</button>
+          <div style={{ borderTop: `1px solid ${BORDER}` }} />
+          <button type="button" style={{ ...item, color: CRIMSON }}
+            onClick={() => { setNlImgMenu(null); nlUpdateCard(cardId, { image: undefined }); }}>Delete image</button>
+        </div>
+      </>
+    );
+  }
+
   // Byline row for narrative/essay cards. Populated automatically when a story is
   // pulled in (post.byline); native cards start with no byline and show an
   // "+ Add byline" button that reveals the editable field.
@@ -1244,20 +1300,13 @@ export default function NewsletterEditorClient({
                         {card.image ? (
                           <div style={{ margin: "0 0 1.75rem", position: "relative" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={sized(card.image.url, 1040)} alt={card.image.alt ?? ""} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block" }} />
+                            <img src={sized(card.image.url, 1040)} alt={card.image.alt ?? ""} onClick={e => nlOpenImageMenu(card.id, e)} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block", cursor: nlReadOnly ? "default" : "pointer" }} />
                             <input value={card.image.caption ?? ""} onChange={e => nlUpdateCard(card.id, { image: { ...card.image!, caption: straightenQuotes(e.target.value) } })}
                               placeholder="Add a caption…" readOnly={nlReadOnly}
                               style={{ fontFamily: FONT, fontSize: "0.7rem", color: TEXT_MUTED, fontStyle: "italic", border: "none", outline: "none", background: "transparent", width: "100%", padding: 0, margin: "0.4rem 1rem 0", boxSizing: "border-box", display: "block" }} />
-                            <div className="nl-card-controls" style={{ position: "absolute", top: "0.5rem", right: "0.5rem", display: "flex", gap: "0.35rem" }}>
-                              <button type="button" onClick={() => setNlImgPickerCard(card.id)} disabled={nlReadOnly} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.55rem", fontFamily: FONT, fontSize: "0.7rem", cursor: nlReadOnly ? "default" : "pointer" }}>Change</button>
-                              <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} disabled={nlReadOnly} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.55rem", fontFamily: FONT, fontSize: "0.7rem", cursor: nlReadOnly ? "default" : "pointer" }}>Remove</button>
-                            </div>
+                            {nlImageMenuFor(card.id)}
                           </div>
-                        ) : (
-                          <button type="button" onClick={() => setNlImgPickerCard(card.id)} disabled={nlReadOnly} style={{ display: "block", width: "100%", margin: "0 0 1.75rem", background: "#ffffff", border: `2px dashed ${BORDER}`, color: TEXT_MUTED, fontFamily: FONT, fontSize: "0.85rem", padding: "3rem 0", cursor: nlReadOnly ? "default" : "pointer", opacity: nlReadOnly ? 0.6 : 1, textAlign: "center", boxSizing: "border-box" }}>
-                            + Add a featured image
-                          </button>
-                        )}
+                        ) : nlAddImageButton(card.id)}
                         <input value={card.headline} onChange={e => nlUpdateCard(card.id, { headline: e.target.value })} readOnly={nlReadOnly} placeholder="Type your headline"
                           style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.9rem", fontWeight: 700, lineHeight: 1.15, color: TEXT_DARK, border: "none", outline: "none", width: "100%", background: "transparent", padding: 0, marginBottom: "0.6rem", display: "block", boxSizing: "border-box", textAlign: "center" }} />
                         <textarea value={card.deck ?? ""} onChange={e => nlUpdateCard(card.id, { deck: e.target.value })} readOnly={nlReadOnly} placeholder="Type your subheadline (optional)" rows={1}
@@ -1284,20 +1333,13 @@ export default function NewsletterEditorClient({
                         {card.image ? (
                           <div style={{ margin: "0 0 0.85rem", position: "relative" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block" }} />
-                            <div className="nl-card-controls" style={{ position: "absolute", top: "0.4rem", right: "0.4rem", display: "flex", gap: "0.35rem" }}>
-                              <button type="button" onClick={() => setNlImgPickerCard(card.id)} disabled={nlReadOnly} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: nlReadOnly ? "default" : "pointer" }}>Change</button>
-                              <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} disabled={nlReadOnly} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: nlReadOnly ? "default" : "pointer" }}>Remove</button>
-                            </div>
+                            <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} onClick={e => nlOpenImageMenu(card.id, e)} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block", cursor: nlReadOnly ? "default" : "pointer" }} />
                             <input value={card.image.caption ?? ""} onChange={e => nlUpdateCard(card.id, { image: { ...card.image!, caption: straightenQuotes(e.target.value) } })}
                               placeholder="Add a caption…" readOnly={nlReadOnly}
                               style={{ fontFamily: FONT, fontSize: "0.7rem", color: TEXT_MUTED, fontStyle: "italic", border: "none", outline: "none", background: "transparent", width: "100%", padding: 0, margin: "0.4rem 0 0", boxSizing: "border-box", display: "block" }} />
+                            {nlImageMenuFor(card.id)}
                           </div>
-                        ) : (
-                          <button type="button" onClick={() => setNlImgPickerCard(card.id)} disabled={nlReadOnly} style={{ display: "block", width: "100%", margin: "0 0 1.75rem", background: "#ffffff", border: `2px dashed ${BORDER}`, color: TEXT_MUTED, fontFamily: FONT, fontSize: "0.85rem", padding: "3rem 0", cursor: nlReadOnly ? "default" : "pointer", opacity: nlReadOnly ? 0.6 : 1, textAlign: "center", boxSizing: "border-box" }}>
-                            + Add a featured image
-                          </button>
-                        )}
+                        ) : nlAddImageButton(card.id)}
                         <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={60} 
                           onChange={doc => nlUpdateCard(card.id, { doc })}
                           onEditor={ed => { nlEditors.current[card.id] = ed; if (ed) setNlActiveEditor(prev => prev && !prev.isDestroyed ? prev : ed); }}
@@ -1335,17 +1377,10 @@ export default function NewsletterEditorClient({
                         {card.image ? (
                           <div style={{ margin: "0.9rem 0 0", position: "relative" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block", borderRadius: 12 }} />
-                            <div className="nl-card-controls" style={{ position: "absolute", top: "0.4rem", right: "0.4rem", display: "flex", gap: "0.35rem" }}>
-                              <button type="button" onClick={() => setNlImgPickerCard(card.id)} disabled={nlReadOnly} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: nlReadOnly ? "default" : "pointer" }}>Change</button>
-                              <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} disabled={nlReadOnly} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: nlReadOnly ? "default" : "pointer" }}>Remove</button>
-                            </div>
+                            <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} onClick={e => nlOpenImageMenu(card.id, e)} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block", borderRadius: 12, cursor: nlReadOnly ? "default" : "pointer" }} />
+                            {nlImageMenuFor(card.id)}
                           </div>
-                        ) : (
-                          <button type="button" onClick={() => setNlImgPickerCard(card.id)} disabled={nlReadOnly} style={{ display: "block", width: "100%", margin: "0 0 1.75rem", background: "#ffffff", border: `2px dashed ${BORDER}`, color: TEXT_MUTED, fontFamily: FONT, fontSize: "0.85rem", padding: "3rem 0", cursor: nlReadOnly ? "default" : "pointer", opacity: nlReadOnly ? 0.6 : 1, textAlign: "center", boxSizing: "border-box" }}>
-                            + Add a featured image
-                          </button>
-                        )}
+                        ) : nlAddImageButton(card.id)}
                         {/* Footer meta */}
                         <div style={{ borderTop: `1px solid #b8b8ba`, marginTop: "1rem", paddingTop: "0.75rem", fontFamily: FONT, fontSize: "0.75rem", color: TEXT_MUTED }}>
                           {todayLabel} <span style={{ color: "#b8b8ba" }}>·</span> <span style={{ color: CRIMSON, fontWeight: 700 }}>A micro-memoir</span>
@@ -1376,18 +1411,11 @@ export default function NewsletterEditorClient({
                             {card.image ? (
                               <div style={{ margin: "0 0 1rem", position: "relative" }}>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block", marginBottom: "0.25rem" }} />
+                                <img src={sized(card.image.url, 700)} alt={card.image.alt ?? ""} onClick={e => nlOpenImageMenu(card.id, e)} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block", marginBottom: "0.25rem", cursor: nlReadOnly ? "default" : "pointer" }} />
                                 {card.image.caption && <p style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "0.56rem", letterSpacing: "0.04em", textTransform: "uppercase", color: TEXT_MUTED, margin: 0 }}>{card.image.caption}</p>}
-                                <div className="nl-card-controls" style={{ position: "absolute", top: "0.4rem", right: "0.4rem", display: "flex", gap: "0.35rem" }}>
-                                  <button type="button" onClick={() => setNlImgPickerCard(card.id)} disabled={nlReadOnly} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: nlReadOnly ? "default" : "pointer" }}>Change</button>
-                                  <button type="button" onClick={() => nlUpdateCard(card.id, { image: undefined })} disabled={nlReadOnly} style={{ background: "rgba(0,0,0,0.65)", color: "white", border: "none", borderRadius: 4, padding: "0.2rem 0.5rem", fontFamily: FONT, fontSize: "0.7rem", cursor: nlReadOnly ? "default" : "pointer" }}>Remove</button>
-                                </div>
+                                {nlImageMenuFor(card.id)}
                               </div>
-                            ) : (
-                              <button type="button" onClick={() => setNlImgPickerCard(card.id)} disabled={nlReadOnly} style={{ display: "block", width: "100%", margin: "0 0 1.75rem", background: "#ffffff", border: `2px dashed ${BORDER}`, color: TEXT_MUTED, fontFamily: FONT, fontSize: "0.85rem", padding: "3rem 0", cursor: nlReadOnly ? "default" : "pointer", opacity: nlReadOnly ? 0.6 : 1, textAlign: "center", boxSizing: "border-box" }}>
-                            + Add a featured image
-                          </button>
-                            )}
+                            ) : nlAddImageButton(card.id)}
                             <div style={{ fontFamily: "var(--font-cormorant), Georgia, serif", fontSize: "1.1rem", lineHeight: 1.72, textAlign: "justify" }}>
                               <RichBodyEditor initialContent={card.doc} editable={!nlReadOnly} minHeight={80} 
                                 onChange={doc => nlUpdateCard(card.id, { doc })}
