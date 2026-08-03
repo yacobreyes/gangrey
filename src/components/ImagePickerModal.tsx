@@ -104,8 +104,14 @@ export default function ImagePickerModal({
     }
   }
 
+  // z-index has to clear the newsletter editor's fixed chrome: its header sits
+  // at 410 and its formatting toolbar at 405, so at 400 they painted straight
+  // over this modal's header and tabs. The story editor has nothing in that
+  // band, which is why the same component looked right there and broken here.
+  // Kept below the 1000 drag chips, which are transient pointer-events:none
+  // overlays.
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 600, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
       <div style={{ background: "white", borderRadius: isMobile ? 0 : 10, width: isMobile ? "100vw" : "min(880px, 95vw)", height: isMobile ? "100dvh" : "min(600px, 90vh)", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 8px 40px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
         {/* Header. On mobile this is a full-bleed 100dvh sheet inside the
             viewport-fit=cover Imago shell, so it must pad by the top safe area

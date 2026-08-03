@@ -837,6 +837,13 @@ export default function NewsletterEditorClient({
         .nl-add-zone:hover .nl-add-line, .nl-add-zone:hover .nl-add-label { opacity: 1; }
         .nl-card-controls { opacity: 0; transition: opacity 0.12s; pointer-events: none; }
         .nl-card:hover .nl-card-controls, .nl-card-controls:hover { opacity: 1; pointer-events: auto; }
+        /* Touch devices never hover, so revealing Change/Remove on hover left
+           them permanently invisible and unclickable on a phone: once a card
+           had an image there was no way to swap or drop it. Keyed on the
+           input device rather than width, which is the actual condition. */
+        @media (hover: none) {
+          .nl-card-controls { opacity: 1; pointer-events: auto; }
+        }
         .nl-find-panel { scrollbar-width: thin; scrollbar-color: ${BORDER} transparent; }
         .nl-find-panel::-webkit-scrollbar { width: 8px; }
         .nl-find-panel::-webkit-scrollbar-track { background: transparent; }
