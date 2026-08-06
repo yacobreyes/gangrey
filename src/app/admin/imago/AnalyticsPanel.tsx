@@ -274,15 +274,22 @@ export default function AnalyticsPanel() {
           {/* Top content table */}
           <div style={card}>
             <div style={h2}>Top stories</div>
+            {/* table-layout: fixed so a long headline truncates instead of
+                widening the Story column. With the default auto layout the
+                table sized itself to its content, overflowed the card, and the
+                numeric columns scrolled off the right edge: switching from 7
+                days to 90 changed which headlines were listed, so the table
+                silently became scrollable. The td maxWidth that was meant to
+                prevent this does nothing under auto layout. */}
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: FONT }}>
+              <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontFamily: FONT }}>
                 <thead>
                   <tr style={{ textAlign: "left", color: TEXT_MUTED, fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                    <th style={{ padding: "0 0 0.5rem" }} aria-hidden="true"></th>
+                    <th style={{ padding: "0 0 0.5rem", width: 24 }} aria-hidden="true"></th>
                     <th style={{ padding: "0 0 0.5rem" }}>Story</th>
-                    <th style={{ padding: "0 0.5rem 0.5rem", textAlign: "right" }}>Views</th>
-                    <th style={{ padding: "0 0.5rem 0.5rem", textAlign: "right" }}>Visitors</th>
-                    <th style={{ padding: "0 0 0.5rem", textAlign: "right" }}>Avg. time</th>
+                    <th style={{ padding: "0 0.5rem 0.5rem", textAlign: "right", width: 58 }}>Views</th>
+                    <th style={{ padding: "0 0.5rem 0.5rem", textAlign: "right", width: 74 }}>Visitors</th>
+                    <th style={{ padding: "0 0 0.5rem", textAlign: "right", width: 76 }}>Avg. time</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -291,9 +298,11 @@ export default function AnalyticsPanel() {
                       <td style={{ padding: "0.55rem 0.5rem 0.55rem 0", width: 24, verticalAlign: "top" }}>
                         <span style={{ fontFamily: FONT, fontSize: "0.78rem", fontWeight: 800, color: TEXT_MUTED }}>{i + 1}</span>
                       </td>
-                      <td style={{ padding: "0.55rem 0.5rem 0.55rem 0", maxWidth: 340 }}>
+                      <td style={{ padding: "0.55rem 0.5rem 0.55rem 0" }}>
                         <a href={`/stories/${t.slug}`} target="_blank" rel="noreferrer" style={{ color: TEXT_DARK, fontWeight: 600, fontSize: "0.86rem", textDecoration: "none", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</a>
-                        <span style={{ color: TEXT_MUTED, fontSize: "0.7rem" }}>{t.section || "—"}{t.byline ? ` · ${t.byline}` : ""}</span>
+                        {/* Truncated too: a long section + byline would otherwise
+                            spill past the column even under a fixed layout. */}
+                        <span style={{ color: TEXT_MUTED, fontSize: "0.7rem", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.section || "—"}{t.byline ? ` · ${t.byline}` : ""}</span>
                       </td>
                       <td style={{ padding: "0.55rem 0.5rem", textAlign: "right", fontSize: "0.85rem", fontWeight: 600, color: TEXT_DARK }}>{fmtN(t.views)}</td>
                       <td style={{ padding: "0.55rem 0.5rem", textAlign: "right", fontSize: "0.85rem", color: TEXT_MUTED }}>{fmtN(t.visitors)}</td>
@@ -310,18 +319,19 @@ export default function AnalyticsPanel() {
           {!author && data.topPages && data.topPages.length > 0 && (
             <div style={{ background: "white", border: `1px solid ${BORDER}`, borderRadius: 14, boxShadow: "0 1px 3px rgba(0,0,0,0.04)", padding: "1.1rem 1.25rem" }}>
               <h2 style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: TEXT_MUTED, margin: "0 0 0.75rem" }}>Top Pages</h2>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: FONT }}>
+              {/* Same fixed layout as Top stories, for the same reason. */}
+              <table style={{ width: "100%", tableLayout: "fixed", borderCollapse: "collapse", fontFamily: FONT }}>
                 <thead>
                   <tr style={{ textAlign: "left", color: TEXT_MUTED, fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                     <th style={{ padding: "0 0 0.5rem" }}>Page</th>
-                    <th style={{ padding: "0 0.5rem 0.5rem", textAlign: "right" }}>Views</th>
-                    <th style={{ padding: "0 0 0.5rem", textAlign: "right" }}>Visitors</th>
+                    <th style={{ padding: "0 0.5rem 0.5rem", textAlign: "right", width: 58 }}>Views</th>
+                    <th style={{ padding: "0 0 0.5rem", textAlign: "right", width: 74 }}>Visitors</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.topPages.map(p => (
                     <tr key={p.page} style={{ borderTop: `1px solid ${BORDER}` }}>
-                      <td style={{ padding: "0.55rem 0.5rem 0.55rem 0", fontSize: "0.86rem", fontWeight: 600, color: TEXT_DARK }}>{p.page}</td>
+                      <td style={{ padding: "0.55rem 0.5rem 0.55rem 0", fontSize: "0.86rem", fontWeight: 600, color: TEXT_DARK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.page}</td>
                       <td style={{ padding: "0.55rem 0.5rem", textAlign: "right", fontSize: "0.85rem", fontWeight: 600, color: TEXT_DARK }}>{fmtN(p.views)}</td>
                       <td style={{ padding: "0.55rem 0", textAlign: "right", fontSize: "0.85rem", color: TEXT_MUTED }}>{fmtN(p.visitors)}</td>
                     </tr>
