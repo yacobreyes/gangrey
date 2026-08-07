@@ -69,18 +69,60 @@ export default function RootLayout({
         <link rel="preload" as="image" href="/Wordmark.png?v=7" fetchPriority="high" />
       </head>
       <body>
-        {/* Tells Google (and anything else reading schema.org data) what image
-            represents the brand, so it stops guessing off page content — that
-            guess was landing on the header wordmark, rendered as a small,
-            gray, illegible thumbnail in search results. logo-square.png is
-            the black-bubble G, solid black corner to corner: reads cleanly at
-            any size search engines choose to render it. */}
+        {/* Site-level identity, as one @graph so the two entities reference
+            each other by @id instead of floating separately. Per-article
+            markup points its publisher at the same #organization id, so every
+            page describes one brand rather than repeating an anonymous copy.
+
+            Organization is what a knowledge panel is built from. The logo
+            matters because without it search engines guess off page content,
+            and that guess was landing on the header wordmark: small, gray and
+            illegible at thumbnail size. logo-square.png is the black-bubble G,
+            solid corner to corner, legible at any size.
+
+            WebSite carries the SearchAction behind the sitelinks search box.
+            Its target is a real, working URL: /archive reads ?q= and renders
+            results for it. Declaring a search endpoint that did not actually
+            respond would simply be ignored. */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
-          "@type": "Organization",
-          name: "Gangrey",
-          url: siteUrl,
-          logo: `${siteUrl}/logo-square.png`,
+          "@graph": [
+            {
+              "@type": "Organization",
+              "@id": `${siteUrl}/#organization`,
+              name: "Gangrey",
+              url: siteUrl,
+              description: "Gangrey is a literary magazine that publishes true stories for the time you have, from reported narratives and essays to micro-memoirs and craft talks.",
+              logo: {
+                "@type": "ImageObject",
+                "@id": `${siteUrl}/#logo`,
+                url: `${siteUrl}/logo-square.png`,
+                width: 512,
+                height: 512,
+                caption: "Gangrey",
+              },
+              image: { "@id": `${siteUrl}/#logo` },
+              // No sameAs: it should only list social profiles the magazine
+              // actually runs, and there are none linked from the site.
+            },
+            {
+              "@type": "WebSite",
+              "@id": `${siteUrl}/#website`,
+              url: siteUrl,
+              name: "Gangrey",
+              description: "A literary magazine publishing true stories for the time you have.",
+              inLanguage: "en-US",
+              publisher: { "@id": `${siteUrl}/#organization` },
+              potentialAction: {
+                "@type": "SearchAction",
+                target: {
+                  "@type": "EntryPoint",
+                  urlTemplate: `${siteUrl}/archive?q={search_term_string}`,
+                },
+                "query-input": "required name=search_term_string",
+              },
+            },
+          ],
         }) }} />
         {gaId && <GoogleAnalytics gaId={gaId} />}
         <SessionProviderWrapper>{children}</SessionProviderWrapper>

@@ -39,12 +39,15 @@ function readingTime(body: unknown[]) {
   return Math.max(1, Math.round(words / 200));
 }
 
-export default function GangreyArchive({ posts }: { posts: Post[] }) {
+export default function GangreyArchive({ posts, initialQuery = "" }: { posts: Post[]; initialQuery?: string }) {
   const allYears = useMemo(
     () => [...new Set(posts.map(p => new Date(p.date).getUTCFullYear().toString()))].sort((a, b) => +b - +a),
     [posts]
   );
-  const [query, setQuery] = useState("");
+  // Seeded from ?q= so a search is a real, linkable URL rather than a state
+  // that only exists after typing. That is what makes the site's SearchAction
+  // structured data honest: the target actually renders results.
+  const [query, setQuery] = useState(initialQuery);
   // Opens on the most recent year rather than dumping all 3,000+ posts into
   // one long scroll (the only way to reach an earlier year used to be
   // dragging past everything after it).

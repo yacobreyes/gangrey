@@ -129,7 +129,11 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
     author: { "@type": "Person", name: post.byline },
     datePublished: post.date,
     dateModified: post._updatedAt ?? post.date,
-    publisher: { "@type": "Organization", name: "Gangrey", url: siteUrl },
+    // Reference the site-level Organization by id (defined in the root layout)
+    // rather than restating an anonymous copy, so every article resolves to
+    // the one brand entity.
+    publisher: { "@id": `${siteUrl}/#organization` },
+    isPartOf: { "@id": `${siteUrl}/#website` },
     url: `${siteUrl}/stories/${slug}`,
     ...(postImageUrl(post.image, 1200, 630) ? { image: postImageUrl(post.image, 1200, 630) } : {}),
     // Google's paywalled-content signal — declares the gated body so serving a

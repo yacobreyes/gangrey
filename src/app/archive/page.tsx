@@ -18,7 +18,10 @@ export const metadata: Metadata = {
   description: "Writing once featured on the now-defunct Gangrey.com.",
 };
 
-export default async function GangreyPage() {
+export default async function GangreyPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  // ?q= seeds the search box, so a search is a shareable URL and the site's
+  // SearchAction structured data points at something that really works.
+  const q = ((await searchParams)?.q ?? "").slice(0, 120);
   let gangrey = [] as Awaited<ReturnType<typeof getArchivePosts>>;
   try { gangrey = await getArchivePosts(); } catch {}
   const isMember = await isCurrentVisitorActiveMember();
@@ -69,7 +72,7 @@ export default async function GangreyPage() {
         )}
         {deduped.length === 0
           ? <p style={{ fontFamily: "var(--font-headline)", fontSize: 22, fontStyle: "italic", color: "#000000" }}>No stories yet.</p>
-          : <GangreyArchive posts={deduped} />
+          : <GangreyArchive posts={deduped} initialQuery={q} />
         }
       </main>
       <MagFooter />
