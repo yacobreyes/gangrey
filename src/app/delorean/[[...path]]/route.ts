@@ -55,6 +55,24 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
   }
 
   const ext = path.extname(file).toLowerCase();
+
+  // Escape hatch. The mirror is the old site verbatim, so it has no link back
+  // to today's Gangrey: once inside, only the browser's back button got you
+  // out. Inject a small fixed bar into every HTML page (assets untouched).
+  // Body-bottom padding keeps it from covering the old footer.
+  if (ext === ".html") {
+    const bar = `<div style="position:fixed;left:0;right:0;bottom:0;z-index:2147483647;background:#490000;color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;padding:9px 14px calc(9px + env(safe-area-inset-bottom,0px));font:700 11px/1 'Helvetica Neue',Helvetica,Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;box-shadow:0 -2px 10px rgba(0,0,0,.25)">You are reading the old gangrey.com&nbsp;·&nbsp;<a href="/archive" style="color:#fff;text-decoration:underline;text-underline-offset:3px">Back to the Archive</a></div><style>body{padding-bottom:52px !important}</style>`;
+    let html = fs.readFileSync(file, "utf8");
+    html = html.includes("</body>") ? html.replace("</body>", `${bar}</body>`) : html + bar;
+    return new NextResponse(html, {
+      headers: {
+        "Content-Type": MIME[ext],
+        "Cache-Control": "private, no-cache",
+        "X-Robots-Tag": "noindex, nofollow",
+      },
+    });
+  }
+
   return new NextResponse(new Uint8Array(fs.readFileSync(file)), {
     headers: {
       "Content-Type": MIME[ext] ?? "application/octet-stream",
