@@ -39,7 +39,7 @@ function readingTime(body: unknown[]) {
   return Math.max(1, Math.round(words / 200));
 }
 
-export default function GangreyArchive({ posts, initialQuery = "" }: { posts: Post[]; initialQuery?: string }) {
+export default function GangreyArchive({ posts, initialQuery = "", initialYear }: { posts: Post[]; initialQuery?: string; initialYear?: string }) {
   const allYears = useMemo(
     () => [...new Set(posts.map(p => new Date(p.date).getUTCFullYear().toString()))].sort((a, b) => +b - +a),
     [posts]
@@ -49,9 +49,9 @@ export default function GangreyArchive({ posts, initialQuery = "" }: { posts: Po
   // structured data honest: the target actually renders results.
   const [query, setQuery] = useState(initialQuery);
   // Opens on the most recent year rather than dumping all 3,000+ posts into
-  // one long scroll (the only way to reach an earlier year used to be
-  // dragging past everything after it).
-  const [activeYear, setActiveYear] = useState<string | null>(allYears[0] ?? null);
+  // one long scroll. The year comes from the URL (/archive/2011) so every
+  // year is a crawlable page; the picker below renders real links.
+  const activeYear = initialYear ?? allYears[0] ?? null;
 
   const searchMode = query.trim().length > 0;
 
@@ -166,13 +166,17 @@ export default function GangreyArchive({ posts, initialQuery = "" }: { posts: Po
         </div>
         {!searchMode && allYears.length > 1 && (
           <nav className="gr-year-nav" aria-label="Filter by year">
+            {/* Real links, not buttons: each year is a server-rendered page
+                (/archive/2011), which is what gives the deep archive internal
+                links a crawler can follow. */}
             {allYears.map(y => (
-              <button
+              <Link
                 key={y}
+                href={`/archive/${y}`}
                 className={`gr-year-btn${activeYear === y ? " active" : ""}`}
-                onClick={() => setActiveYear(y)}
-                aria-pressed={activeYear === y}
-              >{y}</button>
+                aria-current={activeYear === y ? "page" : undefined}
+                style={{ textDecoration: "none", display: "inline-block" }}
+              >{y}</Link>
             ))}
           </nav>
         )}

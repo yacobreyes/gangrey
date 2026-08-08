@@ -102,8 +102,9 @@ export default function RootLayout({
                 caption: "Gangrey",
               },
               image: { "@id": `${siteUrl}/#logo` },
-              // No sameAs: it should only list social profiles the magazine
-              // actually runs, and there are none linked from the site.
+              // Only profiles the magazine actually runs — this is a brand
+              // disambiguation signal, so a wrong entry is worse than none.
+              sameAs: ["https://www.instagram.com/gangreymag/"],
             },
             {
               "@type": "WebSite",

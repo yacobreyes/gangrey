@@ -51,5 +51,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }));
 
-  return [...staticEntries, ...storyEntries, ...issueEntries];
+  // One entry per archive year (/archive/2011) — the crawlable pages that give
+  // the deep archive its internal links. Derived from the posts themselves so
+  // the list can never drift from what actually renders.
+  const years = [...new Set(
+    posts.filter(p => p.section === "Archive" && p.date)
+      .map(p => new Date(p.date).getUTCFullYear())
+      .filter(y => Number.isFinite(y) && y > 1990)
+  )].sort((a, b) => b - a);
+  const yearEntries: MetadataRoute.Sitemap = years.map(y => ({
+    url: `${siteUrl}/archive/${y}`,
+    changeFrequency: "yearly" as const,
+    priority: 0.5,
+  }));
+
+  return [...staticEntries, ...yearEntries, ...storyEntries, ...issueEntries];
 }

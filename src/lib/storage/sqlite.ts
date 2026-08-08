@@ -163,6 +163,15 @@ function migrate(d: any) {
     d.prepare(`UPDATE analytics_events SET byline='Michael Kruse' WHERE byline IN ('kruse','Kruse')`).run();
   } catch { /* best-effort */ }
 
+  // Data fix: the archive rebuild left every recovered story with an opaque
+  // ordinal slug (gangrey-5852). Rewrite them to headline slugs (articles
+  // dropped), which read better in results and carry the story's keywords in
+  // the URL. Each rename leaves a 301 behind via slug_redirects and moves the
+  // slug-keyed data (analytics, counters, comments), so old links and
+  // rankings survive. Idempotent: once renamed, nothing matches the ordinal
+  // pattern and this is a no-op count(*) at boot.
+  try { reslugArchiveOrdinals(d); } catch { /* best-effort */ }
+
   // Full-text search index over every post (headline/subheadline/byline/section
   // + flattened body). Standalone FTS5 table kept in sync on write; backfilled
   // once here so the ~3,100-piece archive is searchable server-side instead of
@@ -303,6 +312,57 @@ export function sqliteArchivePostsForFixes(): { id: string; slug: string; headli
     id: String(r.id), slug: String(r.slug ?? ""), headline: String(r.headline ?? ""),
     date: String(r.date ?? ""), byline: String(r.byline ?? ""),
   }));
+}
+
+// Headline → slug for the archive rename: lowercase, drop the articles
+// (the/a/an) so the keywords lead, everything else hyphenated. "The Rapist
+// Says He's Sorry" → rapist-says-hes-sorry.
+function headlineSlug(headline: string): string {
+  return headline
+    .toLowerCase()
+    .replace(/['’]/g, "")                 // he's → hes, not he-s
+    .replace(/\b(the|a|an)\b/g, " ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 80)
+    .replace(/-$/, "");
+}
+
+// One-time archive re-slug (called from migrate; see the comment there).
+function reslugArchiveOrdinals(d: any): void {
+  const rows = d.prepare(
+    `SELECT id, slug, headline FROM posts WHERE section = 'Archive' AND slug GLOB 'gangrey-[0-9]*'`
+  ).all() as { id: string; slug: string; headline: string }[];
+  if (rows.length === 0) return;
+
+  // Dedupe against every slug in the table, not just this batch, so a rename
+  // can never collide with a hand-written slug on a current story.
+  const taken = new Set<string>(
+    (d.prepare(`SELECT slug FROM posts`).all() as { slug: string }[]).map(r => r.slug)
+  );
+
+  const tx = d.transaction(() => {
+    for (const r of rows) {
+      const base = headlineSlug(r.headline ?? "");
+      if (!base) continue; // headline empty or all articles: keep the ordinal
+      let slug = base;
+      for (let n = 2; taken.has(slug); n++) slug = `${base}-${n}`;
+      taken.delete(r.slug);
+      taken.add(slug);
+      d.prepare(`UPDATE posts SET slug = ? WHERE id = ?`).run(slug, r.id);
+      // Move everything keyed by the old slug, then leave the 301 behind.
+      sqliteRenameSlugData(r.slug, slug);
+      sqliteAddSlugRedirect(r.slug, slug);
+      // Keep search in step: FTS rows carry the slug.
+      const full = d.prepare(`SELECT id, slug, section, byline, headline, subheadline, body FROM posts WHERE id = ?`).get(r.id);
+      if (full) {
+        let body: unknown = [];
+        try { body = JSON.parse(full.body || "[]"); } catch { /* raw text fallback below */ }
+        ftsUpsert(d, { ...full, body });
+      }
+    }
+  });
+  tx();
 }
 
 // Current slug for a post id (null if none) — used to detect slug renames.

@@ -157,6 +157,26 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
   return (
     <div className="story-page">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      {/* Breadcrumb trail: Home → section listing → this story. Replaces the
+          raw URL under results with a readable path. Archive stories point at
+          /archive; current sections at their listing rewrite. */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Gangrey", item: siteUrl },
+          {
+            "@type": "ListItem", position: 2,
+            name: post.section === "Archive" ? "Archive" : (post.section || "Latest"),
+            item: post.section === "Archive" ? `${siteUrl}/archive`
+              : post.section === "Micro-Memoir" ? `${siteUrl}/micro-memoirs`
+              : post.section === "Narratives" ? `${siteUrl}/narratives`
+              : post.section === "Essays" ? `${siteUrl}/essays`
+              : `${siteUrl}/latest`,
+          },
+          { "@type": "ListItem", position: 3, name: post.headline, item: `${siteUrl}/stories/${slug}` },
+        ],
+      }) }} />
       <style>{storyStyles}</style>
 
       <MagHeader />
