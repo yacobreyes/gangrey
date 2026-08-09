@@ -52,11 +52,7 @@ export default function StoryNewsletterCTA() {
         .story-nl-title {
           font-family: var(--font-headline);
           font-size: clamp(21px, 3.2vw, 26px); font-weight: 800;
-          letter-spacing: -.02em; line-height: 1.12; margin: 0 0 8px; color: #000000;
-        }
-        .story-nl-sub {
-          font-family: var(--font-body);
-          font-size: 15.5px; line-height: 1.5; color: #392a22; margin: 0 0 16px;
+          letter-spacing: -.02em; line-height: 1.12; margin: 0 0 16px; color: #000000;
         }
         .story-nl-form { display: flex; gap: 8px; flex-wrap: wrap; }
         .story-nl-input {
@@ -95,9 +91,6 @@ export default function StoryNewsletterCTA() {
           <>
             <p className="story-nl-kicker">The Newsletter</p>
             <h2 className="story-nl-title">Get the next one in your inbox.</h2>
-            <p className="story-nl-sub">
-              True stories for the time you have, sent when we publish. No noise, and you can leave any time.
-            </p>
             <form className="story-nl-form" onSubmit={submit}>
               <input
                 className="story-nl-input"
