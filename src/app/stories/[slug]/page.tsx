@@ -7,7 +7,6 @@ import CommentSection from "@/components/CommentSection";
 import RelatedStories from "@/components/RelatedStories";
 import LikeButton from "@/components/LikeButton";
 import ShareButton from "@/components/ShareButton";
-import StoryNewsletterCTA from "@/components/StoryNewsletterCTA";
 import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
 import StoryBackLink from "@/components/StoryBackLink";
@@ -104,10 +103,7 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
   // session cookie makes this route render per-request (opts out of caching)
   // for gated stories, which is correct — a paywall can't be statically cached.
   const gated = storyRequiresMembership(post);
-  // Checked on every story, not just gated ones: the end-of-story newsletter
-  // ask is hidden from members, who already get the emails. The page is
-  // force-dynamic regardless, so this costs one cheap local lookup.
-  const isMember = await isCurrentVisitorActiveMember();
+  const isMember = gated ? await isCurrentVisitorActiveMember() : false;
   // Metered paywall: a non-member gets METER_LIMIT free members-only reads per
   // month before the wall. Already-read-this-month stories always open (no
   // re-wall). This view is recorded client-side (see MeterPing) so the count
@@ -246,11 +242,6 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
           <ShareButton slug={slug} headline={post.headline} />
         </div>
       </div>
-
-      {/* Email capture at the point of highest intent: someone who just
-          finished a story. Hidden from members (they already get the emails)
-          and from a walled view, where the paywall makes the stronger ask. */}
-      {!isMember && unlocked && <StoryNewsletterCTA />}
 
       <RelatedStories slug={slug} section={post.section} />
 
