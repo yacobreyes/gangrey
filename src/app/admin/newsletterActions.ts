@@ -22,7 +22,7 @@ async function issueViewUrl(newsletterId: string, subject?: string): Promise<str
   const issue = sqliteGetDoc<{ slug?: { current?: string } }>(issueId);
   const slug = issue?.slug?.current || slugify(subject ?? "");
   if (!slug) return undefined;
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org").replace(/\/$/, "");
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org").replace(/\/$/, "");
   return `${siteUrl}/issues/${slug}`;
 }
 
@@ -399,7 +399,7 @@ export async function deliverNewsletter(id: string, audience: SendAudience = "al
     cards: (nl.cards ?? []) as NlCard[],
     viewOnlineUrl: await issueViewUrl(id, nl.subject),
   });
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org").replace(/\/$/, "");
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org").replace(/\/$/, "");
 
   const resend = new Resend(apiKey);
 

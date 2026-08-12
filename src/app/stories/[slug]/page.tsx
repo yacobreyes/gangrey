@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const description = post.socialDescription || post.subheadline || bodyText;
   const seoDescription = post.socialDescription || post.subheadline || bodyText;
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org";
   const postUrl = `${siteUrl}/stories/${slug}`;
   // Shared links use the story's own featured image (falls back to the default
   // OG card if the post has no photo).
@@ -124,7 +124,7 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
   const cleanBody = stripEmptyBlocks(post.body);
   const bodyToRender = unlocked ? cleanBody : previewBody(cleanBody);
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org";
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",

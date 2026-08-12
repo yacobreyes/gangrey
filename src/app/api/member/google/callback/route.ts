@@ -5,7 +5,7 @@ import { setMemberSession } from "@/lib/memberSession";
 
 export const dynamic = "force-dynamic";
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org").replace(/\/$/, "");
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org").replace(/\/$/, "");
 const REDIRECT_URI = `${SITE_URL}/api/member/google/callback`;
 
 // Where Google sends the visitor back. Verify the result, then: if the email

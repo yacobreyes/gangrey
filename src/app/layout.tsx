@@ -3,7 +3,7 @@ import "./globals.css";
 import SessionProviderWrapper from "@/components/SessionProviderWrapper";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org";
 // Google Analytics 4. Set NEXT_PUBLIC_GA_ID (e.g. G-XXXXXXXXXX) to enable;
 // left empty, no analytics scripts load at all.
 const gaId = process.env.NEXT_PUBLIC_GA_ID;

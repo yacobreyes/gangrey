@@ -3,7 +3,7 @@ import { Resend } from "resend";
 import { getMemberByEmail } from "@/lib/membership";
 import { makeLoginToken } from "@/lib/memberSession";
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org").replace(/\/$/, "");
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org").replace(/\/$/, "");
 
 export async function POST(req: Request) {
   let body: { email?: string };

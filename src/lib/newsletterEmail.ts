@@ -36,7 +36,7 @@ export type NlCard = {
 // especially, render its straight apostrophe/quote glyphs as curls.)
 
 // Canonical public host for email links (wordmark image, unsubscribe).
-const SITE_URL = "https://gangrey.org";
+const SITE_URL = "https://www.gangrey.org";
 
 function esc(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");

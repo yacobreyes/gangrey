@@ -3,7 +3,7 @@ import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { isCurrentVisitorActiveMember } from "@/lib/currentMember";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org";
 
 // Serves the DeLorean — the static mirror of the old gangrey.com (snapshot
 // nearest 2016-12-17) that scripts/build-delorean.mjs writes to

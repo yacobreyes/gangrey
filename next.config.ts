@@ -50,15 +50,16 @@ const nextConfig: NextConfig = {
       { source: "/feed.xml", headers: [{ key: "X-Robots-Tag", value: "noindex" }] },
     ];
   },
-  // Canonical host is the bare gangrey.org — 301 any www.gangrey.org request to
+  // Canonical host is www.gangrey.org — 301 any bare gangrey.org request to
   // it so Google only ever indexes one hostname (avoids the www/non-www
-  // "duplicate" split in Search Console).
+  // "duplicate" split in Search Console). The middleware enforces the same
+  // rule against x-forwarded-host, which is what actually fires behind Caddy.
   async redirects() {
     return [
       {
         source: "/:path*",
-        has: [{ type: "host", value: "www.gangrey.org" }],
-        destination: "https://gangrey.org/:path*",
+        has: [{ type: "host", value: "gangrey.org" }],
+        destination: "https://www.gangrey.org/:path*",
         permanent: true,
       },
     ];

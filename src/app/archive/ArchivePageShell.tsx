@@ -6,7 +6,7 @@ import GangreyArchive from "@/components/GangreyArchive";
 import ListingHeader from "@/components/ListingHeader";
 import { isCurrentVisitorActiveMember } from "@/lib/currentMember";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org";
 
 // Shared body for /archive and /archive/[year]. The year pages exist for
 // crawlers as much as readers: the year picker is client state, so without

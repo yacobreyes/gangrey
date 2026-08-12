@@ -3,7 +3,7 @@ import { getStripe } from "@/lib/stripe";
 import { setMemberSession } from "@/lib/memberSession";
 import { upsertMember, type MemberTier, type MemberStatus } from "@/lib/membership";
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org").replace(/\/$/, "");
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org").replace(/\/$/, "");
 
 // Stripe redirects here after a successful subscription checkout. We verify the
 // session server-side, sign the member in immediately (so they never touch the

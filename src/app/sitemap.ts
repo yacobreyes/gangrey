@@ -9,7 +9,7 @@ import { getPostsLight, getAllIssues } from "@/lib/content";
 export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org";
 
   let posts: Awaited<ReturnType<typeof getPostsLight>> = [];
   try { posts = await getPostsLight(); } catch {}

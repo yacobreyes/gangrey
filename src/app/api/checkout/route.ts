@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { SUBSCRIPTION_CATALOG, MERCH_CATALOG, type SubscriptionItem, type MerchItem } from "@/lib/checkoutCatalog";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org";
 
 export async function POST(req: Request) {
   let body: { kind?: string; item?: string };

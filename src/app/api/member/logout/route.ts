@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { clearMemberSession } from "@/lib/memberSession";
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org").replace(/\/$/, "");
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org").replace(/\/$/, "");
 
 export async function POST() {
   await clearMemberSession();

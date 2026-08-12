@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org").replace(/\/$/, "");
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org").replace(/\/$/, "");
 const REDIRECT_URI = `${SITE_URL}/api/member/google/callback`;
 
 // Kick off "Continue with Google" for reader memberships. Sends the visitor to

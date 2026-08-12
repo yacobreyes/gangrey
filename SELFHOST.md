@@ -144,12 +144,32 @@ query filter; this also flips their status and, crucially, sends newsletters.)
 
 ## www subdomain
 
-Only the bare `gangrey.org` has HTTPS by default. To serve `www.gangrey.org`
-too, point a DNS `A`/`CNAME` record for `www` at the server, then add a redirect
-block to `/etc/caddy/Caddyfile` so www lands on the canonical bare domain:
+`https://www.gangrey.org` is the canonical host: the app 301s any bare
+`gangrey.org` request to it. Caddy must therefore serve BOTH hostnames to the
+app, and must NOT carry the old `www → gangrey.org` redirect block — that
+block plus the app's apex → www redirect makes an infinite loop.
 
-    www.gangrey.org {
-        redir https://gangrey.org{uri} permanent
+`/etc/caddy/Caddyfile` should look like:
+
+    gangrey.org, www.gangrey.org {
+        reverse_proxy localhost:3000
     }
 
-Then `sudo systemctl reload caddy`. Caddy fetches the cert automatically.
+(Or redirect the apex at Caddy itself with a
+`gangrey.org { redir https://www.gangrey.org{uri} permanent }` block and
+serve only www — either works; the loop only happens with the OLD www→apex
+redirect left in place.)
+
+Both hostnames need DNS records pointing at the server; Caddy fetches certs
+for each automatically. After editing: `sudo systemctl reload caddy`.
+
+Also set in `.env.selfhost` (then `./deploy.sh`):
+
+    NEXT_PUBLIC_SITE_URL=https://www.gangrey.org
+    NEXTAUTH_URL=https://www.gangrey.org
+
+And update the external services that hold the origin:
+  - Google OAuth (both the admin app and member sign-in): add
+    https://www.gangrey.org to authorized origins and redirect URIs.
+  - Stripe webhook endpoint URL → https://www.gangrey.org/api/stripe/webhook.
+  - Search Console: the domain property covers both hosts already.

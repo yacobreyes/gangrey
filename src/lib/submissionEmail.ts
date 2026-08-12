@@ -4,7 +4,7 @@
 // on white. Hard light-mode lock so dark-mode clients can't recolor the
 // crimson or invert the background.
 
-const SITE_URL = "https://gangrey.org";
+const SITE_URL = "https://www.gangrey.org";
 const CRIMSON = "#490000";
 const RULE = "#b8b8ba";
 const GROUND = "#f4f4f5";

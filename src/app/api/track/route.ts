@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  const selfHost = hostOf(process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org");
+  const selfHost = hostOf(process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org");
   const { host, source } = sourceFromHost(hostOf(String(body.r ?? "")), selfHost);
 
   // Non-story pages (archive listing, homepage, sections...) record under a

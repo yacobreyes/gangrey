@@ -4,7 +4,7 @@ import { postImageUrl } from "@/lib/contentImage";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://gangrey.org";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org";
   // withSearch gives plain-text searchText for the description fallback without
   // shipping/parsing full portable-text bodies.
   const posts = await getPostsLight(true);
