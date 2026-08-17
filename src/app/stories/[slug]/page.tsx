@@ -87,10 +87,13 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
     const { sqliteRedirectTarget } = await import("@/lib/storage/sqlite");
     const target = sqliteRedirectTarget(slug);
     if (target && target !== slug) permanentRedirect(`/stories/${target}`);
-    // First-import archive slugs were gangrey-p<id>; the rebuild renamed them
-    // all to gangrey-<n>, so old links (and Google's memory of them) 404.
-    // Send them to the archive permanently instead of dead-ending.
-    if (/^gangrey-p\d/.test(slug)) permanentRedirect("/archive");
+    // Import-era archive slugs that no longer resolve: gangrey-p<id> from the
+    // first import, and gangrey-<n> ordinals that existed in an earlier
+    // import but were dropped by the rebuild (a live ordinal was renamed by
+    // the headline re-slug and is caught by the redirect lookup above, so
+    // only dead ones reach this line). Google still remembers both kinds;
+    // send them to the archive permanently instead of dead-ending.
+    if (/^gangrey-p?\d+$/.test(slug)) permanentRedirect("/archive");
     notFound();
   }
   // A scheduled story is hidden from listings until its time — but getPost
