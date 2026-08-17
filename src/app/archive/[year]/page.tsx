@@ -15,10 +15,20 @@ function validYear(y: string): boolean {
 export async function generateMetadata({ params }: { params: Promise<{ year: string }> }): Promise<Metadata> {
   const { year } = await params;
   if (!validYear(year)) return {};
+  // /archive itself renders the newest year, so the newest year's own URL is
+  // a duplicate of it. Point its canonical at /archive (and the year nav
+  // links the newest year as /archive) so we choose the canonical instead of
+  // making Google choose one for us.
+  const { getArchivePosts } = await import("@/lib/content");
+  let newest = "";
+  try {
+    const posts = await getArchivePosts();
+    newest = String(Math.max(...posts.map(p => new Date(p.date).getUTCFullYear()).filter(Number.isFinite)));
+  } catch { /* fall through to self-canonical */ }
   return {
     title: `Gangrey | Archive: ${year}`,
     description: `Stories from ${year} once featured on the original Gangrey blog.`,
-    alternates: { canonical: `/archive/${year}` },
+    alternates: { canonical: year === newest ? "/archive" : `/archive/${year}` },
   };
 }
 

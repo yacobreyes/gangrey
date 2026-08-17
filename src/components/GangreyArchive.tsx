@@ -168,11 +168,14 @@ export default function GangreyArchive({ posts, initialQuery = "", initialYear }
           <nav className="gr-year-nav" aria-label="Filter by year">
             {/* Real links, not buttons: each year is a server-rendered page
                 (/archive/2011), which is what gives the deep archive internal
-                links a crawler can follow. */}
+                links a crawler can follow. The NEWEST year links to /archive
+                itself: /archive already renders that year, so linking a
+                second URL with identical content made Google pick canonicals
+                for us ("Duplicate, Google chose different canonical"). */}
             {allYears.map(y => (
               <Link
                 key={y}
-                href={`/archive/${y}`}
+                href={y === allYears[0] ? "/archive" : `/archive/${y}`}
                 className={`gr-year-btn${activeYear === y ? " active" : ""}`}
                 aria-current={activeYear === y ? "page" : undefined}
                 style={{ textDecoration: "none", display: "inline-block" }}
