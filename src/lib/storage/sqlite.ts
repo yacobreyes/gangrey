@@ -330,9 +330,13 @@ function headlineSlug(headline: string): string {
 
 // One-time archive re-slug (called from migrate; see the comment there).
 function reslugArchiveOrdinals(d: any): void {
-  const rows = d.prepare(
+  // GLOB narrows cheaply at boot; the regex then keeps this to PURE ordinals
+  // (gangrey-5852), so a hand-written slug that merely starts with a digit
+  // (gangrey-2005-retrospective) can never be force-renamed.
+  const rows = (d.prepare(
     `SELECT id, slug, headline FROM posts WHERE section = 'Archive' AND slug GLOB 'gangrey-[0-9]*'`
-  ).all() as { id: string; slug: string; headline: string }[];
+  ).all() as { id: string; slug: string; headline: string }[])
+    .filter(r => /^gangrey-\d+$/.test(r.slug));
   if (rows.length === 0) return;
 
   // Dedupe against every slug in the table, not just this batch, so a rename

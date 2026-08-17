@@ -93,7 +93,11 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
     // the headline re-slug and is caught by the redirect lookup above, so
     // only dead ones reach this line). Google still remembers both kinds;
     // send them to the archive permanently instead of dead-ending.
-    if (/^gangrey-p?\d+$/.test(slug)) permanentRedirect("/archive");
+    // Two shapes: gangrey-p<anything> (first import appended either a numeric
+    // id OR a slugified headline after the p) and bare gangrey-<digits>
+    // ordinals from the rebuild-era numbering. Anchored so a renamed headline
+    // slug that merely starts with "gangrey-" is never swallowed.
+    if (/^gangrey-p/.test(slug) || /^gangrey-\d+$/.test(slug)) permanentRedirect("/archive");
     notFound();
   }
   // A scheduled story is hidden from listings until its time — but getPost
