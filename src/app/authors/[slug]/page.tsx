@@ -65,8 +65,8 @@ export default async function AuthorPage({ params }: { params: Promise<{ slug: s
         .au-wrap { width: 100%; max-width: 880px; margin: 0 auto; padding: 32px 32px 72px; box-sizing: border-box; flex: 1; }
         .au-head { display: flex; gap: 28px; align-items: flex-start; border-bottom: 1px solid #000000; padding-bottom: 28px; margin-bottom: 8px; }
         .au-photo { width: 108px; height: 108px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: #f4f4f5; }
-        .au-name { font-family: var(--font-headline); font-size: clamp(30px, 4.6vw, 42px); font-weight: 800; letter-spacing: -.02em; line-height: 1.05; margin: 0 0 6px; }
-        .au-title { font-family: var(--font-subhead); font-size: 12px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: #490000; margin: 0 0 12px; }
+        .au-name { font-family: var(--font-headline); font-size: clamp(24px, 3.4vw, 31px); font-weight: 800; letter-spacing: -.02em; line-height: 1.1; margin: 0 0 4px; }
+        .au-title { font-family: var(--font-subhead); font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #490000; margin: 0 0 10px; }
         .au-bio { font-family: var(--font-body); font-size: 16.5px; line-height: 1.6; color: #392a22; margin: 0; max-width: 560px; }
         .au-row { display: grid; grid-template-columns: 1fr auto; gap: 0 32px; padding: 24px 0; border-bottom: 1px solid #b8b8ba; align-items: start; }
         .au-row:last-child { border-bottom: none; }
