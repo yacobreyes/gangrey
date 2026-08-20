@@ -31,6 +31,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Known already? Then this is a resubscribe: keep it idempotent and send
+    // no second welcome.
+    const { sqliteGetDoc } = await import("@/lib/storage/sqlite");
+    const existed = Boolean(sqliteGetDoc(subscriberId(email)));
+
     await mutate([
       {
         // createIfNotExists, not createOrReplace — resubscribing shouldn't
@@ -47,6 +52,15 @@ export async function POST(req: NextRequest) {
         },
       },
     ]);
+
+    if (!existed) {
+      // Fire-and-forget: the signup is already stored, and a welcome email
+      // failing must not turn a successful subscribe into an error.
+      const { sendWelcomeEmail } = await import("@/lib/welcomeEmail");
+      void sendWelcomeEmail(email.toLowerCase()).catch(e =>
+        console.log(`[subscribe] welcome email failed: ${e instanceof Error ? e.message : e}`));
+    }
+
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "Something went wrong. Try again." }, { status: 500 });

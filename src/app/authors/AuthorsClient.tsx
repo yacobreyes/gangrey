@@ -5,7 +5,7 @@ import ListingHeader from "@/components/ListingHeader";
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-type Author = { name: string; count: number };
+type Author = { name: string; count: number; href?: string };
 
 function lastNameInitial(name: string) {
   const last = name.trim().split(/\s+/).at(-1) ?? "";
@@ -122,7 +122,9 @@ export default function AuthorsClient({ authors }: { authors: Author[] }) {
         ) : (
           <div className="au-grid">
             {filtered.map(a => (
-              <div key={a.name} className="au-name">{a.name}</div>
+              a.href
+                ? <a key={a.name} href={a.href} className="au-name" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 3 }}>{a.name}</a>
+                : <div key={a.name} className="au-name">{a.name}</div>
             ))}
           </div>
         )}

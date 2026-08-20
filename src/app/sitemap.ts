@@ -65,5 +65,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.5,
   }));
 
-  return [...staticEntries, ...yearEntries, ...storyEntries, ...issueEntries];
+  // Author pages: one per Imago writer with a published story.
+  let authorEntries: MetadataRoute.Sitemap = [];
+  try {
+    const { listPublishedAuthors } = await import("@/lib/authors");
+    authorEntries = listPublishedAuthors().map(a => ({
+      url: `${siteUrl}/authors/${a.slug}`,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    }));
+  } catch { /* empty store at build time */ }
+
+  return [...staticEntries, ...yearEntries, ...storyEntries, ...issueEntries, ...authorEntries];
 }

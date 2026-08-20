@@ -161,6 +161,11 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
 
   const caption = post.image?.caption ? splitCaption(post.image.caption) : null;
 
+  // Bylines link to the writer's author page when one exists (an Imago user
+  // with a published story); archive bylines without a profile stay text.
+  const { authorHrefForByline } = await import("@/lib/authors");
+  const authorHref = authorHrefForByline(post.byline);
+
   return (
     <div className="story-page">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -193,7 +198,9 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
         <h1 className="story-h1">{post.headline}</h1>
         {post.subheadline && <p className="story-dek">{post.subheadline}</p>}
         <div className="story-meta">
-          <span>By {post.byline}</span>
+          <span>By {authorHref
+            ? <a href={authorHref} style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 3 }}>{post.byline}</a>
+            : post.byline}</span>
           <span className="dot">·</span>
           <span>{new Date(post.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span>
           <span className="dot">·</span>

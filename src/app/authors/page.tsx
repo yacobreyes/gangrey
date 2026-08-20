@@ -26,8 +26,12 @@ export default async function AuthorsPage() {
     const name = byline.trim();
     if (name) counts.set(name, (counts.get(name) ?? 0) + 1);
   }
+  // Names that belong to an Imago user with a published story link to their
+  // author page; the rest render as plain text.
+  const { listPublishedAuthors } = await import("@/lib/authors");
+  const hrefByName = new Map(listPublishedAuthors().map(a => [a.name, `/authors/${a.slug}`]));
   const authors = [...counts.entries()]
-    .map(([name, count]) => ({ name, count }))
+    .map(([name, count]) => ({ name, count, href: hrefByName.get(name) }))
     .sort((a, b) => {
       const lastA = a.name.split(/\s+/).at(-1)!.toLowerCase();
       const lastB = b.name.split(/\s+/).at(-1)!.toLowerCase();
