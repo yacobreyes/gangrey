@@ -43,7 +43,7 @@ export default async function SectionListing({ def }: { def: SectionDef }) {
       <PageVisitTracker label={def.title} />
       <MagHeader />
       <main style={{ width: "100%", maxWidth: 880, margin: "0 auto", padding: "20px 32px 72px", boxSizing: "border-box", flex: 1 }}>
-        <ListingHeader title={def.title} sub={def.sub} marginBottom={8} />
+        <ListingHeader title={def.title} marginBottom={8} />
         {stories.length === 0
           ? <p style={{ fontFamily: "var(--font-headline)", fontSize: 22, fontStyle: "italic" }}>No stories yet.</p>
           : <StoryRowList posts={stories} />}

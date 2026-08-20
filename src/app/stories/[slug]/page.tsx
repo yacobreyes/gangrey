@@ -194,7 +194,16 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
       <MagHeader />
 
       <header className="story-head">
-        <StoryBackLink label={sectionLabel(post.section)} fallbackHref={post.section === "Archive" ? "/archive" : "/latest"} />
+        {/* The section label is the story's link to its section page (the
+            crawlable href; same-origin visitors still get back-navigation).
+            These are the internal links that keep /narratives, /essays and
+            /micro-memoirs from being orphans now that they left the footer. */}
+        <StoryBackLink label={sectionLabel(post.section)} fallbackHref={
+          post.section === "Archive" ? "/archive"
+          : post.section === "Narratives" ? "/narratives"
+          : post.section === "Essays" ? "/essays"
+          : post.section === "Micro-Memoir" ? "/micro-memoirs"
+          : "/latest"} />
         <h1 className="story-h1">{post.headline}</h1>
         {post.subheadline && <p className="story-dek">{post.subheadline}</p>}
         <div className="story-meta">
