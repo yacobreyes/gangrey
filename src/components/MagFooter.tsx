@@ -38,6 +38,10 @@ export default function MagFooter() {
         }
       `}</style>
       <nav className="mag-footer-links">
+        <Link href="/narratives">Narratives</Link>
+        <Link href="/essays">Essays</Link>
+        <Link href="/micro-memoirs">Micro-Memoirs</Link>
+        <Link href="/archive">Archive</Link>
         <Link href="/authors">Authors</Link>
         <Link href="/submit">Submit</Link>
         <Link href="/account">Sign In</Link>

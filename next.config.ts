@@ -21,13 +21,9 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "12mb",
     },
   },
-  async rewrites() {
-    return [
-      { source: "/narratives", destination: "/?tab=Narratives" },
-      { source: "/micro-memoirs", destination: "/?tab=Micro-Memoirs" },
-      { source: "/essays", destination: "/?tab=Essays" },
-    ];
-  },
+  // /narratives, /essays and /micro-memoirs are real pages now (see
+  // src/components/SectionListing). As homepage rewrites they served the
+  // homepage's canonical and title, which told Google to deindex all three.
   // Keep the secret page out of search results.
   async headers() {
     const noindex = [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];

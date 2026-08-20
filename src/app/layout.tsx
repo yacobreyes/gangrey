@@ -36,14 +36,16 @@ export const metadata: Metadata = {
   openGraph: {
     siteName: "Gangrey",
     title: "Gangrey | A Literary Magazine",
-    description: "Gangrey | A Literary Magazine",
+    // The real description, not the title repeated: this is the blurb a
+    // shared homepage link shows under its headline.
+    description: "True stories for the time you have: reported narratives, essays, micro-memoirs and craft talks.",
     url: siteUrl,
     images: [{ url: "/open-graph.png", width: 1200, height: 630, alt: "Gangrey Magazine" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Gangrey | A Literary Magazine",
-    description: "Gangrey | A Literary Magazine",
+    description: "True stories for the time you have: reported narratives, essays, micro-memoirs and craft talks.",
     images: ["/open-graph.png"],
   },
 };
