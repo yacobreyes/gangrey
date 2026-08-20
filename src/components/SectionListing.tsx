@@ -10,15 +10,15 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org";
 // Real section index pages. /narratives, /essays and /micro-memoirs used to be
 // rewrites to the homepage, so all three URLs served the homepage's title and
 // a canonical pointing at "/": they told Google to ignore them. Each is now a
-// server-rendered listing with its own metadata, linked from the footer so
-// they are not orphans, and "micro-memoirs" can rank as the searchable term
+// server-rendered listing with its own metadata, linked from every story's
+// section label so they are not orphans, and "micro-memoirs" can rank as the searchable term
 // it actually is.
-export type SectionDef = { path: string; section: string; title: string; sub: string };
+export type SectionDef = { path: string; section: string; title: string; description: string };
 
 export const SECTIONS: SectionDef[] = [
-  { path: "narratives", section: "Narratives", title: "Narratives", sub: "Reported stories, 400 words max." },
-  { path: "essays", section: "Essays", title: "Essays", sub: "True stories argued and remembered, 1,000 words max." },
-  { path: "micro-memoirs", section: "Micro-Memoir", title: "Micro-Memoirs", sub: "A whole life in 100 words." },
+  { path: "narratives", section: "Narratives", title: "Narratives", description: "Short reported narratives published in Gangrey, a literary magazine of true stories." },
+  { path: "essays", section: "Essays", title: "Essays", description: "Essays published in Gangrey, a literary magazine of true stories." },
+  { path: "micro-memoirs", section: "Micro-Memoir", title: "Micro-Memoirs", description: "Micro-memoirs published in Gangrey, a literary magazine of true stories." },
 ];
 
 export default async function SectionListing({ def }: { def: SectionDef }) {

@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: `Gangrey | ${def.title}`,
-  description: `${def.sub} ${def.title} published in Gangrey, a literary magazine of true stories.`,
+  description: def.description,
   alternates: { canonical: "/narratives" },
 };
 
