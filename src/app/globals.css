@@ -28,6 +28,11 @@
 }
 
 * { box-sizing: border-box; }
+/* iOS Safari "text boost": without this, Safari inflates fonts on pages it
+   judges desktop-like (the author pages triggered it), rendering headlines
+   at ~3x and blowing the layout past the screen. 100% = render the sizes we
+   set. Standard reset rule; harmless everywhere else. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 html, body { overflow-x: hidden; max-width: 100vw; }
 html { scrollbar-gutter: stable; }
 html, body { background: #ffffff; }
