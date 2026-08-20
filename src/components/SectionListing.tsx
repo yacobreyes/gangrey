@@ -16,9 +16,9 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org";
 export type SectionDef = { path: string; section: string; title: string; description: string };
 
 export const SECTIONS: SectionDef[] = [
-  { path: "narratives", section: "Narratives", title: "Narratives", description: "Short reported narratives published in Gangrey, a literary magazine of true stories." },
-  { path: "essays", section: "Essays", title: "Essays", description: "Essays published in Gangrey, a literary magazine of true stories." },
-  { path: "micro-memoirs", section: "Micro-Memoir", title: "Micro-Memoirs", description: "Micro-memoirs published in Gangrey, a literary magazine of true stories." },
+  { path: "narratives", section: "Narratives", title: "Narratives", description: "Reported narratives published in Gangrey." },
+  { path: "essays", section: "Essays", title: "Essays", description: "Essays published in Gangrey." },
+  { path: "micro-memoirs", section: "Micro-Memoir", title: "Micro-Memoirs", description: "Micro-memoirs published in Gangrey." },
 ];
 
 export default async function SectionListing({ def }: { def: SectionDef }) {
