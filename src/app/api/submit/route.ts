@@ -65,9 +65,12 @@ export async function POST(req: Request) {
   if (apiKey) {
     try {
       const resend = new Resend(apiKey);
+      // Same layout as the accept/decline emails (see submissionActions):
+      // a quiet 17px Re: line, then 17px body. The old oversized greeting
+      // made this note look like a different publication's stationery.
       const html = submissionEmailHtml(
-        `<p style="font-size:21px;line-height:1.35;margin:0 0 18px;color:#000000 !important;">Thanks, ${escapeHtml(name.split(" ")[0] || "")}. Your story is in.</p>
-         <p style="font-size:16px;line-height:1.7;color:#392a22 !important;margin:0 0 8px;">We received <strong>"${escapeHtml(title)}"</strong> &middot; ${escapeHtml(category)}. Every story is read by an editor, and we reply either way.</p>
+        `<p style="font-size:17px;line-height:1.6;color:#392a22 !important;margin:0 0 20px;">Re: "${escapeHtml(title)}" &middot; ${escapeHtml(category)}</p>
+         <p style="font-size:17px;line-height:1.7;color:#000000 !important;margin:0;">Thanks, ${escapeHtml(name.split(" ")[0] || "")}. Your story is in. Every story is read by an editor, and we reply either way.</p>
          <p style="font-size:13px;line-height:1.6;color:#8a8a8c !important;margin:22px 0 0;">You don't need to reply to this note.</p>`,
         "Submission Received"
       );
