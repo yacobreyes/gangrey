@@ -1,5 +1,6 @@
-import { listAllUsers, fullName, type FlatplanUser } from "./users";
+import { fullName, type FlatplanUser } from "./users";
 import { sqliteAllPublishedPostsLight } from "./storage/sqlite";
+import { straightenQuotes } from "./straighten";
 import type { Post } from "./content";
 
 // Author pages are built from Imago users (their photo, bio and job title),
@@ -46,13 +47,17 @@ export function listPublishedAuthors(): Author[] {
     const slug = authorSlug(name);
     if (!slug || seen.has(slug)) continue;
     seen.add(slug);
+    // House style straight quotes on everything this page renders — these rows
+    // come straight from sqlite, bypassing the content layer's straightening.
     authors.push({
       slug,
-      name,
-      jobTitle: u.jobTitle || undefined,
-      bio: u.bio || undefined,
+      name: straightenQuotes(name),
+      jobTitle: u.jobTitle ? straightenQuotes(u.jobTitle) : undefined,
+      bio: u.bio ? straightenQuotes(u.bio) : undefined,
       photoUrl: u.photoUrl || undefined,
-      stories: [...stories].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+      stories: [...stories]
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .map(p => ({ ...p, headline: straightenQuotes(p.headline), subheadline: straightenQuotes(p.subheadline) })),
     });
   }
   return authors.sort((a, b) => {

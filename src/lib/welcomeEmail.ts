@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { submissionEmailHtml, escapeHtml } from "./submissionEmail";
 import { sqliteAllPublishedPostsLight } from "./storage/sqlite";
+import { straightenQuotes } from "./straighten";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org";
 
@@ -24,8 +25,8 @@ export async function sendWelcomeEmail(to: string): Promise<void> {
 
   const storyRows = picks.map(p => `
     <p style="font-size:17px;line-height:1.5;margin:0 0 14px;">
-      <a href="${SITE_URL}/stories/${p.slug}" style="color:#000000 !important;font-weight:bold;text-decoration:underline;">${escapeHtml(p.headline)}</a>
-      ${p.byline ? `<span style="color:#392a22 !important;font-size:14px;"> &middot; ${escapeHtml(p.byline)}</span>` : ""}
+      <a href="${SITE_URL}/stories/${p.slug}" style="color:#000000 !important;font-weight:bold;text-decoration:underline;">${escapeHtml(straightenQuotes(p.headline))}</a>
+      ${p.byline ? `<span style="color:#392a22 !important;font-size:14px;"> &middot; ${escapeHtml(straightenQuotes(p.byline))}</span>` : ""}
     </p>`).join("");
 
   const html = submissionEmailHtml(

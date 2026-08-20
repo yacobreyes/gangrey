@@ -815,7 +815,7 @@ export default function NewsletterEditorClient({
                   ? `${viewLockHolder.name} is currently editing this. Do you want to kick them out?`
                   : nlStatus === "published"
                     ? `This newsletter was published${publishedLabel ? ` on ${publishedLabel}` : ""}. Do you want to make changes?`
-                    : "You’re viewing this newsletter. Do you want to make changes?";
+                    : "You're viewing this newsletter. Do you want to make changes?";
             })()}
           </span>
           <button type="button" onClick={nlStatus === "scheduled" ? unscheduleNlToEdit : () => { setViewMode(false); if (viewLockHolder) setTimeout(takeOver, 100); }} style={{
