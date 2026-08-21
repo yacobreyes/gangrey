@@ -42,7 +42,7 @@ export default function MagFooter() {
         <Link href="/submit">Submit</Link>
         <Link href="/account">Sign In</Link>
       </nav>
-      <p className="mag-footer-copy">© 2026 Gangrey | A Literary Magazine. All Rights Reserved.</p>
+      <p className="mag-footer-copy">© 2026 Gangrey Media, LLC. All Rights Reserved.</p>
     </footer>
   );
 }
