@@ -9,7 +9,6 @@ import LikeButton from "@/components/LikeButton";
 import ShareButton from "@/components/ShareButton";
 import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
-import StoryBackLink from "@/components/StoryBackLink";
 import StoryVisitTracker from "@/components/StoryVisitTracker";
 import MeterPing from "@/components/MeterPing";
 import StoryPaywall from "@/components/StoryPaywall";
@@ -194,16 +193,16 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
       <MagHeader />
 
       <header className="story-head">
-        {/* The section label is the story's link to its section page (the
-            crawlable href; same-origin visitors still get back-navigation).
-            These are the internal links that keep /narratives, /essays and
-            /micro-memoirs from being orphans now that they left the footer. */}
-        <StoryBackLink label={sectionLabel(post.section)} fallbackHref={
+        {/* The section label is a plain link to the section page (no arrow, no
+            back-button behavior; the masthead covers "home"). These are the
+            internal links that keep /narratives, /essays and /micro-memoirs
+            from being orphans now that they left the footer. */}
+        <a className="story-label" href={
           post.section === "Archive" ? "/archive"
           : post.section === "Narratives" ? "/narratives"
           : post.section === "Essays" ? "/essays"
           : post.section === "Micro-Memoir" ? "/micro-memoirs"
-          : "/latest"} />
+          : "/latest"}>{sectionLabel(post.section)}</a>
         <h1 className="story-h1">{post.headline}</h1>
         {post.subheadline && <p className="story-dek">{post.subheadline}</p>}
         <div className="story-meta">
