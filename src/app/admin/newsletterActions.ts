@@ -323,7 +323,11 @@ export async function getNewsletterVersions(id: string): Promise<NlVersion[]> {
 export async function deleteNewsletter(id: string) {
   await requireAuth();
   const versionIds: string[] = sqliteDocsByType<{ _id: string; newsletterId: string }>("newsletterVersion").filter(v => v.newsletterId === id).map(v => v._id);
-  await mutate([{ delete: { id } }, ...versionIds.map(vid => ({ delete: { id: vid } }))]);
+  // Cascade to the published issue doc too. Leaving it dangling kept the
+  // issue in /issues and the sitemap while /issues/<slug> 404ed (Search
+  // Console surfaced exactly that for a deleted newsletter's issue).
+  const issueIds: string[] = sqliteDocsByType<{ _id: string; newsletterId?: string }>("issue").filter(i => i.newsletterId === id).map(i => i._id);
+  await mutate([{ delete: { id } }, ...versionIds.map(vid => ({ delete: { id: vid } })), ...issueIds.map(iid => ({ delete: { id: iid } }))]);
 }
 
 export type SendAudience = "all" | "free" | "members";
