@@ -4,10 +4,10 @@ import { getCurrentUser } from "@/lib/adminAuth";
 import {
   cached, fetchDeeds, fetchNws, geolocateDeeds, deedBadges, watchHit,
   fetchTampaMeetings, fetchBoccMeetings, discoverPlanningLayers, fetchDevCoord,
-  fetchDistress, fetchWarn, buildLeads,
-  type DeedRow, type NwsAlert, type MeetingItem, type GisLayer, type WarnRow,
+  fetchDistress, fetchWarn, buildLeads, fetchNewRestaurants, majorDeals,
+  type DeedRow, type NwsAlert, type MeetingItem, type GisLayer, type WarnRow, type FoodLicense,
 } from "@/lib/trib";
-import { DEED_DAYS, CACHE_TTL } from "./config";
+import { DEED_DAYS, CACHE_TTL, MAJOR_SALE } from "./config";
 
 // Private deeds map, ported from the tampatrib PHP sub-site and rebuilt
 // around a Hillsborough County map: deeds plot as badge-colored dots (legal
@@ -119,6 +119,7 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
     cached("gis_layers", discoverPlanningLayers as unknown as () => Promise<Record<string, unknown>>, force),
     cached("devcoord", fetchDevCoord as unknown as () => Promise<Record<string, unknown>>, force),
   ]);
+  const food = await cached("food", fetchNewRestaurants as unknown as () => Promise<Record<string, unknown>>, force);
   const distress = await cached("distress", fetchDistress as unknown as () => Promise<Record<string, unknown>>, force);
   const warn = await cached("warn", fetchWarn as unknown as () => Promise<Record<string, unknown>>, force);
   const rows = (deeds.rows as DeedRow[]) ?? [];
@@ -129,6 +130,16 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
   const boccItems = (boccMtgs.items as MeetingItem[]) ?? [];
   const distressRows = (distress.rows as DeedRow[]) ?? [];
   const warnItems = (warn.items as WarnRow[]) ?? [];
+  const foodItems = (food.items as FoodLicense[]) ?? [];
+  const major = majorDeals(rows);
+  // "This week" = meetings dated within the next 7 days, when a date parsed.
+  const weekAhead = (m: MeetingItem) => {
+    const t = Date.parse(m.date);
+    if (Number.isNaN(t)) return true; // undated: show rather than hide
+    const days = (t - Date.now()) / 86400_000;
+    return days >= -1 && days <= 8;
+  };
+  const thisWeek = [...tampaItems, ...boccItems].filter(weekAhead);
   const leads = buildLeads({ deeds: rows, distress: distressRows, warn: warnItems, meetings: [...tampaItems, ...boccItems] });
 
   const now = new Date().toLocaleString("en-US", {
@@ -169,17 +180,55 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
         </div>
         <aside>
           <div className="tabbar" id="tabbar">
-            <button className="tb on" data-tab="leads">Leads{leads.length ? ` (${leads.length})` : ""}</button>
+            <button className="tb on" data-tab="week">This week</button>
+            <button className="tb" data-tab="leads">Leads{leads.length ? ` (${leads.length})` : ""}</button>
             <button className="tb" data-tab="records">Records</button>
             <button className="tb" data-tab="gov">Government</button>
             <button className="tb" data-tab="ev">Permits</button>
           </div>
 
-          <div className="panel" id="panel-leads">
+          <div className="panel" id="panel-week">
             {alerts.map((a, i) => (
               <div className="alert" key={i}><strong>{a.event}</strong>{" "}
                 <span style={{ color: "#fecaca" }}>{a.headline}</span></div>
             ))}
+
+            <h2>On the agenda this week</h2>
+            {(tampaMtgs._error && boccMtgs._error) ? <p className="err">agenda sources unavailable</p> : null}
+            {thisWeek.length === 0 && !tampaMtgs._error ? <p className="muted qz">No meetings scheduled in the next week.</p> : null}
+            {thisWeek.map((m, i) => (
+              <div className="row mtg agx" data-agurl={m.url} key={i}><span className="date">{m.date}</span>
+                <span className="agt">{watchHit(m.title) ? <mark>{m.title}</mark> : m.title}</span>
+                <a className="ext" href={m.url} target="_blank" rel="noreferrer">↗</a>
+                <div className="agitems hid" /></div>
+            ))}
+
+            <h2 className="gap">Major real estate deals — ${(MAJOR_SALE / 1e6).toFixed(0)}M and up</h2>
+            {deeds._error ? <p className="err">unavailable: {String(deeds._error)}</p> : null}
+            {major.length === 0 && !deeds._error ? <p className="muted qz">No deals over ${(MAJOR_SALE / 1e6).toFixed(0)}M recorded in the last {DEED_DAYS} days.</p> : null}
+            {major.map(d => (
+              <div className="lead k-deed has-deed" key={d.instrument} data-deed={d.instrument}>
+                <div className="lw">${d.price.toLocaleString("en-US")}
+                  {/\b(LLC|L\.L\.C|CORP|INC|TRUST|LP|HOLDINGS?)\b/i.test(d.to) ? <span className="badge ent">entity buyer</span> : null}
+                  {watchHit(`${d.from} ${d.to} ${d.legal}`) ? <span className="badge flag">watchlist</span> : null}
+                </div>
+                <div className="lf">{d.from} → {d.to}</div>
+                <div className="lm">{d.date}{d.legal ? ` · ${d.legal}` : ""} · click for the paper trail</div>
+              </div>
+            ))}
+
+            <h2 className="gap">New restaurants — state food-service licenses</h2>
+            <p className="portal muted">A new license is issued before the doors open.</p>
+            {food._error ? <p className="err">unavailable: {String(food._error)}</p> : null}
+            {foodItems.slice(0, 15).map((f, i) => (
+              <div className="row" key={i}>
+                <strong>{watchHit(`${f.name} ${f.address}`) ? <mark>{f.name}</mark> : f.name}</strong>
+                <div className="lm2">{[f.address, f.city, f.type, f.opened].filter(Boolean).join(" · ")}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="panel hid" id="panel-leads">
             {leads.length === 0 && <p className="muted qz">Nothing scored newsworthy right now. The wires keep watching; watchlist terms live in config.</p>}
             {leads.map(l => (
               <div className={`lead k-${l.kind}${l.deedId ? " has-deed" : ""}`} key={l.id} data-deed={l.deedId ?? ""}>

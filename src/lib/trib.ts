@@ -1,6 +1,6 @@
 // tampatrib: fetch + cache + radar helpers, ported from the original PHP
 // sub-site. Server-side only.
-import { WATCHLIST, BIG_SALE, NOMINAL_MAX, DEED_DAYS, CACHE_TTL, DISTRESS_DOCTYPE_CANDIDATES, WARN_URLS } from "@/app/trib/config";
+import { WATCHLIST, BIG_SALE, MAJOR_SALE, NOMINAL_MAX, DEED_DAYS, CACHE_TTL, DISTRESS_DOCTYPE_CANDIDATES, WARN_URLS, DBPR_FOOD_PAGE } from "@/app/trib/config";
 
 const UA = "Mozilla/5.0 (Macintosh) tampatrib-subsite/1.0";
 
@@ -531,4 +531,83 @@ export function buildLeads(input: {
 
 
   return leads.sort((a, b) => b.score - a.score).slice(0, 30);
+}
+
+// ---- new restaurants (DBPR food-service licenses) -----------------------
+// A new public food service license IS the "coming soon": the state issues it
+// before the doors open. DBPR publishes per-district CSV extracts; discover
+// the links from its public-records page, keep Hillsborough/Tampa rows, and
+// surface the newest licenses.
+export type FoodLicense = { name: string; address: string; city: string; opened: string; type: string };
+
+function splitCsvLine(line: string): string[] {
+  const out: string[] = []; let cur = ""; let q = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (q) { if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; } else if (c === '"') q = false; else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === ",") { out.push(cur); cur = ""; }
+    else cur += c;
+  }
+  out.push(cur);
+  return out.map(x => x.trim());
+}
+
+let foodCsvWinner: string | null = null;
+
+export async function fetchNewRestaurants(): Promise<{ items: FoodLicense[]; source?: string }> {
+  const page = await http(DBPR_FOOD_PAGE, { headers: {
+    Accept: "text/html",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/126 Safari/537.36",
+  }});
+  const links = [...page.matchAll(/href="([^"]+\.(?:csv|exe|txt))"/gi)]
+    .map(m => m[1].startsWith("http") ? m[1] : new URL(m[1], DBPR_FOOD_PAGE).toString())
+    .filter(u => /\.csv$/i.test(u));
+  if (links.length === 0) throw new Error("no CSV extracts linked on the DBPR page");
+
+  const tries = foodCsvWinner ? [foodCsvWinner, ...links.filter(l => l !== foodCsvWinner)] : links;
+  let lastErr = "";
+  for (const url of tries.slice(0, 12)) {
+    try {
+      const csv = await http(url, { headers: { Accept: "text/csv,*/*" } });
+      const lines = csv.split(/\r?\n/).filter(Boolean);
+      if (lines.length < 2) continue;
+      const head = splitCsvLine(lines[0]).map(h => h.toLowerCase());
+      const idx = (...names: string[]) => {
+        for (const n of names) { const i = head.findIndex(h => h.includes(n)); if (i >= 0) return i; }
+        return -1;
+      };
+      const iName = idx("business name", "name");
+      const iAddr = idx("location address", "address1", "street", "address");
+      const iCity = idx("location city", "city");
+      const iCounty = idx("county");
+      const iDate = idx("license expiration", "first licensed", "open date", "date");
+      const iType = idx("license type", "type");
+      if (iName < 0) continue;
+
+      const items: FoodLicense[] = [];
+      for (const line of lines.slice(1)) {
+        const c = splitCsvLine(line);
+        const county = iCounty >= 0 ? c[iCounty] ?? "" : "";
+        const city = iCity >= 0 ? c[iCity] ?? "" : "";
+        if (!/hillsborough/i.test(county) && !/tampa|brandon|riverview|plant city|temple terrace|ybor/i.test(city)) continue;
+        items.push({
+          name: c[iName] ?? "", address: iAddr >= 0 ? c[iAddr] ?? "" : "",
+          city, opened: iDate >= 0 ? c[iDate] ?? "" : "", type: iType >= 0 ? c[iType] ?? "" : "",
+        });
+        if (items.length >= 400) break;
+      }
+      if (items.length === 0) continue;
+      foodCsvWinner = url;
+      // Newest first where a parseable date exists.
+      items.sort((a, b) => new Date(b.opened).getTime() - new Date(a.opened).getTime());
+      return { items: items.slice(0, 40), source: url };
+    } catch (e) { lastErr = e instanceof Error ? e.message : String(e); }
+  }
+  throw new Error(lastErr || "no Hillsborough rows in any DBPR extract");
+}
+
+// Major deals: the high bar, not the $1M bar.
+export function majorDeals(rows: DeedRow[]): DeedRow[] {
+  return rows.filter(d => d.price >= MAJOR_SALE).sort((a, b) => b.price - a.price).slice(0, 25);
 }
