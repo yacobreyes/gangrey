@@ -172,6 +172,13 @@ function migrate(d: any) {
   // pattern and this is a no-op count(*) at boot.
   try { reslugArchiveOrdinals(d); } catch { /* best-effort */ }
 
+  // Data fix: sending a newsletter only patched its status; the public issue
+  // doc was created on SAVE alone, so newsletters that were sent and never
+  // re-saved had no /issues page and their emailed "view online" links 404ed.
+  // deliverNewsletter now syncs the issue at send time; this backfills the
+  // already-sent ones. Idempotent: skips newsletters that have an issue doc.
+  try { backfillNewsletterIssues(d); } catch { /* best-effort */ }
+
   // Full-text search index over every post (headline/subheadline/byline/section
   // + flattened body). Standalone FTS5 table kept in sync on write; backfilled
   // once here so the ~3,100-piece archive is searchable server-side instead of
@@ -367,6 +374,42 @@ function reslugArchiveOrdinals(d: any): void {
     }
   });
   tx();
+}
+
+// One-time issue backfill for sent newsletters (called from migrate; see the
+// comment there). Mirrors syncIssueForNewsletter's doc shape.
+function backfillNewsletterIssues(d: any): void {
+  const docs = (id: string) => { try { return JSON.parse(d.prepare(`SELECT data FROM documents WHERE id = ?`).get(id)?.data ?? "null"); } catch { return null; } };
+  const all = (type: string) => (d.prepare(`SELECT data FROM documents WHERE type = ?`).all(type) as { data: string }[])
+    .map(r => { try { return JSON.parse(r.data); } catch { return null; } }).filter(Boolean);
+
+  const issues = all("issue");
+  const covered = new Set(issues.map((i: any) => i.newsletterId).filter(Boolean));
+  const takenSlugs = new Set(issues.map((i: any) => i.slug?.current).filter(Boolean));
+  let maxNumber = issues.reduce((m: number, i: any) => (typeof i.number === "number" && i.number > m ? i.number : m), 0);
+
+  const sent = all("newsletter")
+    .filter((n: any) => n.status === "published" && !covered.has(n._id))
+    .sort((a: any, b: any) => String(a.sentAt ?? a.createdAt ?? "").localeCompare(String(b.sentAt ?? b.createdAt ?? "")));
+  if (sent.length === 0) return;
+
+  const slugify = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const put = d.prepare(`INSERT INTO documents (id, type, data) VALUES (?, 'issue', ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data`);
+  for (const n of sent as any[]) {
+    const explicit = Number(n.issue);
+    const number = Number.isFinite(explicit) && explicit > 0 ? explicit : ++maxNumber;
+    let slug = slugify(n.subject ?? "") || `issue-${number}`;
+    for (let k = 2; takenSlugs.has(slug); k++) slug = `${slugify(n.subject ?? "") || `issue-${number}`}-${k}`;
+    takenSlugs.add(slug);
+    const id = `issue-nl-${n._id}`;
+    if (docs(id)) continue;
+    put.run(id, JSON.stringify({
+      _id: id, _type: "issue", newsletterId: n._id, number,
+      title: n.subject ?? "", description: n.preview ?? "",
+      publishedAt: n.sentAt ?? new Date().toISOString(),
+      slug: { _type: "slug", current: slug },
+    }));
+  }
 }
 
 // Current slug for a post id (null if none) — used to detect slug renames.
