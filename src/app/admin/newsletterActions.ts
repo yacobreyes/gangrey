@@ -423,18 +423,6 @@ export async function deliverNewsletter(id: string, audience: SendAudience = "al
   try {
     await mutate([{ patch: { id, set: { status: "published", sentAt: new Date().toISOString() } } }]);
   } catch {}
-  // Create the public issue page too. Only saving synced the issue before, so
-  // a newsletter that was sent and never re-saved had NO issue doc: /issues
-  // stayed empty and the email's own "view online" link 404ed (which is how
-  // Search Console ended up crawling a dead /issues/<slug>).
-  try {
-    await syncIssueForNewsletter(id, {
-      subject: nl.subject, preview: nl.preview, intro: nl.intro, author: nl.author,
-      volume: nl.volume, issue: nl.issue, classics: nl.classics, cards: (nl.cards ?? []) as NlCard[],
-    } as NlPayload, "published");
-  } catch (e) {
-    console.error(`[deliverNewsletter] issue sync failed for ${id}:`, e);
-  }
   return { ok: true, sent, failed: emails.length - sent };
 }
 
