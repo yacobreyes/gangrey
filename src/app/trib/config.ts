@@ -15,3 +15,7 @@ export const DEED_DAYS = 7;        // rolling window pulled from the Clerk
 
 
 export const CACHE_TTL = 1200; // seconds before a feed refetches (20 min)
+
+// Events wall: Creative Loafing's community calendar search (server-rendered).
+// Swap the narrowByDate for "Today" / "Next 7 Days" etc. if you prefer.
+export const EVENTS_URL = "https://community.cltampa.com/tampa/EventSearch?narrowByDate=This+Weekend&sortType=date&v=d";

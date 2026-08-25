@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/adminAuth";
 import {
   cached, fetchDeeds, fetchNws, geolocateDeeds, deedBadges, watchHit,
-  fetchTampaMeetings, fetchBoccMeetings, discoverPlanningLayers, fetchDevCoord,
-  type DeedRow, type NwsAlert, type MeetingItem, type GisLayer,
+  fetchTampaMeetings, fetchBoccMeetings, discoverPlanningLayers, fetchDevCoord, fetchEvents,
+  type DeedRow, type NwsAlert, type MeetingItem, type GisLayer, type EventItem,
 } from "@/lib/trib";
 import { DEED_DAYS, CACHE_TTL } from "./config";
 
@@ -76,6 +76,13 @@ const CSS = `
  .layers label{display:flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap}
  .mappane{position:relative;min-height:45vh}
  .devco .row{font-size:.85rem}
+ .agx{cursor:pointer}
+ .agx .agt{text-decoration:underline dotted;text-underline-offset:3px}
+ .agx .ext{color:var(--muted);margin-left:.4rem;text-decoration:none}
+ .agitems{margin:.5rem 0 .2rem .5rem;border-left:2px solid var(--line);padding-left:.7rem}
+ .agitems .ai{padding:.3rem 0;font-size:.85rem;border-top:1px dashed var(--line)}
+ .agitems .ai:first-child{border-top:0}
+ .agitems .ai .n{color:var(--accent);font-weight:700;margin-right:.4rem}
 `;
 
 export default async function TribPage({ searchParams }: { searchParams: Promise<{ force?: string }> }) {
@@ -92,6 +99,7 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
     cached("gis_layers", discoverPlanningLayers as unknown as () => Promise<Record<string, unknown>>, force),
     cached("devcoord", fetchDevCoord as unknown as () => Promise<Record<string, unknown>>, force),
   ]);
+  const events = await cached("events", fetchEvents as unknown as () => Promise<Record<string, unknown>>, force);
   const rows = (deeds.rows as DeedRow[]) ?? [];
   const alerts = (nws.items as NwsAlert[]) ?? [];
   const points = await geolocateDeeds(rows);
@@ -142,8 +150,10 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
             <a href="https://www.tampa.gov/city-council" target="_blank" rel="noreferrer">council ↗</a></p>
           {tampaMtgs._error ? <p className="err">unavailable: {String(tampaMtgs._error)}</p> : null}
           {((tampaMtgs.items as MeetingItem[]) ?? []).map((m, i) => (
-            <div className="row mtg" key={i}><span className="date">{m.date}</span>
-              <a href={m.url} target="_blank" rel="noreferrer">{watchHit(m.title) ? <mark>{m.title}</mark> : m.title}</a></div>
+            <div className="row mtg agx" data-agurl={m.url} key={i}><span className="date">{m.date}</span>
+              <span className="agt">{watchHit(m.title) ? <mark>{m.title}</mark> : m.title}</span>
+              <a className="ext" href={m.url} target="_blank" rel="noreferrer">↗</a>
+              <div className="agitems hid" /></div>
           ))}
 
           <h2 style={{ marginTop: "1rem" }}>Meetings — Hillsborough BOCC</h2>
@@ -152,14 +162,27 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
             <a href="https://www.hillsclerk.com/records-and-reports/bocc" target="_blank" rel="noreferrer">board records ↗</a></p>
           {boccMtgs._error ? <p className="err">unavailable: {String(boccMtgs._error)}</p> : null}
           {((boccMtgs.items as MeetingItem[]) ?? []).map((m, i) => (
-            <div className="row mtg" key={i}><span className="date">{m.date}</span>
-              <a href={m.url} target="_blank" rel="noreferrer">{watchHit(m.title) ? <mark>{m.title}</mark> : m.title}</a></div>
+            <div className="row mtg agx" data-agurl={m.url} key={i}><span className="date">{m.date}</span>
+              <span className="agt">{watchHit(m.title) ? <mark>{m.title}</mark> : m.title}</span>
+              <a className="ext" href={m.url} target="_blank" rel="noreferrer">↗</a>
+              <div className="agitems hid" /></div>
           ))}
 
           <h2 style={{ marginTop: "1rem" }}>Development records — City of Tampa</h2>
           <p className="portal"><a href="https://arcgis.tampagov.net/arcgis/rest/services/OpenData/Planning/MapServer" target="_blank" rel="noreferrer">source layer ↗</a>
             <a href="https://city-tampa.opendata.arcgis.com/" target="_blank" rel="noreferrer">Tampa open data ↗</a></p>
           <div className="devco" id="devco"><p className="spin">loading from the city&#39;s ArcGIS…</p></div>
+
+          <h2 style={{ marginTop: "1rem" }}>Events — this weekend</h2>
+          <p className="portal"><a href="https://community.cltampa.com/tampa/EventSearch?narrowByDate=This+Weekend&sortType=date&v=d" target="_blank" rel="noreferrer">CL calendar ↗</a></p>
+          {events._error ? <p className="err">unavailable: {String(events._error)}</p> : null}
+          {events._stale ? <p className="err stale">showing cached copy</p> : null}
+          {(((events.items as EventItem[]) ?? []).slice(0, 15)).map((e, i) => (
+            <div className="row" key={i}>
+              <a href={e.url} target="_blank" rel="noreferrer">{watchHit(e.title + " " + e.where) ? <mark>{e.title}</mark> : e.title}</a>
+              {(e.when || e.where) ? <span className="muted"> · {[e.when, e.where].filter(Boolean).join(" · ")}</span> : null}
+            </div>
+          ))}
 
           <h2 style={{ marginTop: "1rem" }}>Deeds — last {DEED_DAYS} days, Hillsborough Clerk ({rows.length})</h2>
           {deeds._error ? <p className="err">unavailable: {String(deeds._error)}</p> : null}
@@ -361,6 +384,41 @@ function initTrib(){
     }
     return L.esri.dynamicMapLayer({ url: __TRIB.gis.base, layers: [meta.id], opacity: .55 });
   }
+  var WATCH = ["Ybor", "Kennedy Blvd", "Rome Ave", "Armature Works"];
+  function markWatch(t) {
+    var out = escHtml(t);
+    WATCH.forEach(function (w) {
+      var i = out.toLowerCase().indexOf(w.toLowerCase());
+      if (i >= 0) out = out.slice(0, i) + '<mark>' + out.slice(i, i + w.length) + '</mark>' + out.slice(i + w.length);
+    });
+    return out;
+  }
+  function wireAgendaRows() {
+    document.querySelectorAll('.row.agx').forEach(function (r) {
+      if (r.dataset.agwired) return; r.dataset.agwired = '1';
+      r.addEventListener('click', function (ev) {
+        if (ev.target.closest('a')) return; // the ↗ still opens the source
+        var box = r.querySelector('.agitems');
+        if (!box.classList.contains('hid')) { box.classList.add('hid'); return; }
+        box.classList.remove('hid');
+        if (box.dataset.loaded) return;
+        box.dataset.loaded = '1';
+        box.innerHTML = '<p class="spin">loading agenda…</p>';
+        fetch('/trib/agenda?url=' + encodeURIComponent(r.dataset.agurl))
+          .then(function (x) { return x.json(); })
+          .then(function (j) {
+            if (j.error) { box.innerHTML = '<p class="err">' + escHtml(j.error) + '</p>'; return; }
+            if (!j.items || !j.items.length) { box.innerHTML = '<p class="muted">' + escHtml(j.note || 'No items found.') + '</p>'; return; }
+            box.innerHTML = j.items.map(function (it) {
+              return '<div class="ai">' + (it.num ? '<span class="n">' + escHtml(it.num) + '</span>' : '') + markWatch(it.text) + '</div>';
+            }).join('');
+          })
+          .catch(function () { box.innerHTML = '<p class="err">agenda fetch failed</p>'; });
+      });
+    });
+  }
+  wireAgendaRows();
+
   function wireChip(cb) {
     if (!cb || cb.dataset.wired) return; cb.dataset.wired = '1';
     cb.addEventListener('change', function () {

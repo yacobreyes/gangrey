@@ -1,6 +1,6 @@
 // tampatrib: fetch + cache + radar helpers, ported from the original PHP
 // sub-site. Server-side only.
-import { WATCHLIST, BIG_SALE, NOMINAL_MAX, DEED_DAYS, CACHE_TTL } from "@/app/trib/config";
+import { WATCHLIST, BIG_SALE, NOMINAL_MAX, DEED_DAYS, CACHE_TTL, EVENTS_URL } from "@/app/trib/config";
 
 const UA = "Mozilla/5.0 (Macintosh) tampatrib-subsite/1.0";
 
@@ -328,4 +328,97 @@ export async function fetchDevCoord(): Promise<{ items: Record<string, unknown>[
   const items = (j.features ?? []).map((f: { attributes: Record<string, unknown> }) => f.attributes);
   const fields = (j.fields ?? []).map((f: { name: string }) => f.name);
   return { items, fields };
+}
+
+// ---- agenda parsing -----------------------------------------------------
+// Turns a meeting page into inline agenda items so the rail can SHOW the
+// agenda rather than link to it. Two passes: an OnBase AgendaOnline shape
+// (item rows in tables/divs with an item number), then a generic pass
+// (list items and paragraph-ish rows), keeping whichever reads best.
+export type AgendaItem = { num: string; text: string };
+
+const strip2 = (h: string) => h
+  .replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, " ")
+  .replace(/<[^>]+>/g, " ")
+  .replace(/&amp;/g, "&").replace(/&nbsp;/gi, " ").replace(/&#\d+;|&[a-z]+;/gi, " ")
+  .replace(/\s+/g, " ").trim();
+
+export async function parseAgendaPage(url: string): Promise<{ title: string; items: AgendaItem[]; note?: string }> {
+  const html = await http(url, { headers: {
+    "Accept": "text/html,application/xhtml+xml",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
+  }});
+  const title = strip2((html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? ""));
+  const items: AgendaItem[] = [];
+  const push = (num: string, text: string) => {
+    const t = text.trim();
+    if (t.length < 8 || t.length > 1200) return;
+    if (items.some(i => i.text === t)) return;
+    items.push({ num, text: t });
+  };
+
+  // Pass 1: OnBase-ish — table rows whose first cell looks like an item number.
+  for (const row of html.match(/<tr[\s\S]*?<\/tr>/gi) ?? []) {
+    const cells = (row.match(/<t[dh][\s\S]*?<\/t[dh]>/gi) ?? []).map(strip2);
+    if (cells.length < 2) continue;
+    const num = cells[0];
+    if (!/^[A-Z]?[0-9]{1,3}[.):]?$|^[IVXLC]+\.?$|^[A-Z]\.?$/.test(num)) continue;
+    push(num.replace(/[.):]$/, ""), cells.slice(1).join(" — "));
+    if (items.length >= 200) break;
+  }
+
+  // Pass 2 (only if pass 1 found little): list items and agenda-item divs.
+  if (items.length < 3) {
+    for (const li of html.match(/<li[\s\S]*?<\/li>/gi) ?? []) {
+      const t = strip2(li);
+      if (/agenda|resolution|ordinance|approv|public hearing|contract|rezon|variance|budget/i.test(t)) push("", t);
+      if (items.length >= 120) break;
+    }
+  }
+  if (items.length < 3) {
+    for (const div of html.match(/<(?:div|p)[^>]*class="[^"]*(?:item|agenda)[^"]*"[^>]*>[\s\S]*?<\/(?:div|p)>/gi) ?? []) {
+      push("", strip2(div));
+      if (items.length >= 120) break;
+    }
+  }
+
+  return {
+    title,
+    items,
+    ...(items.length === 0 ? { note: "No agenda items recognized on that page; it may be a PDF or an app view." } : {}),
+  };
+}
+
+// ---- events wall (Creative Loafing community calendar) ------------------
+// The EventSearch page is server-rendered Foundation markup: each event is an
+// anchor to community.cltampa.com/event/<slug>-<id>. Title comes from the
+// anchor text or the card image alt; date/venue best-effort from the card.
+export type EventItem = { title: string; url: string; when: string; where: string };
+
+export async function fetchEvents(): Promise<{ items: EventItem[] }> {
+  const html = await http(EVENTS_URL, { headers: {
+    "Accept": "text/html",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
+  }});
+  const items: EventItem[] = [];
+  const seen = new Set<string>();
+  const re = /<a[^>]+href="(https:\/\/community\.cltampa\.com\/event\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) && items.length < 40) {
+    const url = m[1].split("?")[0];
+    const id = url.match(/-(\d+)$/)?.[1] ?? url;
+    if (seen.has(id)) continue;
+    const inner = m[2];
+    let title = strip(inner);
+    if (!title) title = strip(inner.match(/alt="(?:Image: )?([^"]+)"/i)?.[1] ?? "");
+    if (!title || /^canceled/i.test(title)) continue;
+    seen.add(id);
+    // Look around the anchor for the card's date/venue lines.
+    const ctx = strip(html.slice(m.index, Math.min(html.length, m.index + 1600)));
+    const when = ctx.match(/\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*\.?,?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z.]*\s+\d{1,2}[^|<]{0,28}/i)?.[0]?.trim() ?? "";
+    const where = ctx.match(/\bat\s+([A-Z][^.|]{2,60}?)(?:\s{2}|\s·|$)/)?.[1]?.trim() ?? "";
+    items.push({ title: title.slice(0, 140), url, when, where });
+  }
+  if (items.length === 0) throw new Error("no events parsed");
+  return { items };
 }
