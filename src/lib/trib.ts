@@ -174,3 +174,86 @@ export function deedBadges(d: DeedRow): [string, string][] {
   if (w) b.push([`🚩 ${w}`, "flag"]);
   return b;
 }
+
+// ---- meetings ----------------------------------------------------------
+// Tampa City Council: OnBase Agenda Online (tampa.gov/agendas redirects
+// here). Hillsborough BOCC: the county's agendas page. Both are HTML scrapes
+// with generous parsing and stale-on-error caching; when a scrape yields
+// nothing the UI still shows the always-working portal links.
+export type MeetingItem = { title: string; date: string; url: string };
+
+const strip = (h: string) => h.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#\d+;|&[a-z]+;/gi, " ").replace(/\s+/g, " ").trim();
+
+export async function fetchTampaMeetings(): Promise<{ items: MeetingItem[] }> {
+  const base = "https://tampagov.hylandcloud.com/221agendaonline";
+  const html = await http(`${base}/Meetings`);
+  const items: MeetingItem[] = [];
+  const re = /<a[^>]+href="([^"]*ViewMeeting[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) && items.length < 12) {
+    const title = strip(m[2]);
+    if (!title) continue;
+    // Date rides in the title or the surrounding row on OnBase listings.
+    const ctx = html.slice(Math.max(0, m.index - 400), m.index + 400);
+    const dm = (title.match(/\d{1,2}\/\d{1,2}\/\d{4}/) ?? ctx.match(/\d{1,2}\/\d{1,2}\/\d{4}/));
+    const url = m[1].startsWith("http") ? m[1] : base + (m[1].startsWith("/") ? "" : "/") + m[1].replace(/^\.\//, "");
+    if (items.some(i => i.url === url)) continue;
+    items.push({ title, date: dm?.[0] ?? "", url });
+  }
+  if (items.length === 0) throw new Error("no meetings parsed");
+  return { items };
+}
+
+export async function fetchBoccMeetings(): Promise<{ items: MeetingItem[] }> {
+  const html = await http("https://hcfl.gov/government/meeting-information/agendas-recaps-and-minutes");
+  const items: MeetingItem[] = [];
+  const re = /<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) && items.length < 12) {
+    const title = strip(m[2]);
+    const href = m[1];
+    if (!/agenda/i.test(title + " " + href)) continue;
+    if (/^#|mailto:/.test(href)) continue;
+    const url = href.startsWith("http") ? href : "https://hcfl.gov" + (href.startsWith("/") ? href : "/" + href);
+    if (items.some(i => i.url === url)) continue;
+    const dm = title.match(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z.]*\s+\d{1,2},?\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{2,4}/i);
+    items.push({ title, date: dm?.[0] ?? "", url });
+  }
+  if (items.length === 0) throw new Error("no agendas parsed");
+  return { items };
+}
+
+// ---- deed drill-down ---------------------------------------------------
+// Other documents recorded for the same party name at the Clerk, so a deed on
+// the radar can be chased without leaving the site. Same Search endpoint as
+// the deeds pull, searched by name across all doc types.
+export async function clerkPartySearch(name: string, years = 5): Promise<{ rows: DeedRow[] }> {
+  const fmt = (d: Date) => `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
+  const begin = new Date(); begin.setFullYear(begin.getFullYear() - years);
+  const body = await http("https://publicaccess.hillsclerk.com/Public/ORIUtilities/DocumentSearch/api/Search", {
+    json: {
+      Name: name,
+      RecordDateBegin: fmt(begin),
+      RecordDateEnd: fmt(new Date()),
+    },
+    headers: {
+      "X-Requested-With": "XMLHttpRequest",
+      "Origin": "https://publicaccess.hillsclerk.com",
+      "Referer": "https://publicaccess.hillsclerk.com/oripublicaccess/",
+      "Accept": "application/json, text/javascript, */*; q=0.01",
+    },
+  });
+  const j = JSON.parse(body);
+  if (!j?.Success) throw new Error(j?.ErrorMessage || "Clerk API error");
+  const rows: DeedRow[] = (j.ResultList ?? []).slice(0, 40).map((r: Record<string, unknown>) => ({
+    instrument: String(r.Instrument ?? ""),
+    date: r.RecordDate ? new Date(Number(r.RecordDate)).toISOString().slice(0, 10) : "",
+    from: ((r.PartiesOne as string[]) ?? []).join("; "),
+    to: ((r.PartiesTwo as string[]) ?? []).join("; "),
+    price: Number(r.SalesPrice ?? 0),
+    legal: String(r.Legal ?? ""),
+    docType: String((r as Record<string, unknown>).DocType ?? (r as Record<string, unknown>).DocTypeDescription ?? ""),
+  } as DeedRow & { docType?: string }));
+  rows.sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
+  return { rows };
+}

@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/adminAuth";
 import {
-  cached, fetchDeeds, fetchNws, geolocateDeeds, deedBadges,
-  type DeedRow, type NwsAlert,
+  cached, fetchDeeds, fetchNws, geolocateDeeds, deedBadges, watchHit,
+  fetchTampaMeetings, fetchBoccMeetings,
+  type DeedRow, type NwsAlert, type MeetingItem,
 } from "@/lib/trib";
 import { DEED_DAYS, CACHE_TTL } from "./config";
 
@@ -56,6 +57,20 @@ const CSS = `
  a{color:inherit}.hid{display:none}
  footer.trib{padding:.5rem 1rem;color:var(--muted);font-size:.78rem;border-top:1px solid var(--line)}
  .leaflet-container{background:#dbe4ec}
+ .mtg .date{color:var(--muted);font-size:.82rem;min-width:5.4rem;display:inline-block}
+ .portal{font-size:.82rem;color:var(--muted);margin:.2rem 0 .6rem}
+ .portal a{margin-right:.8rem}
+ #drawer{position:fixed;top:0;right:0;bottom:0;width:min(480px,95vw);background:var(--card);border-left:1px solid var(--line);
+   box-shadow:-8px 0 30px rgba(0,0,0,.25);transform:translateX(102%);transition:transform .2s;z-index:1000;display:flex;flex-direction:column}
+ #drawer.open{transform:none}
+ #drawer .dhead{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1rem;border-bottom:1px solid var(--line)}
+ #drawer .dbody{padding:.8rem 1rem;overflow:auto}
+ #drawer h3{margin:.2rem 0 .4rem;font-size:1rem}
+ #drawer .links a{display:inline-block;margin:.15rem .6rem .15rem 0;color:var(--accent)}
+ #drawer button.x{background:none;border:0;color:var(--muted);font-size:1.3rem;cursor:pointer}
+ #drawer .party{margin:.7rem 0 .2rem;font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+ #drawer .hist .row{font-size:.85rem}
+ .spin{color:var(--muted);font-size:.85rem}
 `;
 
 export default async function TribPage({ searchParams }: { searchParams: Promise<{ force?: string }> }) {
@@ -64,9 +79,11 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   const force = sp.force === "1";
 
-  const [deeds, nws] = await Promise.all([
+  const [deeds, nws, tampaMtgs, boccMtgs] = await Promise.all([
     cached("deeds", fetchDeeds as unknown as () => Promise<Record<string, unknown>>, force),
     cached("nws", fetchNws as unknown as () => Promise<Record<string, unknown>>, force),
+    cached("mtg_tampa", fetchTampaMeetings as unknown as () => Promise<Record<string, unknown>>, force),
+    cached("mtg_bocc", fetchBoccMeetings as unknown as () => Promise<Record<string, unknown>>, force),
   ]);
   const rows = (deeds.rows as DeedRow[]) ?? [];
   const alerts = (nws.items as NwsAlert[]) ?? [];
@@ -107,7 +124,26 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
             <div className="alert" key={i}><strong>{a.event}</strong>{" "}
               <span style={{ color: "#fecaca" }}>{a.headline}</span></div>
           ))}
-          <h2>Deeds — last {DEED_DAYS} days, Hillsborough Clerk ({rows.length})</h2>
+          <h2>Meetings — Tampa City Council</h2>
+          <p className="portal"><a href="https://tampagov.hylandcloud.com/221agendaonline/Meetings" target="_blank" rel="noreferrer">agenda portal ↗</a>
+            <a href="https://www.tampa.gov/city-council" target="_blank" rel="noreferrer">council ↗</a></p>
+          {tampaMtgs._error ? <p className="err">unavailable: {String(tampaMtgs._error)}</p> : null}
+          {((tampaMtgs.items as MeetingItem[]) ?? []).map((m, i) => (
+            <div className="row mtg" key={i}><span className="date">{m.date}</span>
+              <a href={m.url} target="_blank" rel="noreferrer">{watchHit(m.title) ? <mark>{m.title}</mark> : m.title}</a></div>
+          ))}
+
+          <h2 style={{ marginTop: "1rem" }}>Meetings — Hillsborough BOCC</h2>
+          <p className="portal"><a href="https://hcfl.gov/government/meeting-information/agendas-recaps-and-minutes" target="_blank" rel="noreferrer">agendas ↗</a>
+            <a href="https://hcfl.gov/government/board-of-county-commissioners/bocc-meeting-schedule" target="_blank" rel="noreferrer">schedule ↗</a>
+            <a href="https://www.hillsclerk.com/records-and-reports/bocc" target="_blank" rel="noreferrer">board records ↗</a></p>
+          {boccMtgs._error ? <p className="err">unavailable: {String(boccMtgs._error)}</p> : null}
+          {((boccMtgs.items as MeetingItem[]) ?? []).map((m, i) => (
+            <div className="row mtg" key={i}><span className="date">{m.date}</span>
+              <a href={m.url} target="_blank" rel="noreferrer">{watchHit(m.title) ? <mark>{m.title}</mark> : m.title}</a></div>
+          ))}
+
+          <h2 style={{ marginTop: "1rem" }}>Deeds — last {DEED_DAYS} days, Hillsborough Clerk ({rows.length})</h2>
           {deeds._error ? <p className="err">unavailable: {String(deeds._error)}</p> : null}
           {deeds._stale ? <p className="err stale">showing cached copy (refresh failed: {String(deeds._stale)})</p> : null}
           {mapData.deeds.map(d => (
@@ -126,6 +162,11 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
 
       <footer className="trib">Deeds: Hillsborough Clerk official records, plotted by subdivision (best effort — unplotted deeds are list-only).
         {" "}Alerts: NWS, Hillsborough/Tampa. Cache {Math.round(CACHE_TTL / 60)} min; page reloads every 15.</footer>
+
+      <div id="drawer" aria-hidden="true">
+        <div className="dhead"><strong>Deed detail</strong><button className="x" id="dclose" aria-label="close">×</button></div>
+        <div className="dbody" id="dbody" />
+      </div>
 
       <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" />
       <script dangerouslySetInnerHTML={{ __html: `
@@ -151,11 +192,64 @@ window.__TRIB = ${JSON.stringify(mapData)};
     L.geoJSON(a.geometry, { style: { color: '#b91c1c', weight: 2, fillOpacity: .12 } })
       .bindPopup('<b>' + a.event + '</b><br>' + a.headline).addTo(map);
   }
-  document.querySelectorAll('.row.loc').forEach(function (r) {
-    r.addEventListener('click', function () {
-      var m = markers[r.dataset.deed];
-      if (m) { map.flyTo(m.getLatLng(), 14, { duration: .6 }); m.openPopup(); }
-    });
+  // ---- deed drawer: click any deed for in-site drill-down ----
+  var byId = {};
+  __TRIB.deeds.forEach(function (d) { byId[d.id] = d; });
+  var drawer = document.getElementById('drawer');
+  var dbody = document.getElementById('dbody');
+  document.getElementById('dclose').addEventListener('click', function () { drawer.classList.remove('open'); });
+
+  function escHtml(x) { return String(x ?? '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function partyLinks(name) {
+    var q = encodeURIComponent(name);
+    var out = '<a href="https://publicaccess.hillsclerk.com/oripublicaccess/" target="_blank" rel="noreferrer">Clerk records ↗</a>' +
+      '<a href="https://gis.hcpafl.org/propertysearch/#/search/basic" target="_blank" rel="noreferrer">Property Appraiser ↗</a>';
+    if (/\b(LLC|L\.L\.C|CORP|INC|TRUST|LP|HOLDINGS?)\b/i.test(name))
+      out += '<a href="https://search.sunbiz.org/Inquiry/CorporationSearch/ByName?searchTerm=' + q + '" target="_blank" rel="noreferrer">Sunbiz entity ↗</a>';
+    return out;
+  }
+  function histHtml(rows) {
+    if (!rows.length) return '<p class="muted">No other records found.</p>';
+    return '<div class="hist">' + rows.map(function (r) {
+      return '<div class="row"><span class="muted">' + escHtml(r.date) + '</span> ' +
+        (r.docType ? '<strong>' + escHtml(r.docType) + '</strong> · ' : '') +
+        (r.price ? '$' + Number(r.price).toLocaleString('en-US') + ' · ' : '') +
+        escHtml(r.from) + ' → ' + escHtml(r.to) +
+        (r.legal ? ' <span class="muted">· ' + escHtml(r.legal) + '</span>' : '') + '</div>';
+    }).join('') + '</div>';
+  }
+  function loadParty(el, name) {
+    el.innerHTML = '<p class="spin">searching Clerk records for ' + escHtml(name) + '…</p>';
+    fetch('/trib/lookup?name=' + encodeURIComponent(name))
+      .then(function (r) { return r.json(); })
+      .then(function (j) { el.innerHTML = j.error ? '<p class="err">lookup failed: ' + escHtml(j.error) + '</p>' : histHtml(j.rows || []); })
+      .catch(function () { el.innerHTML = '<p class="err">lookup failed</p>'; });
+  }
+  function openDrawer(id) {
+    var d = byId[id];
+    if (!d) return;
+    var firstBuyer = (d.to || '').split(';')[0].trim();
+    var firstSeller = (d.from || '').split(';')[0].trim();
+    dbody.innerHTML =
+      '<h3>$' + Number(d.price).toLocaleString('en-US') + ' · ' + escHtml(d.date) + '</h3>' +
+      '<p>' + escHtml(d.from) + ' <strong>→</strong> ' + escHtml(d.to) + '</p>' +
+      (d.legal ? '<p class="muted">' + escHtml(d.legal) + '</p>' : '') +
+      '<p class="muted">Instrument #' + escHtml(d.id) + '</p>' +
+      '<div class="links">' + partyLinks(d.to || '') + '</div>' +
+      (firstBuyer ? '<div class="party">Buyer history — ' + escHtml(firstBuyer) + '</div><div id="hb"></div>' : '') +
+      (firstSeller ? '<div class="party">Seller history — ' + escHtml(firstSeller) + '</div><div id="hs"></div>' : '');
+    drawer.classList.add('open');
+    if (firstBuyer) loadParty(document.getElementById('hb'), firstBuyer);
+    if (firstSeller) loadParty(document.getElementById('hs'), firstSeller);
+    var m = markers[id];
+    if (m) { map.flyTo(m.getLatLng(), 14, { duration: .6 }); m.openPopup(); }
+  }
+  document.querySelectorAll('.row.deed').forEach(function (r) {
+    r.classList.add('loc');
+    r.addEventListener('click', function () { openDrawer(r.dataset.deed); });
+  });
+  Object.keys(markers).forEach(function (id) {
+    markers[id].on('click', function () { openDrawer(id); });
   });
   document.getElementById('q').addEventListener('input', function (e) {
     var q = e.target.value.toLowerCase();
