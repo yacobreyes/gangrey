@@ -185,49 +185,87 @@ export type MeetingItem = { title: string; date: string; url: string };
 const strip = (h: string) => h.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&#\d+;|&[a-z]+;/gi, " ").replace(/\s+/g, " ").trim();
 
 export async function fetchTampaMeetings(): Promise<{ items: MeetingItem[] }> {
-  const base = "https://tampagov.hylandcloud.com/221agendaonline";
-  // The instance 404s on /Meetings (verified live); probe the known OnBase
-  // AgendaOnline shapes and use the first page that answers with meetings.
-  let html = "";
-  const tries = [`${base}/Meetings`, `${base}/OnBaseAgendaOnline/Meetings`, base, `${base}/Meetings/Search?dropid=4&mtids=all`];
-  let lastErr = "";
-  for (const u of tries) {
-    try { html = await http(u); if (/ViewMeeting/i.test(html)) break; } catch (e) { lastErr = e instanceof Error ? e.message : String(e); }
-  }
-  if (!/ViewMeeting/i.test(html)) throw new Error(lastErr || "no meetings page found");
+  // Fetch from tampa.gov, NOT the OnBase portal: the city's own site answers
+  // our server while tampagov.hylandcloud.com does not. These Drupal pages
+  // list council meetings as /events/... links with dates, and link the
+  // agenda documents themselves.
+  const pages = [
+    "https://www.tampa.gov/calendar-group/city-council-meetings",
+    "https://www.tampa.gov/city-council/info/agendas",
+    "https://www.tampa.gov/service/city-council-final-agendas",
+  ];
   const items: MeetingItem[] = [];
-  const re = /<a[^>]+href="([^"]*ViewMeeting[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(html)) && items.length < 12) {
-    const title = strip(m[2]);
-    if (!title) continue;
-    // Date rides in the title or the surrounding row on OnBase listings.
-    const ctx = html.slice(Math.max(0, m.index - 400), m.index + 400);
-    const dm = (title.match(/\d{1,2}\/\d{1,2}\/\d{4}/) ?? ctx.match(/\d{1,2}\/\d{1,2}\/\d{4}/));
-    const url = m[1].startsWith("http") ? m[1] : base + (m[1].startsWith("/") ? "" : "/") + m[1].replace(/^\.\//, "");
-    if (items.some(i => i.url === url)) continue;
-    items.push({ title, date: dm?.[0] ?? "", url });
+  const seen = new Set<string>();
+  let lastErr = "";
+
+  for (const page of pages) {
+    if (items.length >= 12) break;
+    let html = "";
+    try {
+      html = await http(page, { headers: {
+        Accept: "text/html",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/126 Safari/537.36",
+      }});
+    } catch (e) { lastErr = e instanceof Error ? e.message : String(e); continue; }
+
+    // Event pages and any linked agenda documents.
+    const re = /<a[^>]+href="([^"]*(?:\/events\/[^"]*|\.pdf))"[^>]*>([\s\S]*?)<\/a>/gi;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(html)) && items.length < 12) {
+      const href = m[1];
+      const title = strip(m[2]);
+      if (!title || title.length < 4) continue;
+      if (!/council|agenda|workshop|hearing|meeting/i.test(title + " " + href)) continue;
+      const url = href.startsWith("http") ? href : new URL(href, page).toString();
+      if (seen.has(url)) continue;
+      seen.add(url);
+      // A date in the title, or in the markup around the link.
+      const ctx = strip(html.slice(Math.max(0, m.index - 500), m.index + 300));
+      const dm = title.match(/\d{1,2}\/\d{1,2}\/\d{2,4}/)
+        ?? ctx.match(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}/i)
+        ?? ctx.match(/\d{1,2}\/\d{1,2}\/\d{2,4}/);
+      items.push({ title: title.slice(0, 140), date: dm?.[0] ?? "", url });
+    }
   }
-  if (items.length === 0) throw new Error("no meetings parsed");
+  if (items.length === 0) throw new Error(lastErr || "no council meetings found on tampa.gov");
   return { items };
 }
 
 export async function fetchBoccMeetings(): Promise<{ items: MeetingItem[] }> {
-  const html = await http("https://hcfl.gov/government/meeting-information/agendas-recaps-and-minutes");
+  const pages = [
+    "https://hcfl.gov/government/meeting-information/agendas-recaps-and-minutes",
+    "https://hcfl.gov/government/board-of-county-commissioners/bocc-meeting-schedule",
+    "https://hcfl.gov/events/bocc",
+  ];
   const items: MeetingItem[] = [];
-  const re = /<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(html)) && items.length < 12) {
-    const title = strip(m[2]);
-    const href = m[1];
-    if (!/agenda/i.test(title + " " + href)) continue;
-    if (/^#|mailto:/.test(href)) continue;
-    const url = href.startsWith("http") ? href : "https://hcfl.gov" + (href.startsWith("/") ? href : "/" + href);
-    if (items.some(i => i.url === url)) continue;
-    const dm = title.match(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z.]*\s+\d{1,2},?\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{2,4}/i);
-    items.push({ title, date: dm?.[0] ?? "", url });
+  const seen = new Set<string>();
+  let lastErr = "";
+
+  for (const page of pages) {
+    if (items.length >= 12) break;
+    let html = "";
+    try { html = await http(page, { headers: { Accept: "text/html", "User-Agent": "Mozilla/5.0 (Macintosh) Chrome/126 Safari/537.36" } }); }
+    catch (e) { lastErr = e instanceof Error ? e.message : String(e); continue; }
+
+    const re = /<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(html)) && items.length < 12) {
+      const href = m[1];
+      const title = strip(m[2]);
+      if (!title || /^#|mailto:/.test(href)) continue;
+      const dateRe = /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z.]*\s+\d{1,2},?\s+\d{4}\b|\b\d{1,2}\/\d{1,2}\/\d{2,4}\b|\b\d{4}-\d{2}-\d{2}\b/i;
+      // A real agenda entry carries a DATE. Bare category links ("Land Use
+      // Agendas", "Workshop Agendas") do not, and were what filled this list.
+      const dm = title.match(dateRe) ?? href.match(dateRe);
+      if (!dm) continue;
+      if (!/agenda|meeting|bocc|commission|hearing|workshop/i.test(title + " " + href)) continue;
+      const url = href.startsWith("http") ? href : "https://hcfl.gov" + (href.startsWith("/") ? href : "/" + href);
+      if (seen.has(url)) continue;
+      seen.add(url);
+      items.push({ title: title.slice(0, 140), date: dm[0], url });
+    }
   }
-  if (items.length === 0) throw new Error("no agendas parsed");
+  if (items.length === 0) throw new Error(lastErr || "no dated BOCC agendas found");
   return { items };
 }
 
