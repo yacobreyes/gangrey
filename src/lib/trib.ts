@@ -1,6 +1,6 @@
 // tampatrib: fetch + cache + radar helpers, ported from the original PHP
 // sub-site. Server-side only.
-import { WATCHLIST, BIG_SALE, NOMINAL_MAX, DEED_DAYS, CACHE_TTL, EVENTS_URL } from "@/app/trib/config";
+import { WATCHLIST, BIG_SALE, NOMINAL_MAX, DEED_DAYS, CACHE_TTL, EVENTS_URL, DISTRESS_DOCTYPE_CANDIDATES, WARN_URLS } from "@/app/trib/config";
 
 const UA = "Mozilla/5.0 (Macintosh) tampatrib-subsite/1.0";
 
@@ -420,5 +420,72 @@ export async function fetchEvents(): Promise<{ items: EventItem[] }> {
     items.push({ title: title.slice(0, 140), url, when, where });
   }
   if (items.length === 0) throw new Error("no events parsed");
+  return { items };
+}
+
+// ---- distress radar (lis pendens / foreclosure filings) -----------------
+// Same Clerk Search API as the deeds pull. A lis pendens is the first public
+// paper of a foreclosure or property fight: an early-warning list.
+async function clerkSearchByTypes(docTypes: string[], days: number): Promise<DeedRow[]> {
+  const fmt = (d: Date) => `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
+  const begin = new Date(Date.now() - days * 86400_000);
+  const body = await http("https://publicaccess.hillsclerk.com/Public/ORIUtilities/DocumentSearch/api/Search", {
+    json: { DocType: docTypes, RecordDateBegin: fmt(begin), RecordDateEnd: fmt(new Date()) },
+    headers: {
+      "X-Requested-With": "XMLHttpRequest",
+      "Origin": "https://publicaccess.hillsclerk.com",
+      "Referer": "https://publicaccess.hillsclerk.com/oripublicaccess/",
+      "Accept": "application/json, text/javascript, */*; q=0.01",
+    },
+  });
+  const j = JSON.parse(body);
+  if (!j?.Success) throw new Error(j?.ErrorMessage || "Clerk API error");
+  return (j.ResultList ?? []).map((r: Record<string, unknown>) => ({
+    instrument: String(r.Instrument ?? ""),
+    date: r.RecordDate ? new Date(Number(r.RecordDate)).toISOString().slice(0, 10) : "",
+    from: ((r.PartiesOne as string[]) ?? []).join("; "),
+    to: ((r.PartiesTwo as string[]) ?? []).join("; "),
+    price: Number(r.SalesPrice ?? 0),
+    legal: String(r.Legal ?? ""),
+  }));
+}
+
+let distressWinner: string[] | null = null;
+export async function fetchDistress(): Promise<{ rows: DeedRow[]; docTypes: string[] }> {
+  const tries = distressWinner ? [distressWinner] : DISTRESS_DOCTYPE_CANDIDATES;
+  let lastErr = "no candidates";
+  for (const dt of tries) {
+    try {
+      const rows = await clerkSearchByTypes(dt, DEED_DAYS);
+      distressWinner = dt;
+      rows.sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
+      return { rows: rows.slice(0, 60), docTypes: dt };
+    } catch (e) { lastErr = e instanceof Error ? e.message : String(e); }
+  }
+  throw new Error(lastErr);
+}
+
+// ---- WARN notices (layoffs) ---------------------------------------------
+export type WarnRow = { company: string; county: string; employees: string; date: string };
+
+export async function fetchWarn(): Promise<{ items: WarnRow[] }> {
+  let html = "", lastErr = "";
+  for (const u of WARN_URLS) {
+    try { html = await http(u, { headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/126 Safari/537.36", Accept: "text/html" } }); break; }
+    catch (e) { lastErr = e instanceof Error ? e.message : String(e); }
+  }
+  if (!html) throw new Error(lastErr || "WARN page unreachable");
+  const items: WarnRow[] = [];
+  for (const row of html.match(/<tr[\s\S]*?<\/tr>/gi) ?? []) {
+    const cells = (row.match(/<t[dh][\s\S]*?<\/t[dh]>/gi) ?? []).map(strip);
+    if (cells.length < 3) continue;
+    const joined = cells.join(" | ");
+    if (!/hillsborough|tampa/i.test(joined)) continue;
+    const date = joined.match(/\d{1,2}\/\d{1,2}\/\d{2,4}/)?.[0] ?? "";
+    const employees = cells.find(c => /^\d{1,5}$/.test(c)) ?? "";
+    items.push({ company: cells[0], county: "Hillsborough", employees, date });
+    if (items.length >= 25) break;
+  }
+  if (items.length === 0) throw new Error("no Hillsborough rows parsed from WARN page");
   return { items };
 }

@@ -19,3 +19,18 @@ export const CACHE_TTL = 1200; // seconds before a feed refetches (20 min)
 // Events wall: Creative Loafing's community calendar search (server-rendered).
 // Swap the narrowByDate for "Today" / "Next 7 Days" etc. if you prefer.
 export const EVENTS_URL = "https://community.cltampa.com/tampa/EventSearch?narrowByDate=This+Weekend&sortType=date&v=d";
+
+// Distress radar: Clerk doc types for pre-foreclosure/foreclosure activity.
+// The Clerk's API wants its exact labels; candidates are tried in order until
+// one answers with rows, and the winner is remembered for the process life.
+export const DISTRESS_DOCTYPE_CANDIDATES: string[][] = [
+  ["(LP) LIS PENDENS"],
+  ["LIS PENDENS"],
+  ["(LP) LIS PENDENS", "(JUD) JUDGMENT"],
+];
+
+// WARN layoff notices (FloridaCommerce). Probed in order.
+export const WARN_URLS: string[] = [
+  "https://floridajobs.org/office-directory/division-of-workforce-services/workforce-programs/reemployment-and-emergency-assistance-coordination-team-react/warn-notices",
+  "https://www.floridajobs.org/office-directory/division-of-workforce-services/workforce-programs/reemployment-and-emergency-assistance-coordination-team-react/warn-notices",
+];

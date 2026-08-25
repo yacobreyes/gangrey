@@ -4,7 +4,8 @@ import { getCurrentUser } from "@/lib/adminAuth";
 import {
   cached, fetchDeeds, fetchNws, geolocateDeeds, deedBadges, watchHit,
   fetchTampaMeetings, fetchBoccMeetings, discoverPlanningLayers, fetchDevCoord, fetchEvents,
-  type DeedRow, type NwsAlert, type MeetingItem, type GisLayer, type EventItem,
+  fetchDistress, fetchWarn,
+  type DeedRow, type NwsAlert, type MeetingItem, type GisLayer, type EventItem, type WarnRow,
 } from "@/lib/trib";
 import { DEED_DAYS, CACHE_TTL } from "./config";
 
@@ -100,6 +101,8 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
     cached("devcoord", fetchDevCoord as unknown as () => Promise<Record<string, unknown>>, force),
   ]);
   const events = await cached("events", fetchEvents as unknown as () => Promise<Record<string, unknown>>, force);
+  const distress = await cached("distress", fetchDistress as unknown as () => Promise<Record<string, unknown>>, force);
+  const warn = await cached("warn", fetchWarn as unknown as () => Promise<Record<string, unknown>>, force);
   const rows = (deeds.rows as DeedRow[]) ?? [];
   const alerts = (nws.items as NwsAlert[]) ?? [];
   const points = await geolocateDeeds(rows);
@@ -198,6 +201,35 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
                 <span className="muted"> · #{d.id}</span></div>
             </div>
           ))}
+          <h2 style={{ marginTop: "1rem" }}>Distress radar — lis pendens, last {DEED_DAYS} days</h2>
+          <p className="portal muted">First public paper of foreclosures and property fights.</p>
+          {distress._error ? <p className="err">unavailable: {String(distress._error)}</p> : null}
+          {(((distress.rows as DeedRow[]) ?? []).slice(0, 20)).map(d => (
+            <div className="row" key={d.instrument}>
+              <span className="muted">{d.date}</span>{" "}
+              {watchHit(`${d.from} ${d.to} ${d.legal}`) ? <mark>{d.from} → {d.to}</mark> : <>{d.from} → {d.to}</>}
+              {d.legal ? <span className="muted"> · {d.legal}</span> : null}
+            </div>
+          ))}
+
+          <h2 style={{ marginTop: "1rem" }}>Layoffs — WARN notices, Hillsborough</h2>
+          <p className="portal"><a href="https://floridajobs.org" target="_blank" rel="noreferrer">FloridaCommerce ↗</a></p>
+          {warn._error ? <p className="err">unavailable: {String(warn._error)}</p> : null}
+          {((warn.items as WarnRow[]) ?? []).map((w, i) => (
+            <div className="row" key={i}><strong>{w.company}</strong>
+              <span className="muted"> · {w.employees ? `${w.employees} employees · ` : ""}{w.date}</span></div>
+          ))}
+
+          <h2 style={{ marginTop: "1rem" }}>Special-event permits — City of Tampa</h2>
+          <p className="portal muted">Street closures and festivals, before they are promoted anywhere.</p>
+          <div id="sep"><p className="spin">searching the city&#39;s open data…</p></div>
+
+          <h2 style={{ marginTop: "1rem" }}>Campaign finance — portals</h2>
+          <p className="portal">
+            <a href="https://www.votehillsborough.gov/CANDIDATES-COMMITTEES/Campaign-Finance-Reports" target="_blank" rel="noreferrer">County SOE reports ↗</a>
+            <a href="https://dos.elections.myflorida.com/campaign-finance/contributions/" target="_blank" rel="noreferrer">State contributions ↗</a>
+            <a href="https://public.ethics.state.fl.us/" target="_blank" rel="noreferrer">Financial disclosures ↗</a>
+          </p>
         </aside>
       </div>
 
@@ -400,6 +432,49 @@ function initTrib(){
   }
   clientDiscover();
   loadDevRecords();
+  // Special-event permits: hunt the city's open-data folder for a layer whose
+  // name says special event / event permit, then list the freshest rows.
+  (function loadSpecialEvents() {
+    var box = document.getElementById('sep');
+    if (!box) return;
+    var ROOT = 'https://arcgis.tampagov.net/arcgis/rest/services/OpenData';
+    fetch(ROOT + '?f=pjson').then(function (r) { return r.json(); }).then(function (dir) {
+      var svcs = (dir.services || []).map(function (x) { return x.name.split('/').pop(); });
+      if (!svcs.length) throw new Error('no services listed');
+      return Promise.all(svcs.map(function (name) {
+        return fetch(ROOT + '/' + name + '/MapServer?f=pjson').then(function (r) { return r.json(); })
+          .then(function (j) { return { name: name, layers: j.layers || [] }; }).catch(function () { return { name: name, layers: [] }; });
+      }));
+    }).then(function (all) {
+      var hit = null;
+      all.forEach(function (svc) {
+        svc.layers.forEach(function (l) {
+          if (!hit && /special\s*event|event\s*permit/i.test(String(l.name || ''))) hit = { svc: svc.name, id: l.id, name: l.name };
+        });
+      });
+      if (!hit) { box.innerHTML = '<p class="muted">No special-events layer found in the city open data services.</p>'; return; }
+      var base = ROOT + '/' + hit.svc + '/MapServer/' + hit.id;
+      return Promise.all([
+        fetch(base + '?f=json').then(function (r) { return r.json(); }),
+        fetch(base + '/query?where=1%3D1&outFields=*&returnGeometry=false&resultRecordCount=25&f=json').then(function (r) { return r.json(); })
+      ]).then(function (res) {
+        var meta = res[0] || {}, j = res[1] || {};
+        var alias = {}; (meta.fields || []).forEach(function (f) { alias[f.name] = f.alias || f.name; });
+        var feats = j.features || [];
+        if (!feats.length) { box.innerHTML = '<p class="muted">Layer "' + escHtml(hit.name) + '" has no current rows.</p>'; return; }
+        box.innerHTML = '<p class="portal muted">source: ' + escHtml(hit.svc + '/' + hit.name) + '</p>' + feats.map(function (f) {
+          var a = f.attributes || {};
+          var ks = Object.keys(a).filter(function (k) { return a[k] !== null && a[k] !== '' && !/objectid|shape|globalid/i.test(k); });
+          var nameK = ks.find(function (k) { return /name|event|title/i.test(k); });
+          var dateK = ks.find(function (k) { return /date|start/i.test(k); });
+          var locK = ks.find(function (k) { return /addr|location|venue|street/i.test(k); });
+          var when = dateK && /^\d{10,13}$/.test(String(a[dateK])) ? new Date(Number(a[dateK])).toISOString().slice(0,10) : (dateK ? String(a[dateK]) : '');
+          return '<div class="row">' + escHtml(String(nameK ? a[nameK] : 'permit')) +
+            '<span class="muted">' + (when ? ' · ' + escHtml(when) : '') + (locK ? ' · ' + escHtml(String(a[locK])) : '') + '</span></div>';
+        }).join('');
+      });
+    }).catch(function (e) { box.innerHTML = '<p class="err">unavailable: ' + escHtml(String(e.message || e)) + '</p>'; });
+  })();
   var gisOverlays = {};
   function gisLayerFor(key) {
     var meta = __TRIB.gis.layers.find(function (l) { return l.key === key; });

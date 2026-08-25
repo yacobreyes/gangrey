@@ -50,6 +50,14 @@ async function runSqlite(): Promise<{ published: number; newslettersSent: number
     notify({ title: "Scheduled work ran", body: parts.join(", "), url: "/admin/imago", tag: "cron-ok" });
   }
 
+  // Reporter-tool watchlist scan rides the same tick, self-gated to hourly.
+  // Best-effort: the publishing pass above must never fail because a public
+  // records feed is down.
+  try {
+    const { runTribWatchScan } = await import("@/lib/tribWatch");
+    await runTribWatchScan();
+  } catch { /* best-effort */ }
+
   return { published: duePosts.length, newslettersSent, ...(newsletterErrors.length ? { newsletterErrors } : {}) };
 }
 
