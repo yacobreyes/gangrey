@@ -30,6 +30,9 @@ const nextConfig: NextConfig = {
     return [
       { source: "/recording", headers: noindex },
       { source: "/recording.html", headers: noindex },
+      // Private reporting tool; also 404s entirely without TRIB_PASSWORD.
+      { source: "/trib", headers: noindex },
+      { source: "/trib/:path*", headers: noindex },
       // Build assets and the feed are not pages, but Google crawls them (it
       // needs the JS to render) and then files them under "Crawled - currently
       // not indexed", which makes an index-coverage validation fail forever on
