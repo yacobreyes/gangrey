@@ -1,6 +1,5 @@
 // tampatrib: fetch + cache + radar helpers, ported from the original PHP
 // sub-site. Server-side only.
-import { XMLParser } from "fast-xml-parser";
 import { WATCHLIST, BIG_SALE, NOMINAL_MAX, DEED_DAYS, CACHE_TTL } from "@/app/trib/config";
 
 const UA = "Mozilla/5.0 (Macintosh) tampatrib-subsite/1.0";
@@ -72,43 +71,8 @@ export async function fetchDeeds(): Promise<{ rows: DeedRow[]; truncated?: unkno
   return { rows, truncated: j.Truncated ?? null };
 }
 
-export type FeedItem = { title: string; url: string; date?: string };
 
-export async function fetchRss(url: string): Promise<{ items: FeedItem[] }> {
-  const xml = await http(url);
-  const parsed = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_" }).parse(xml);
-  // RSS: rss.channel.item[]; Atom: feed.entry[]
-  const raw = parsed?.rss?.channel?.item ?? parsed?.feed?.entry ?? [];
-  const nodes = Array.isArray(raw) ? raw : [raw];
-  const items: FeedItem[] = [];
-  for (const i of nodes) {
-    if (!i) continue;
-    const linkNode = i.link;
-    const link = typeof linkNode === "string" ? linkNode
-      : Array.isArray(linkNode) ? (linkNode.find((l: Record<string, string>) => l?.["@_rel"] !== "self")?.["@_href"] ?? linkNode[0]?.["@_href"] ?? "")
-      : linkNode?.["@_href"] ?? linkNode?.["#text"] ?? "";
-    const title = typeof i.title === "string" ? i.title : i.title?.["#text"] ?? "";
-    items.push({ title: String(title).trim(), url: String(link), date: String(i.pubDate ?? i.updated ?? "") });
-    if (items.length >= 8) break;
-  }
-  if (items.length === 0) throw new Error("unparseable feed");
-  return { items };
-}
-
-export type RedditItem = { title: string; url: string; score: number; comments: number };
-
-export async function fetchReddit(sub: string): Promise<{ items: RedditItem[] }> {
-  const j = JSON.parse(await http(`https://www.reddit.com/r/${sub}/hot.json?limit=10`));
-  const items: RedditItem[] = [];
-  for (const c of j?.data?.children ?? []) {
-    const d = c.data;
-    if (d?.stickied) continue;
-    items.push({ title: d.title, url: `https://reddit.com${d.permalink}`, score: d.score ?? 0, comments: d.num_comments ?? 0 });
-  }
-  return { items };
-}
-
-export type NwsAlert = { event: string; headline: string; severity: string; url: string };
+export type NwsAlert = { event: string; headline: string; severity: string; url: string; geometry?: unknown };
 
 export async function fetchNws(): Promise<{ items: NwsAlert[] }> {
   const j = JSON.parse(await http("https://api.weather.gov/alerts/active?area=FL", {
@@ -117,10 +81,81 @@ export async function fetchNws(): Promise<{ items: NwsAlert[] }> {
   const items: NwsAlert[] = [];
   for (const f of j?.features ?? []) {
     const p = f.properties ?? {};
-    if (!/Hillsborough|Tampa|Pinellas/i.test(p.areaDesc ?? "")) continue;
-    items.push({ event: p.event ?? "", headline: p.headline ?? "", severity: String(p.severity ?? "").toLowerCase(), url: p["@id"] ?? "" });
+    // Hillsborough County (and Tampa) only.
+    if (!/Hillsborough|Tampa/i.test(p.areaDesc ?? "")) continue;
+    items.push({
+      event: p.event ?? "", headline: p.headline ?? "",
+      severity: String(p.severity ?? "").toLowerCase(), url: p["@id"] ?? "",
+      // Real polygon geometry when the alert carries one, for the map.
+      geometry: f.geometry ?? undefined,
+    });
   }
   return { items };
+}
+
+// ---- geocoding ---------------------------------------------------------
+// Clerk deeds carry legal descriptions, not addresses. Best effort: strip the
+// lot/block/unit noise down to the subdivision name and ask OSM's Photon
+// geocoder, biased hard to Hillsborough County. Hits and misses are both
+// cached for a week so each legal costs at most one lookup ever per process.
+const HILLS_BBOX = "-82.82,27.57,-81.95,28.28"; // lon1,lat1,lon2,lat2 around the county
+const geoCache = new Map<string, { at: number; pt: [number, number] | null }>();
+const GEO_TTL = 7 * 86400_000;
+
+function legalToQuery(legal: string): string | null {
+  const q = legal
+    .toUpperCase()
+    .replace(/\b(LOTS?|LT|BLOCKS?|BLK|UNITS?|BLDG|BUILDING|PHASE|PH|SEC(TION)?|TWP|TOWNSHIP|RGE?|RANGE|PB|PG|PAGE|PLAT|BOOK|OR|A?K?A)\b[\s.]*[0-9A-Z-]*/g, " ")
+    .replace(/[0-9]+/g, " ")
+    .replace(/[^A-Z\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const words = q.split(" ").filter(w => w.length > 2).slice(0, 5);
+  return words.length >= 2 ? words.join(" ") : null;
+}
+
+export async function geocodeLegal(legal: string): Promise<[number, number] | null> {
+  const q = legalToQuery(legal);
+  if (!q) return null;
+  const hit = geoCache.get(q);
+  if (hit && Date.now() - hit.at < GEO_TTL) return hit.pt;
+  try {
+    const j = JSON.parse(await http(
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(q + " Hillsborough County Florida")}&limit=1&bbox=${HILLS_BBOX}`
+    ));
+    const c = j?.features?.[0]?.geometry?.coordinates;
+    const pt: [number, number] | null = Array.isArray(c) ? [Number(c[1]), Number(c[0])] : null;
+    // Sanity: inside the county-ish bbox or it does not count.
+    const ok = pt && pt[0] > 27.5 && pt[0] < 28.35 && pt[1] > -82.9 && pt[1] < -81.9;
+    geoCache.set(q, { at: Date.now(), pt: ok ? pt : null });
+    return ok ? pt : null;
+  } catch {
+    geoCache.set(q, { at: Date.now(), pt: null });
+    return null;
+  }
+}
+
+// Geocode the first `budget` un-cached rows (cached ones are free), a few at
+// a time, so a cold load stays quick and the map fills in across reloads.
+export async function geolocateDeeds(rows: DeedRow[], budget = 25): Promise<Record<string, [number, number]>> {
+  const out: Record<string, [number, number]> = {};
+  let spent = 0;
+  const queue: DeedRow[] = [];
+  for (const d of rows) {
+    const q = d.legal ? legalToQuery(d.legal) : null;
+    if (!q) continue;
+    const hit = geoCache.get(q);
+    if (hit && Date.now() - hit.at < GEO_TTL) { if (hit.pt) out[d.instrument] = hit.pt; continue; }
+    if (spent < budget) { queue.push(d); spent++; }
+  }
+  const CONC = 4;
+  for (let i = 0; i < queue.length; i += CONC) {
+    await Promise.all(queue.slice(i, i + CONC).map(async d => {
+      const pt = await geocodeLegal(d.legal);
+      if (pt) out[d.instrument] = pt;
+    }));
+  }
+  return out;
 }
 
 // ---- radar -------------------------------------------------------------

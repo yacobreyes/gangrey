@@ -13,14 +13,5 @@ export const BIG_SALE = 1_000_000; // $ — deeds at/above this get the 💰 bad
 export const NOMINAL_MAX = 100;    // $ — at/below reads as an LLC/trust shuffle
 export const DEED_DAYS = 7;        // rolling window pulled from the Clerk
 
-// Feeds on the wall (any RSS/Atom works — add or remove freely)
-export const NEWS_FEEDS: Record<string, string> = {
-  "Creative Loafing": "https://www.cltampa.com/tampa/Rss.xml",
-  "TB Business Jrnl": "https://www.bizjournals.com/tampabay/news/rss.xml",
-  "Tampa Bay Times": "https://www.tampabay.com/arc/outboundfeeds/rss/?outputType=xml",
-  "Florida Politics": "https://floridapolitics.com/feed/",
-};
-
-export const SUBREDDITS: string[] = ["tampa", "StPetersburgFL"];
 
 export const CACHE_TTL = 1200; // seconds before a feed refetches (20 min)
