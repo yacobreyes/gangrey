@@ -117,8 +117,7 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
   return (
     <div style={{ display: "contents" }}>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-      <meta httpEquiv="refresh" content="900" />
+      <link rel="stylesheet" href="/trib-vendor/leaflet.css" />
       <header className="trib">
         <h1>tampatrib</h1>
         <span className="muted">{now} · <a href="/trib?force=1">refresh</a></span>
@@ -202,13 +201,21 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
         <div className="dbody" id="dbody" />
       </div>
 
-      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" />
-      <script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js" />
+      <script src="/trib-vendor/leaflet.js" />
+      <script src="/trib-vendor/esri-leaflet.js" />
       <script dangerouslySetInnerHTML={{ __html: `
 window.__TRIB = ${JSON.stringify(mapData)};
-(function boot(){
-  if (!window.L) { setTimeout(boot, 60); return; }
-  var map = L.map('map', { zoomSnap: .5 }).setView([27.99, -82.4], 10.5);
+var map = null;
+function initTrib(){
+  if (!window.L) { setTimeout(initTrib, 60); return; }
+  var el = document.getElementById('map');
+  if (!el) { setTimeout(initTrib, 120); return; }
+  // React hydration can replace the container after Leaflet booted on the old
+  // node (that was the blank-map bug): if the CURRENT node isn't a leaflet
+  // container, (re)initialize on it.
+  if (el.classList.contains('leaflet-container')) return;
+  if (map) { try { map.remove(); } catch (e) {} map = null; }
+  map = L.map(el, { zoomSnap: .5 }).setView([27.99, -82.4], 10.5);
   // Esri street basemap: the ArcGIS look, no key needed.
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
     maxZoom: 18, attribution: 'Tiles © Esri'
@@ -232,7 +239,8 @@ window.__TRIB = ${JSON.stringify(mapData)};
   __TRIB.deeds.forEach(function (d) { byId[d.id] = d; });
   var drawer = document.getElementById('drawer');
   var dbody = document.getElementById('dbody');
-  document.getElementById('dclose').addEventListener('click', function () { drawer.classList.remove('open'); });
+  var _dc = document.getElementById('dclose');
+  if (!_dc.dataset.wired) { _dc.dataset.wired = '1'; _dc.addEventListener('click', function () { drawer.classList.remove('open'); }); }
 
   function escHtml(x) { return String(x ?? '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function partyLinks(name) {
@@ -280,6 +288,7 @@ window.__TRIB = ${JSON.stringify(mapData)};
     if (m) { map.flyTo(m.getLatLng(), 14, { duration: .6 }); m.openPopup(); }
   }
   document.querySelectorAll('.row.deed').forEach(function (r) {
+    if (r.dataset.wired) return; r.dataset.wired = '1';
     r.classList.add('loc');
     r.addEventListener('click', function () { openDrawer(r.dataset.deed); });
   });
@@ -305,6 +314,7 @@ window.__TRIB = ${JSON.stringify(mapData)};
     return L.esri.dynamicMapLayer({ url: __TRIB.gis.base, layers: [meta.id], opacity: .55 });
   }
   document.querySelectorAll('#layerbox input[type=checkbox]').forEach(function (cb) {
+    if (cb.dataset.wired) return; cb.dataset.wired = '1';
     cb.addEventListener('change', function () {
       var key = cb.dataset.layer;
       if (cb.checked) {
@@ -316,7 +326,9 @@ window.__TRIB = ${JSON.stringify(mapData)};
     });
   });
 
-  document.getElementById('q').addEventListener('input', function (e) {
+  var _q = document.getElementById('q');
+  if (!_q.dataset.wired) { _q.dataset.wired = '1';
+  _q.addEventListener('input', function (e) {
     var q = e.target.value.toLowerCase();
     document.querySelectorAll('.row').forEach(function (r) {
       var hide = q && !r.textContent.toLowerCase().includes(q);
@@ -324,8 +336,15 @@ window.__TRIB = ${JSON.stringify(mapData)};
       var m = markers[r.dataset && r.dataset.deed];
       if (m) { hide ? map.removeLayer(m) : m.addTo(map); }
     });
-  });
-})();` }} />
+  }); }
+}
+initTrib();
+// Re-check for a few seconds in case hydration swaps the node after first boot.
+var _reinit = setInterval(initTrib, 400);
+setTimeout(function(){ clearInterval(_reinit); }, 6000);
+// Auto-reload every 15 minutes (was a meta refresh; that caused a hydration
+// mismatch which is what kept replacing the map container).
+setTimeout(function(){ location.reload(); }, 900000);` }} />
     </div>
   );
 }

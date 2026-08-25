@@ -186,7 +186,15 @@ const strip = (h: string) => h.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").r
 
 export async function fetchTampaMeetings(): Promise<{ items: MeetingItem[] }> {
   const base = "https://tampagov.hylandcloud.com/221agendaonline";
-  const html = await http(`${base}/Meetings`);
+  // The instance 404s on /Meetings (verified live); probe the known OnBase
+  // AgendaOnline shapes and use the first page that answers with meetings.
+  let html = "";
+  const tries = [`${base}/Meetings`, `${base}/OnBaseAgendaOnline/Meetings`, base, `${base}/Meetings/Search?dropid=4&mtids=all`];
+  let lastErr = "";
+  for (const u of tries) {
+    try { html = await http(u); if (/ViewMeeting/i.test(html)) break; } catch (e) { lastErr = e instanceof Error ? e.message : String(e); }
+  }
+  if (!/ViewMeeting/i.test(html)) throw new Error(lastErr || "no meetings page found");
   const items: MeetingItem[] = [];
   const re = /<a[^>]+href="([^"]*ViewMeeting[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
   let m: RegExpExecArray | null;
@@ -276,8 +284,19 @@ const LAYER_WANTS: [string, RegExp][] = [
   ["council", /council\s*district/i],
 ];
 
+const ARCGIS_HEADERS = {
+  "Accept": "application/json,text/plain,*/*",
+  "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
+  "Referer": "https://city-tampa.opendata.arcgis.com/",
+};
+
+function parseArcgis(body: string): any { // eslint-disable-line @typescript-eslint/no-explicit-any
+  try { return JSON.parse(body); }
+  catch { throw new Error(`non-JSON from ArcGIS: ${body.slice(0, 80).replace(/\s+/g, " ")}`); }
+}
+
 export async function discoverPlanningLayers(): Promise<{ base: string; layers: GisLayer[] }> {
-  const j = JSON.parse(await http(`${TAMPA_PLANNING}?f=json`));
+  const j = parseArcgis(await http(`${TAMPA_PLANNING}?f=pjson`, { headers: ARCGIS_HEADERS }));
   const found: GisLayer[] = [];
   for (const l of j?.layers ?? []) {
     for (const [key, re] of LAYER_WANTS) {
@@ -294,11 +313,16 @@ export async function discoverPlanningLayers(): Promise<{ base: string; layers: 
 // Development coordination records for the rail list: attributes of the
 // current locations layer, newest-ish first, capped.
 export async function fetchDevCoord(): Promise<{ items: Record<string, unknown>[]; fields: string[] }> {
-  const disc = await discoverPlanningLayers();
-  const lyr = disc.layers.find(l => l.key === "devcoord");
-  if (!lyr) throw new Error("dev coordination layer not found");
-  const j = JSON.parse(await http(
-    `${TAMPA_PLANNING}/${lyr.id}/query?where=1%3D1&outFields=*&returnGeometry=false&resultRecordCount=100&f=json`
+  // Discovery is best-effort; the id the Toolshed's own page confirmed (31)
+  // is the fallback so this section never depends on the directory call.
+  let id = 31;
+  try {
+    const disc = await discoverPlanningLayers();
+    id = disc.layers.find(l => l.key === "devcoord")?.id ?? 31;
+  } catch { /* use 31 */ }
+  const j = parseArcgis(await http(
+    `${TAMPA_PLANNING}/${id}/query?where=1%3D1&outFields=*&returnGeometry=false&resultRecordCount=100&f=pjson`,
+    { headers: ARCGIS_HEADERS }
   ));
   if (j.error) throw new Error(j.error.message || "ArcGIS error");
   const items = (j.features ?? []).map((f: { attributes: Record<string, unknown> }) => f.attributes);
