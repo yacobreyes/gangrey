@@ -257,3 +257,51 @@ export async function clerkPartySearch(name: string, years = 5): Promise<{ rows:
   rows.sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
   return { rows };
 }
+
+// ---- Tampa ArcGIS layers (zoning / FLU / dev coordination) --------------
+// The city publishes these on its own ArcGIS server; the dev-coordination
+// locations layer is /OpenData/Planning/MapServer/31 and zoning + future
+// land use are siblings in the same service. Layer ids are DISCOVERED from
+// the service directory by name, so a renumbering on the city's side fixes
+// itself on the next cache cycle.
+const TAMPA_PLANNING = "https://arcgis.tampagov.net/arcgis/rest/services/OpenData/Planning/MapServer";
+
+export type GisLayer = { id: number; name: string; key: string };
+
+const LAYER_WANTS: [string, RegExp][] = [
+  ["zoning", /zoning\s*district/i],
+  ["flu", /future\s*land\s*use/i],
+  ["devcoord", /development\s*coordination/i],
+  ["cra", /community\s*redevelopment/i],
+  ["council", /council\s*district/i],
+];
+
+export async function discoverPlanningLayers(): Promise<{ base: string; layers: GisLayer[] }> {
+  const j = JSON.parse(await http(`${TAMPA_PLANNING}?f=json`));
+  const found: GisLayer[] = [];
+  for (const l of j?.layers ?? []) {
+    for (const [key, re] of LAYER_WANTS) {
+      if (re.test(String(l.name ?? "")) && !found.some(f => f.key === key)) {
+        found.push({ id: Number(l.id), name: String(l.name), key });
+      }
+    }
+  }
+  // The one id we know from the source page, as a floor if discovery misses it.
+  if (!found.some(f => f.key === "devcoord")) found.push({ id: 31, name: "Development Coordination Locations", key: "devcoord" });
+  return { base: TAMPA_PLANNING, layers: found };
+}
+
+// Development coordination records for the rail list: attributes of the
+// current locations layer, newest-ish first, capped.
+export async function fetchDevCoord(): Promise<{ items: Record<string, unknown>[]; fields: string[] }> {
+  const disc = await discoverPlanningLayers();
+  const lyr = disc.layers.find(l => l.key === "devcoord");
+  if (!lyr) throw new Error("dev coordination layer not found");
+  const j = JSON.parse(await http(
+    `${TAMPA_PLANNING}/${lyr.id}/query?where=1%3D1&outFields=*&returnGeometry=false&resultRecordCount=100&f=json`
+  ));
+  if (j.error) throw new Error(j.error.message || "ArcGIS error");
+  const items = (j.features ?? []).map((f: { attributes: Record<string, unknown> }) => f.attributes);
+  const fields = (j.fields ?? []).map((f: { name: string }) => f.name);
+  return { items, fields };
+}

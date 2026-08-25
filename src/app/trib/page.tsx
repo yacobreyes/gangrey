@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/adminAuth";
 import {
   cached, fetchDeeds, fetchNws, geolocateDeeds, deedBadges, watchHit,
-  fetchTampaMeetings, fetchBoccMeetings,
-  type DeedRow, type NwsAlert, type MeetingItem,
+  fetchTampaMeetings, fetchBoccMeetings, discoverPlanningLayers, fetchDevCoord,
+  type DeedRow, type NwsAlert, type MeetingItem, type GisLayer,
 } from "@/lib/trib";
 import { DEED_DAYS, CACHE_TTL } from "./config";
 
@@ -43,7 +43,8 @@ const CSS = `
  #q{margin-left:auto;padding:.4rem .7rem;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg);min-width:240px}
  .wrap{flex:1;display:grid;grid-template-columns:1fr;min-height:0}
  @media(min-width:900px){.wrap{grid-template-columns:1.5fr 1fr}}
- #map{min-height:45vh;height:100%}
+ #map{position:absolute;inset:0}
+ @media(max-width:899px){.mappane{height:52vh}}
  aside{overflow:auto;border-left:1px solid var(--line);padding:.8rem 1rem;min-width:0}
  h2{font-size:.9rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:.2rem 0 .5rem}
  .row{padding:.5rem 0;border-top:1px solid var(--line);cursor:default}.row:first-of-type{border-top:0}
@@ -71,6 +72,10 @@ const CSS = `
  #drawer .party{margin:.7rem 0 .2rem;font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
  #drawer .hist .row{font-size:.85rem}
  .spin{color:var(--muted);font-size:.85rem}
+ .layers{position:absolute;z-index:800;top:.6rem;left:.6rem;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.35rem .6rem;display:flex;gap:.7rem;flex-wrap:wrap;font-size:.8rem;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+ .layers label{display:flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap}
+ .mappane{position:relative;min-height:45vh}
+ .devco .row{font-size:.85rem}
 `;
 
 export default async function TribPage({ searchParams }: { searchParams: Promise<{ force?: string }> }) {
@@ -79,11 +84,13 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
   const sp = await searchParams;
   const force = sp.force === "1";
 
-  const [deeds, nws, tampaMtgs, boccMtgs] = await Promise.all([
+  const [deeds, nws, tampaMtgs, boccMtgs, gis, devco] = await Promise.all([
     cached("deeds", fetchDeeds as unknown as () => Promise<Record<string, unknown>>, force),
     cached("nws", fetchNws as unknown as () => Promise<Record<string, unknown>>, force),
     cached("mtg_tampa", fetchTampaMeetings as unknown as () => Promise<Record<string, unknown>>, force),
     cached("mtg_bocc", fetchBoccMeetings as unknown as () => Promise<Record<string, unknown>>, force),
+    cached("gis_layers", discoverPlanningLayers as unknown as () => Promise<Record<string, unknown>>, force),
+    cached("devcoord", fetchDevCoord as unknown as () => Promise<Record<string, unknown>>, force),
   ]);
   const rows = (deeds.rows as DeedRow[]) ?? [];
   const alerts = (nws.items as NwsAlert[]) ?? [];
@@ -104,6 +111,7 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
       };
     }),
     alerts: alerts.map(a => ({ event: a.event, headline: a.headline, geometry: a.geometry ?? null })),
+    gis: { base: (gis.base as string) ?? "", layers: ((gis.layers as GisLayer[]) ?? []) },
   };
 
   return (
@@ -118,7 +126,18 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
       </header>
 
       <div className="wrap">
-        <div id="map" />
+        <div className="mappane">
+          <div className="layers" id="layerbox">
+            <strong style={{ color: "var(--muted)" }}>Layers</strong>
+            {(mapData.gis.layers).map(l => (
+              <label key={l.key}><input type="checkbox" data-layer={l.key} /> {
+                l.key === "zoning" ? "Zoning" : l.key === "flu" ? "Future Land Use"
+                : l.key === "devcoord" ? "Dev Coordination" : l.key === "cra" ? "CRAs"
+                : l.key === "council" ? "Council Districts" : l.name}</label>
+            ))}
+          </div>
+          <div id="map" />
+        </div>
         <aside>
           {alerts.map((a, i) => (
             <div className="alert" key={i}><strong>{a.event}</strong>{" "}
@@ -142,6 +161,21 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
             <div className="row mtg" key={i}><span className="date">{m.date}</span>
               <a href={m.url} target="_blank" rel="noreferrer">{watchHit(m.title) ? <mark>{m.title}</mark> : m.title}</a></div>
           ))}
+
+          <h2 style={{ marginTop: "1rem" }}>Development records — City of Tampa</h2>
+          <p className="portal"><a href="https://arcgis.tampagov.net/arcgis/rest/services/OpenData/Planning/MapServer" target="_blank" rel="noreferrer">source layer ↗</a>
+            <a href="https://city-tampa.opendata.arcgis.com/" target="_blank" rel="noreferrer">Tampa open data ↗</a></p>
+          {devco._error ? <p className="err">unavailable: {String(devco._error)}</p> : null}
+          <div className="devco">
+          {(((devco.items as Record<string, unknown>[]) ?? []).slice(0, 20)).map((it, i) => {
+            const name = String(it.NAME ?? it.ProjectName ?? it.PROJECT ?? it.Name ?? it.TITLE ?? Object.values(it)[0] ?? "record");
+            const addr = String(it.ADDRESS ?? it.Address ?? it.LOCATION ?? it.SiteAddress ?? "");
+            return (
+              <div className="row" key={i}>{watchHit(name + " " + addr) ? <mark>{name}</mark> : name}
+                {addr ? <span className="muted"> · {addr}</span> : null}</div>
+            );
+          })}
+          </div>
 
           <h2 style={{ marginTop: "1rem" }}>Deeds — last {DEED_DAYS} days, Hillsborough Clerk ({rows.length})</h2>
           {deeds._error ? <p className="err">unavailable: {String(deeds._error)}</p> : null}
@@ -169,6 +203,7 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
       </div>
 
       <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" />
+      <script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js" />
       <script dangerouslySetInnerHTML={{ __html: `
 window.__TRIB = ${JSON.stringify(mapData)};
 (function boot(){
@@ -251,6 +286,36 @@ window.__TRIB = ${JSON.stringify(mapData)};
   Object.keys(markers).forEach(function (id) {
     markers[id].on('click', function () { openDrawer(id); });
   });
+  // ---- toggleable city GIS overlays (zoning / FLU / CRA / districts) ----
+  // Rendered by the city's own MapServer (its cartography), via esri-leaflet.
+  var gisOverlays = {};
+  function gisLayerFor(key) {
+    var meta = __TRIB.gis.layers.find(function (l) { return l.key === key; });
+    if (!meta || !window.L || !L.esri) return null;
+    if (key === 'devcoord') {
+      return L.esri.featureLayer({ url: __TRIB.gis.base + '/' + meta.id, pointToLayer: function (g, latlng) {
+        return L.circleMarker(latlng, { radius: 5, color: '#7c3aed', weight: 2, fillOpacity: .5 });
+      }}).bindPopup(function (l) {
+        var a = l.feature && l.feature.properties || {};
+        var name = a.NAME || a.ProjectName || a.PROJECT || a.Name || a.TITLE || 'record';
+        var addr = a.ADDRESS || a.Address || a.LOCATION || a.SiteAddress || '';
+        return '<b>' + name + '</b>' + (addr ? '<br>' + addr : '');
+      });
+    }
+    return L.esri.dynamicMapLayer({ url: __TRIB.gis.base, layers: [meta.id], opacity: .55 });
+  }
+  document.querySelectorAll('#layerbox input[type=checkbox]').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      var key = cb.dataset.layer;
+      if (cb.checked) {
+        gisOverlays[key] = gisOverlays[key] || gisLayerFor(key);
+        if (gisOverlays[key]) gisOverlays[key].addTo(map);
+      } else if (gisOverlays[key]) {
+        map.removeLayer(gisOverlays[key]);
+      }
+    });
+  });
+
   document.getElementById('q').addEventListener('input', function (e) {
     var q = e.target.value.toLowerCase();
     document.querySelectorAll('.row').forEach(function (r) {
