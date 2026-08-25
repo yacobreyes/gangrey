@@ -489,3 +489,88 @@ export async function fetchWarn(): Promise<{ items: WarnRow[] }> {
   if (items.length === 0) throw new Error("no Hillsborough rows parsed from WARN page");
   return { items };
 }
+
+// ---- leads: newsworthiness scoring --------------------------------------
+// The tool's front page is not "rows from feeds", it is "reasons to make a
+// call". Each lead carries a WHY line a reporter can react to instantly.
+export type Lead = {
+  id: string;
+  score: number;          // higher = more newsworthy
+  kind: string;           // deed | distress | warn | meeting | event
+  why: string;            // the newsworthiness claim, in words
+  what: string;           // the facts: who/what/where/when
+  date?: string;
+  deedId?: string;        // opens the deed drawer when set
+};
+
+const money = (n: number) => "$" + n.toLocaleString("en-US");
+
+export function buildLeads(input: {
+  deeds: DeedRow[]; distress: DeedRow[]; warn: WarnRow[];
+  meetings: MeetingItem[]; events: EventItem[];
+}): Lead[] {
+  const leads: Lead[] = [];
+
+  for (const d of input.deeds) {
+    let score = 0; const reasons: string[] = [];
+    const entity = /\b(LLC|L\.L\.C|CORP|INC|TRUST|LP|HOLDINGS?)\b/i.test(d.to);
+    const w = watchHit(`${d.from} ${d.to} ${d.legal}`);
+    if (d.price >= 5 * BIG_SALE) { score += 50; reasons.push(`${money(d.price)} sale, one of the week's largest`); }
+    else if (d.price >= BIG_SALE) { score += 25; reasons.push(`${money(d.price)} sale`); }
+    if (entity && d.price >= BIG_SALE) { score += 15; reasons.push("bought through a corporate entity"); }
+    if (d.price > 0 && d.price <= NOMINAL_MAX) { score += 8; reasons.push("nominal-price transfer, often an ownership shuffle"); }
+    if (w) { score += 40; reasons.push(`watchlist: ${w}`); }
+    if (score < 20) continue;
+    leads.push({
+      id: `deed-${d.instrument}`, score, kind: "deed",
+      why: reasons.join(" · "),
+      what: `${d.from} → ${d.to}${d.legal ? " · " + d.legal : ""}`,
+      date: d.date, deedId: d.instrument,
+    });
+  }
+
+  for (const d of input.distress) {
+    let score = 12; const reasons: string[] = ["foreclosure/lis pendens filed"];
+    const w = watchHit(`${d.from} ${d.to} ${d.legal}`);
+    const entity = /\b(LLC|CORP|INC|HOLDINGS?)\b/i.test(d.to + " " + d.from);
+    if (w) { score += 40; reasons.push(`watchlist: ${w}`); }
+    if (entity) { score += 10; reasons.push("involves a corporate entity"); }
+    if (score < 20) continue;
+    leads.push({
+      id: `lp-${d.instrument}`, score, kind: "distress",
+      why: reasons.join(" · "),
+      what: `${d.from} → ${d.to}${d.legal ? " · " + d.legal : ""}`,
+      date: d.date, deedId: d.instrument,
+    });
+  }
+
+  for (const wn of input.warn) {
+    leads.push({
+      id: `warn-${wn.company}-${wn.date}`, score: 70, kind: "warn",
+      why: `mass layoff notice${wn.employees ? `: ${wn.employees} jobs` : ""}`,
+      what: `${wn.company} · WARN filing`, date: wn.date,
+    });
+  }
+
+  for (const m of input.meetings) {
+    const w = watchHit(m.title);
+    if (!w) continue;
+    leads.push({
+      id: `mtg-${m.url}`, score: 35, kind: "meeting",
+      why: `watchlist topic on a government agenda: ${w}`,
+      what: m.title, date: m.date,
+    });
+  }
+
+  for (const e of input.events) {
+    const w = watchHit(`${e.title} ${e.where}`);
+    if (!w) continue;
+    leads.push({
+      id: `ev-${e.url}`, score: 15, kind: "event",
+      why: `watchlist match on an event: ${w}`,
+      what: `${e.title}${e.where ? " · " + e.where : ""}`, date: e.when,
+    });
+  }
+
+  return leads.sort((a, b) => b.score - a.score).slice(0, 30);
+}

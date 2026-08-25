@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/adminAuth";
 import {
   cached, fetchDeeds, fetchNws, geolocateDeeds, deedBadges, watchHit,
   fetchTampaMeetings, fetchBoccMeetings, discoverPlanningLayers, fetchDevCoord, fetchEvents,
-  fetchDistress, fetchWarn,
+  fetchDistress, fetchWarn, buildLeads,
   type DeedRow, type NwsAlert, type MeetingItem, type GisLayer, type EventItem, type WarnRow,
 } from "@/lib/trib";
 import { DEED_DAYS, CACHE_TTL } from "./config";
@@ -77,6 +77,22 @@ const CSS = `
  .layers label{display:flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap}
  .mappane{position:relative;min-height:45vh}
  .devco .row{font-size:.85rem}
+ .tabbar{position:sticky;top:0;z-index:5;display:flex;gap:.25rem;background:var(--bg);padding:.5rem 0 .6rem;border-bottom:1px solid var(--line);margin-bottom:.4rem}
+ .tb{font:inherit;font-size:.85rem;font-weight:600;padding:.35rem .8rem;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer}
+ .tb.on{background:var(--accent);border-color:var(--accent);color:#fff}
+ .panel{padding-bottom:1.5rem}
+ .lead{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;background:var(--card);padding:.65rem .8rem;margin:.55rem 0}
+ .lead.k-warn{border-left-color:#b91c1c}
+ .lead.k-deed{border-left-color:#065f46}
+ .lead.k-distress{border-left-color:#b45309}
+ .lead.k-meeting{border-left-color:#7c3aed}
+ .lead .lw{font-weight:700;line-height:1.35}
+ .lead .lf{font-size:.88rem;margin-top:.15rem}
+ .lead .lm{font-size:.72rem;color:var(--muted);margin-top:.3rem;text-transform:uppercase;letter-spacing:.05em}
+ .lead.has-deed{cursor:pointer}
+ .lead.has-deed:hover{border-color:var(--accent)}
+ .qz{padding:1.2rem 0}
+ h2.gap{margin-top:1.4rem}
  .agx{cursor:pointer}
  .agx .agt{text-decoration:underline dotted;text-underline-offset:3px}
  .agx .ext{color:var(--muted);margin-left:.4rem;text-decoration:none}
@@ -106,6 +122,13 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
   const rows = (deeds.rows as DeedRow[]) ?? [];
   const alerts = (nws.items as NwsAlert[]) ?? [];
   const points = await geolocateDeeds(rows);
+
+  const tampaItems = (tampaMtgs.items as MeetingItem[]) ?? [];
+  const boccItems = (boccMtgs.items as MeetingItem[]) ?? [];
+  const eventItems = (events.items as EventItem[]) ?? [];
+  const distressRows = (distress.rows as DeedRow[]) ?? [];
+  const warnItems = (warn.items as WarnRow[]) ?? [];
+  const leads = buildLeads({ deeds: rows, distress: distressRows, warn: warnItems, meetings: [...tampaItems, ...boccItems], events: eventItems });
 
   const now = new Date().toLocaleString("en-US", {
     timeZone: "America/New_York", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
@@ -144,92 +167,108 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
           <div id="map" />
         </div>
         <aside>
-          {alerts.map((a, i) => (
-            <div className="alert" key={i}><strong>{a.event}</strong>{" "}
-              <span style={{ color: "#fecaca" }}>{a.headline}</span></div>
-          ))}
-          <h2>Meetings — Tampa City Council</h2>
-          <p className="portal"><a href="https://tampagov.hylandcloud.com/221agendaonline/Meetings" target="_blank" rel="noreferrer">agenda portal ↗</a>
-            <a href="https://www.tampa.gov/city-council" target="_blank" rel="noreferrer">council ↗</a></p>
-          {tampaMtgs._error ? <p className="err">unavailable: {String(tampaMtgs._error)}</p> : null}
-          {((tampaMtgs.items as MeetingItem[]) ?? []).map((m, i) => (
-            <div className="row mtg agx" data-agurl={m.url} key={i}><span className="date">{m.date}</span>
-              <span className="agt">{watchHit(m.title) ? <mark>{m.title}</mark> : m.title}</span>
-              <a className="ext" href={m.url} target="_blank" rel="noreferrer">↗</a>
-              <div className="agitems hid" /></div>
-          ))}
+          <div className="tabbar" id="tabbar">
+            <button className="tb on" data-tab="leads">Leads{leads.length ? ` (${leads.length})` : ""}</button>
+            <button className="tb" data-tab="records">Records</button>
+            <button className="tb" data-tab="gov">Government</button>
+            <button className="tb" data-tab="ev">Events</button>
+          </div>
 
-          <h2 style={{ marginTop: "1rem" }}>Meetings — Hillsborough BOCC</h2>
-          <p className="portal"><a href="https://hcfl.gov/government/meeting-information/agendas-recaps-and-minutes" target="_blank" rel="noreferrer">agendas ↗</a>
-            <a href="https://hcfl.gov/government/board-of-county-commissioners/bocc-meeting-schedule" target="_blank" rel="noreferrer">schedule ↗</a>
-            <a href="https://www.hillsclerk.com/records-and-reports/bocc" target="_blank" rel="noreferrer">board records ↗</a></p>
-          {boccMtgs._error ? <p className="err">unavailable: {String(boccMtgs._error)}</p> : null}
-          {((boccMtgs.items as MeetingItem[]) ?? []).map((m, i) => (
-            <div className="row mtg agx" data-agurl={m.url} key={i}><span className="date">{m.date}</span>
-              <span className="agt">{watchHit(m.title) ? <mark>{m.title}</mark> : m.title}</span>
-              <a className="ext" href={m.url} target="_blank" rel="noreferrer">↗</a>
-              <div className="agitems hid" /></div>
-          ))}
+          <div className="panel" id="panel-leads">
+            {alerts.map((a, i) => (
+              <div className="alert" key={i}><strong>{a.event}</strong>{" "}
+                <span style={{ color: "#fecaca" }}>{a.headline}</span></div>
+            ))}
+            {leads.length === 0 && <p className="muted qz">Nothing scored newsworthy right now. The wires keep watching; watchlist terms live in config.</p>}
+            {leads.map(l => (
+              <div className={`lead k-${l.kind}${l.deedId ? " has-deed" : ""}`} key={l.id} data-deed={l.deedId ?? ""}>
+                <div className="lw">{l.why}</div>
+                <div className="lf">{l.what}</div>
+                <div className="lm">{l.kind}{l.date ? ` · ${l.date}` : ""}{l.deedId ? " · click for the paper trail" : ""}</div>
+              </div>
+            ))}
+          </div>
 
-          <h2 style={{ marginTop: "1rem" }}>Development records — City of Tampa</h2>
-          <p className="portal"><a href="https://arcgis.tampagov.net/arcgis/rest/services/OpenData/Planning/MapServer" target="_blank" rel="noreferrer">source layer ↗</a>
-            <a href="https://city-tampa.opendata.arcgis.com/" target="_blank" rel="noreferrer">Tampa open data ↗</a></p>
-          <div className="devco" id="devco"><p className="spin">loading from the city&#39;s ArcGIS…</p></div>
+          <div className="panel hid" id="panel-records">
+            <h2>Deeds — last {DEED_DAYS} days ({rows.length})</h2>
+            {deeds._error ? <p className="err">unavailable: {String(deeds._error)}</p> : null}
+            {deeds._stale ? <p className="err stale">showing cached copy</p> : null}
+            {mapData.deeds.map(d => (
+              <div className={`row deed${d.pt ? " loc" : ""}`} key={d.id || `${d.date}-${d.from}`} data-deed={d.id}>
+                <span className="price">${d.price.toLocaleString("en-US")}</span>
+                {d.badges.map(([label, cls]) => <span key={cls + label} className={`badge ${cls}`}>{label}</span>)}
+                {d.pt && <span className="pin" title="on the map">📍</span>}
+                <div><span className="muted">{d.date}</span>{" "}
+                  {d.from} <strong>→</strong> {d.to}
+                  {d.legal ? <span className="muted"> · {d.legal}</span> : null}</div>
+              </div>
+            ))}
 
-          <h2 style={{ marginTop: "1rem" }}>Events — this weekend</h2>
-          <p className="portal"><a href="https://community.cltampa.com/tampa/EventSearch?narrowByDate=This+Weekend&sortType=date&v=d" target="_blank" rel="noreferrer">CL calendar ↗</a></p>
-          {events._error ? <p className="err">unavailable: {String(events._error)}</p> : null}
-          {events._stale ? <p className="err stale">showing cached copy</p> : null}
-          {(((events.items as EventItem[]) ?? []).slice(0, 15)).map((e, i) => (
-            <div className="row" key={i}>
-              <a href={e.url} target="_blank" rel="noreferrer">{watchHit(e.title + " " + e.where) ? <mark>{e.title}</mark> : e.title}</a>
-              {(e.when || e.where) ? <span className="muted"> · {[e.when, e.where].filter(Boolean).join(" · ")}</span> : null}
-            </div>
-          ))}
-
-          <h2 style={{ marginTop: "1rem" }}>Deeds — last {DEED_DAYS} days, Hillsborough Clerk ({rows.length})</h2>
-          {deeds._error ? <p className="err">unavailable: {String(deeds._error)}</p> : null}
-          {deeds._stale ? <p className="err stale">showing cached copy (refresh failed: {String(deeds._stale)})</p> : null}
-          {mapData.deeds.map(d => (
-            <div className={`row deed${d.pt ? " loc" : ""}`} key={d.id || `${d.date}-${d.from}`} data-deed={d.id}>
-              <span className="price">${d.price.toLocaleString("en-US")}</span>
-              {d.badges.map(([label, cls]) => <span key={cls + label} className={`badge ${cls}`}>{label}</span>)}
-              {d.pt && <span className="pin" title="on the map">📍</span>}
-              <div><span className="muted">{d.date}</span>{" "}
-                {d.from} <strong>→</strong> {d.to}
+            <h2 className="gap">Distress — lis pendens</h2>
+            {distress._error ? <p className="err">unavailable: {String(distress._error)}</p> : null}
+            {distressRows.slice(0, 20).map(d => (
+              <div className="row" key={d.instrument}>
+                <span className="muted">{d.date}</span>{" "}
+                {watchHit(`${d.from} ${d.to} ${d.legal}`) ? <mark>{d.from} → {d.to}</mark> : <>{d.from} → {d.to}</>}
                 {d.legal ? <span className="muted"> · {d.legal}</span> : null}
-                <span className="muted"> · #{d.id}</span></div>
-            </div>
-          ))}
-          <h2 style={{ marginTop: "1rem" }}>Distress radar — lis pendens, last {DEED_DAYS} days</h2>
-          <p className="portal muted">First public paper of foreclosures and property fights.</p>
-          {distress._error ? <p className="err">unavailable: {String(distress._error)}</p> : null}
-          {(((distress.rows as DeedRow[]) ?? []).slice(0, 20)).map(d => (
-            <div className="row" key={d.instrument}>
-              <span className="muted">{d.date}</span>{" "}
-              {watchHit(`${d.from} ${d.to} ${d.legal}`) ? <mark>{d.from} → {d.to}</mark> : <>{d.from} → {d.to}</>}
-              {d.legal ? <span className="muted"> · {d.legal}</span> : null}
-            </div>
-          ))}
+              </div>
+            ))}
 
-          <h2 style={{ marginTop: "1rem" }}>Layoffs — WARN notices, Hillsborough</h2>
-          <p className="portal"><a href="https://floridajobs.org" target="_blank" rel="noreferrer">FloridaCommerce ↗</a></p>
-          {warn._error ? <p className="err">unavailable: {String(warn._error)}</p> : null}
-          {((warn.items as WarnRow[]) ?? []).map((w, i) => (
-            <div className="row" key={i}><strong>{w.company}</strong>
-              <span className="muted"> · {w.employees ? `${w.employees} employees · ` : ""}{w.date}</span></div>
-          ))}
+            <h2 className="gap">Development pipeline — City of Tampa</h2>
+            <div className="devco" id="devco"><p className="spin">loading from the city&#39;s ArcGIS…</p></div>
 
-          <h2 style={{ marginTop: "1rem" }}>Special-event permits — City of Tampa</h2>
-          <p className="portal muted">Street closures and festivals, before they are promoted anywhere.</p>
-          <div id="sep"><p className="spin">searching the city&#39;s open data…</p></div>
+            <h2 className="gap">Layoffs — WARN, Hillsborough</h2>
+            {warn._error ? <p className="err">unavailable: {String(warn._error)}</p> : null}
+            {warnItems.map((w, i) => (
+              <div className="row" key={i}><strong>{w.company}</strong>
+                <span className="muted"> · {w.employees ? `${w.employees} employees · ` : ""}{w.date}</span></div>
+            ))}
+          </div>
 
-          <h2 style={{ marginTop: "1rem" }}>Campaign finance — portals</h2>
-          <p className="portal">
-            <a href="https://www.votehillsborough.gov/CANDIDATES-COMMITTEES/Campaign-Finance-Reports" target="_blank" rel="noreferrer">County SOE reports ↗</a>
-            <a href="https://dos.elections.myflorida.com/campaign-finance/contributions/" target="_blank" rel="noreferrer">State contributions ↗</a>
-            <a href="https://public.ethics.state.fl.us/" target="_blank" rel="noreferrer">Financial disclosures ↗</a>
-          </p>
+          <div className="panel hid" id="panel-gov">
+            <h2>Tampa City Council</h2>
+            <p className="portal"><a href="https://tampagov.hylandcloud.com/221agendaonline/Meetings" target="_blank" rel="noreferrer">portal ↗</a></p>
+            {tampaMtgs._error ? <p className="err">unavailable: {String(tampaMtgs._error)}</p> : null}
+            {tampaItems.map((m, i) => (
+              <div className="row mtg agx" data-agurl={m.url} key={i}><span className="date">{m.date}</span>
+                <span className="agt">{watchHit(m.title) ? <mark>{m.title}</mark> : m.title}</span>
+                <a className="ext" href={m.url} target="_blank" rel="noreferrer">↗</a>
+                <div className="agitems hid" /></div>
+            ))}
+
+            <h2 className="gap">Hillsborough BOCC</h2>
+            <p className="portal"><a href="https://hcfl.gov/government/meeting-information/agendas-recaps-and-minutes" target="_blank" rel="noreferrer">agendas ↗</a>
+              <a href="https://www.hillsclerk.com/records-and-reports/bocc" target="_blank" rel="noreferrer">board records ↗</a></p>
+            {boccMtgs._error ? <p className="err">unavailable: {String(boccMtgs._error)}</p> : null}
+            {boccItems.map((m, i) => (
+              <div className="row mtg agx" data-agurl={m.url} key={i}><span className="date">{m.date}</span>
+                <span className="agt">{watchHit(m.title) ? <mark>{m.title}</mark> : m.title}</span>
+                <a className="ext" href={m.url} target="_blank" rel="noreferrer">↗</a>
+                <div className="agitems hid" /></div>
+            ))}
+
+            <h2 className="gap">Campaign finance</h2>
+            <p className="portal">
+              <a href="https://www.votehillsborough.gov/CANDIDATES-COMMITTEES/Campaign-Finance-Reports" target="_blank" rel="noreferrer">County SOE ↗</a>
+              <a href="https://dos.elections.myflorida.com/campaign-finance/contributions/" target="_blank" rel="noreferrer">State contributions ↗</a>
+              <a href="https://public.ethics.state.fl.us/" target="_blank" rel="noreferrer">Disclosures ↗</a>
+            </p>
+          </div>
+
+          <div className="panel hid" id="panel-ev">
+            <h2>This weekend</h2>
+            <p className="portal"><a href="https://community.cltampa.com/tampa/EventSearch?narrowByDate=This+Weekend&sortType=date&v=d" target="_blank" rel="noreferrer">calendar ↗</a></p>
+            {events._error ? <p className="err">unavailable: {String(events._error)}</p> : null}
+            {eventItems.slice(0, 15).map((e, i) => (
+              <div className="row" key={i}>
+                <a href={e.url} target="_blank" rel="noreferrer">{watchHit(e.title + " " + e.where) ? <mark>{e.title}</mark> : e.title}</a>
+                {(e.when || e.where) ? <span className="muted"> · {[e.when, e.where].filter(Boolean).join(" · ")}</span> : null}
+              </div>
+            ))}
+
+            <h2 className="gap">Special-event permits</h2>
+            <div id="sep"><p className="spin">searching the city&#39;s open data…</p></div>
+          </div>
         </aside>
       </div>
 
@@ -402,24 +441,26 @@ function initTrib(){
           return !SKIP.test(k) && v !== null && v !== '' && v !== 0 && String(v).length < 400;
         });
       }
-      box.innerHTML = feats.map(function (f, idx) {
+      // No field-name guessing: headline each case with its first substantive
+      // VALUES verbatim, expansion shows every labeled field, and the schema
+      // line names what this layer actually carries.
+      var schemaLine = '<p class="portal muted">fields: ' + Object.keys(alias).filter(function(k){return !SKIP.test(k);}).map(function(k){return escHtml(alias[k]||k);}).join(', ').slice(0, 300) + '</p>';
+      box.innerHTML = schemaLine + feats.map(function (f, idx) {
         var a = f.attributes || {};
         var keys = interesting(a);
-        // Address-ish + type/status-ish fields headline the row.
-        var addrK = keys.find(function (k) { return /addr|location|site/i.test(k); });
-        var typeK = keys.find(function (k) { return /type|use|class|category|descript|project|permit|applic/i.test(k) && k !== addrK; });
-        var statK = keys.find(function (k) { return /status|stage|phase|decision/i.test(k); });
-        var dateK = keys.find(function (k) { return /date|received|submit/i.test(k); });
-        var head = [typeK && a[typeK], statK && a[statK]].filter(Boolean).map(String).join(' · ');
-        var addr = addrK ? String(a[addrK]) : '';
-        var when = dateK && /^\d{10,13}$/.test(String(a[dateK])) ? new Date(Number(a[dateK])).toISOString().slice(0,10) : (dateK ? String(a[dateK]) : '');
+        var vals = keys.map(function (k) {
+          var v = String(a[k]);
+          if (/^\d{12,13}$/.test(v)) v = new Date(Number(v)).toISOString().slice(0,10);
+          return v;
+        });
+        var head = vals.slice(0, 3).join(' · ');
         var detail = keys.map(function (k) {
-          return '<div><span class="muted">' + escHtml(alias[k] || k) + ':</span> ' + escHtml(String(a[k])) + '</div>';
+          var v = String(a[k]);
+          if (/^\d{12,13}$/.test(v)) v = new Date(Number(v)).toISOString().slice(0,10);
+          return '<div><span class="muted">' + escHtml(alias[k] || k) + ':</span> ' + escHtml(v) + '</div>';
         }).join('');
         return '<div class="row devrec" data-i="' + idx + '">' +
-          '<strong>' + escHtml(addr || head || 'record') + '</strong>' +
-          (addr && head ? ' <span class="muted">· ' + escHtml(head) + '</span>' : '') +
-          (when ? ' <span class="muted">· ' + escHtml(when) + '</span>' : '') +
+          escHtml(head || 'no attributes on this case') +
           '<div class="agitems hid">' + detail + '</div></div>';
       }).join('');
       box.querySelectorAll('.devrec').forEach(function (r) {
@@ -430,6 +471,21 @@ function initTrib(){
       });
     }).catch(function (e) { box.innerHTML = '<p class="err">unavailable from this browser too: ' + escHtml(String(e.message || e)) + '</p>'; });
   }
+  // ---- tabs ----
+  document.querySelectorAll('#tabbar .tb').forEach(function (b) {
+    if (b.dataset.wired) return; b.dataset.wired = '1';
+    b.addEventListener('click', function () {
+      document.querySelectorAll('#tabbar .tb').forEach(function (x) { x.classList.toggle('on', x === b); });
+      ['leads','records','gov','ev'].forEach(function (t) {
+        document.getElementById('panel-' + t).classList.toggle('hid', t !== b.dataset.tab);
+      });
+    });
+  });
+  document.querySelectorAll('.lead.has-deed').forEach(function (l) {
+    if (l.dataset.wired) return; l.dataset.wired = '1';
+    l.addEventListener('click', function () { if (l.dataset.deed) openDrawer(l.dataset.deed); });
+  });
+
   clientDiscover();
   loadDevRecords();
   // Special-event permits: hunt the city's open-data folder for a layer whose
@@ -483,10 +539,15 @@ function initTrib(){
       return L.esri.featureLayer({ url: __TRIB.gis.base + '/' + meta.id, pointToLayer: function (g, latlng) {
         return L.circleMarker(latlng, { radius: 5, color: '#7c3aed', weight: 2, fillOpacity: .5 });
       }}).bindPopup(function (l) {
-        var a = l.feature && l.feature.properties || {};
-        var name = a.NAME || a.ProjectName || a.PROJECT || a.Name || a.TITLE || 'record';
-        var addr = a.ADDRESS || a.Address || a.LOCATION || a.SiteAddress || '';
-        return '<b>' + name + '</b>' + (addr ? '<br>' + addr : '');
+        var a = (l.feature && l.feature.properties) || {};
+        var rows = Object.keys(a).filter(function (k) {
+          return a[k] !== null && a[k] !== '' && !/objectid|shape|globalid/i.test(k);
+        }).slice(0, 10).map(function (k) {
+          var v = String(a[k]);
+          if (/^\d{12,13}$/.test(v)) v = new Date(Number(v)).toISOString().slice(0,10);
+          return '<b>' + k + ':</b> ' + v;
+        });
+        return rows.join('<br>') || 'no attributes';
       });
     }
     return L.esri.dynamicMapLayer({ url: __TRIB.gis.base, layers: [meta.id], opacity: .55 });
