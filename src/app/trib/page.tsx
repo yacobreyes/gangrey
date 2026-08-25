@@ -351,20 +351,52 @@ function initTrib(){
     if (!box || box.dataset.loaded) return;
     box.dataset.loaded = '1';
     var lyr = (__TRIB.gis.layers.find(function (x) { return x.key === 'devcoord'; }) || { id: 31 });
-    fetch(__TRIB.gis.base + '/' + lyr.id + '/query?where=1%3D1&outFields=*&returnGeometry=false&resultRecordCount=25&f=json')
-      .then(function (r) { return r.json(); })
-      .then(function (j) {
-        if (j.error) throw new Error(j.error.message || 'ArcGIS error');
-        var feats = j.features || [];
-        if (!feats.length) { box.innerHTML = '<p class="muted">No current records.</p>'; return; }
-        box.innerHTML = feats.map(function (f) {
-          var a = f.attributes || {};
-          var name = a.NAME || a.ProjectName || a.PROJECT || a.Name || a.TITLE || Object.values(a)[0] || 'record';
-          var addr = a.ADDRESS || a.Address || a.LOCATION || a.SiteAddress || '';
-          return '<div class="row">' + escHtml(String(name)) + (addr ? ' <span class="muted">· ' + escHtml(String(addr)) + '</span>' : '') + '</div>';
+    var base = __TRIB.gis.base + '/' + lyr.id;
+    // Field aliases first, so rows read in the layer's own vocabulary instead
+    // of guessed column names (the earlier version rendered bare addresses).
+    Promise.all([
+      fetch(base + '?f=json').then(function (r) { return r.json(); }),
+      fetch(base + '/query?where=1%3D1&outFields=*&returnGeometry=false&resultRecordCount=40&f=json').then(function (r) { return r.json(); })
+    ]).then(function (res) {
+      var meta = res[0] || {}, j = res[1] || {};
+      if (j.error) throw new Error(j.error.message || 'ArcGIS error');
+      var alias = {}; (meta.fields || j.fields || []).forEach(function (f) { alias[f.name] = f.alias || f.name; });
+      var feats = j.features || [];
+      if (!feats.length) { box.innerHTML = '<p class="muted">No current records.</p>'; return; }
+      var SKIP = /objectid|shape|globalid|guid|^fid$|_id$|latitude|longitude|^x$|^y$/i;
+      function interesting(a) {
+        return Object.keys(a).filter(function (k) {
+          var v = a[k];
+          return !SKIP.test(k) && v !== null && v !== '' && v !== 0 && String(v).length < 400;
+        });
+      }
+      box.innerHTML = feats.map(function (f, idx) {
+        var a = f.attributes || {};
+        var keys = interesting(a);
+        // Address-ish + type/status-ish fields headline the row.
+        var addrK = keys.find(function (k) { return /addr|location|site/i.test(k); });
+        var typeK = keys.find(function (k) { return /type|use|class|category|descript|project|permit|applic/i.test(k) && k !== addrK; });
+        var statK = keys.find(function (k) { return /status|stage|phase|decision/i.test(k); });
+        var dateK = keys.find(function (k) { return /date|received|submit/i.test(k); });
+        var head = [typeK && a[typeK], statK && a[statK]].filter(Boolean).map(String).join(' · ');
+        var addr = addrK ? String(a[addrK]) : '';
+        var when = dateK && /^\d{10,13}$/.test(String(a[dateK])) ? new Date(Number(a[dateK])).toISOString().slice(0,10) : (dateK ? String(a[dateK]) : '');
+        var detail = keys.map(function (k) {
+          return '<div><span class="muted">' + escHtml(alias[k] || k) + ':</span> ' + escHtml(String(a[k])) + '</div>';
         }).join('');
-      })
-      .catch(function (e) { box.innerHTML = '<p class="err">unavailable from this browser too: ' + escHtml(String(e.message || e)) + '</p>'; });
+        return '<div class="row devrec" data-i="' + idx + '">' +
+          '<strong>' + escHtml(addr || head || 'record') + '</strong>' +
+          (addr && head ? ' <span class="muted">· ' + escHtml(head) + '</span>' : '') +
+          (when ? ' <span class="muted">· ' + escHtml(when) + '</span>' : '') +
+          '<div class="agitems hid">' + detail + '</div></div>';
+      }).join('');
+      box.querySelectorAll('.devrec').forEach(function (r) {
+        r.style.cursor = 'pointer';
+        r.addEventListener('click', function () {
+          r.querySelector('.agitems').classList.toggle('hid');
+        });
+      });
+    }).catch(function (e) { box.innerHTML = '<p class="err">unavailable from this browser too: ' + escHtml(String(e.message || e)) + '</p>'; });
   }
   clientDiscover();
   loadDevRecords();
