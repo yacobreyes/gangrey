@@ -9,7 +9,7 @@ export const revalidate = 60;
 
 type IssueDoc = { newsletterId?: string; title?: string; description?: string };
 type NewsletterDoc = {
-  subject?: string; preview?: string; intro?: string; status?: string;
+  subject?: string; preview?: string; intro?: string;
   author?: string; volume?: string; issue?: string; classics?: boolean; cards?: NlCard[];
 };
 
@@ -39,9 +39,7 @@ export default async function IssuePage({ params }: { params: Promise<{ slug: st
   const issue = await getIssue(slug);
   if (!issue?.newsletterId) notFound();
   const nl = await getNewsletter(issue.newsletterId);
-  // Published newsletters only: an issue URL must never expose a draft or
-  // scheduled newsletter's content.
-  if (!nl || nl.status !== "published") notFound();
+  if (!nl) notFound();
 
   const html = renderNewsletterPageHtml({
     subject: nl.subject ?? "",

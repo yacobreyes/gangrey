@@ -192,15 +192,7 @@ export interface Issue {
 }
 
 export async function getAllIssues(): Promise<Issue[]> {
-  // Only issues whose newsletter exists AND is published. An issue must not
-  // exist publicly for a draft/scheduled newsletter, and a dangling issue
-  // (newsletter deleted) must not be advertised by /issues or the sitemap.
-  const publishedIds = new Set(
-    sqliteDocsByType<{ _id: string; status?: string }>("newsletter")
-      .filter(n => n.status === "published").map(n => n._id)
-  );
   return sqliteDocsByType<Omit<Issue, "slug"> & { slug?: { current?: string } | string }>("issue")
-    .filter(i => i.newsletterId && publishedIds.has(i.newsletterId))
     .map(i => ({ ...i, slug: typeof i.slug === "object" && i.slug ? (i.slug.current ?? "") : ((i.slug as string) ?? "") }))
     .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? "")) as Issue[];
 }
