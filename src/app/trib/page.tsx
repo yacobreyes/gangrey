@@ -93,6 +93,9 @@ const CSS = `
  .lead.has-deed:hover{border-color:var(--accent)}
  .qz{padding:1.2rem 0}
  h2.gap{margin-top:1.4rem}
+ .lead.k-dev{border-left-color:#0891b2}
+ .lm2{font-size:.76rem;color:var(--muted);margin-top:.15rem}
+ .devrec{padding:.55rem 0}
  .agx{cursor:pointer}
  .agx .agt{text-decoration:underline dotted;text-underline-offset:3px}
  .agx .ext{color:var(--muted);margin-left:.4rem;text-decoration:none}
@@ -406,75 +409,96 @@ function initTrib(){
       buildChips();
     });
   }
+  // ---- development pipeline (Accela land-use cases) ----
+  // Real schema, confirmed from the live layer:
+  //   RECORDID (VRB-26-0000097), ADDRESS, APPSTATUS, TENTATIVEHEARING,
+  //   RECORDALIAS (Variance Review Board), MAPDOT (Variances),
+  //   NEIGHBORHOOD, COUNCILDISTRICT, CREATED (Accela), CREATEDDATE (epoch ms).
+  function epochDay(v) {
+    var n = Number(v);
+    return (n && String(v).length >= 12) ? new Date(n).toISOString().slice(0, 10) : (v ? String(v) : '');
+  }
+  function devCase(a) {
+    var hearing = String(a.TENTATIVEHEARING || '').trim();
+    var hasHearing = hearing && !/^n\/?a$/i.test(hearing);
+    return {
+      id: String(a.RECORDID || ''),
+      addr: String(a.ADDRESS || ''),
+      kind: String(a.MAPDOT || a.RECORDALIAS || 'case'),
+      board: String(a.RECORDALIAS || ''),
+      status: String(a.APPSTATUS || ''),
+      hood: String(a.NEIGHBORHOOD || ''),
+      dist: String(a.COUNCILDISTRICT || ''),
+      hearing: hasHearing ? hearing : '',
+      filed: epochDay(a.CREATEDDATE),
+    };
+  }
+  function devRowHtml(c) {
+    return '<div class="row devrec">' +
+      '<div><strong>' + escHtml(c.addr || c.id) + '</strong>' +
+        (c.kind ? ' <span class="badge ent">' + escHtml(c.kind) + '</span>' : '') +
+        (c.hearing ? ' <span class="badge big">hearing ' + escHtml(c.hearing) + '</span>' : '') + '</div>' +
+      '<div class="lm2">' +
+        [c.board, c.status, c.hood && ('· ' + c.hood), c.dist && ('District ' + c.dist), c.filed && ('filed ' + c.filed), c.id]
+          .filter(Boolean).map(escHtml).join(' · ') +
+      '</div></div>';
+  }
+  function devLeads(cases) {
+    var out = [];
+    cases.forEach(function (c) {
+      var score = 0, why = [];
+      var w = null;
+      WATCH.forEach(function (t) { if (!w && (c.addr + ' ' + c.hood).toLowerCase().indexOf(t.toLowerCase()) >= 0) w = t; });
+      if (w) { score += 45; why.push('watchlist: ' + w); }
+      if (c.hearing) { score += 25; why.push('hearing set for ' + c.hearing); }
+      if (/rezon/i.test(c.kind + ' ' + c.board)) { score += 20; why.push('rezoning request'); }
+      else if (/varian/i.test(c.kind + ' ' + c.board)) { score += 10; why.push('variance request'); }
+      if (c.filed && (Date.now() - new Date(c.filed).getTime()) < 14 * 86400000) { score += 12; why.push('newly filed'); }
+      if (score < 25) return;
+      out.push({ score: score, why: why.join(' · '),
+        what: (c.addr || c.id) + (c.hood ? ' · ' + c.hood : '') + (c.dist ? ' · District ' + c.dist : ''),
+        meta: [c.board, c.status, c.id].filter(Boolean).join(' · ') });
+    });
+    return out.sort(function (a, b) { return b.score - a.score; }).slice(0, 8);
+  }
+  function injectDevLeads(cases) {
+    var panel = document.getElementById('panel-leads');
+    if (!panel) return;
+    var leads = devLeads(cases);
+    if (!leads.length) return;
+    var frag = document.createElement('div');
+    frag.innerHTML = leads.map(function (l) {
+      return '<div class="lead k-dev"><div class="lw">' + escHtml(l.why) + '</div>' +
+        '<div class="lf">' + escHtml(l.what) + '</div>' +
+        '<div class="lm">development · ' + escHtml(l.meta) + '</div></div>';
+    }).join('');
+    var quiet = panel.querySelector('.qz');
+    if (quiet) quiet.remove();
+    // Land-use leads sit under the money leads already rendered server-side.
+    while (frag.firstChild) panel.appendChild(frag.firstChild);
+    var tab = document.querySelector('#tabbar .tb[data-tab=leads]');
+    if (tab) tab.textContent = 'Leads (' + panel.querySelectorAll('.lead').length + ')';
+  }
   function loadDevRecords() {
     var box = document.getElementById('devco');
     if (!box || box.dataset.loaded) return;
     box.dataset.loaded = '1';
     var lyr = (__TRIB.gis.layers.find(function (x) { return x.key === 'devcoord'; }) || { id: 31 });
     var base = __TRIB.gis.base + '/' + lyr.id;
-    // Field aliases first, so rows read in the layer's own vocabulary instead
-    // of guessed column names (the earlier version rendered bare addresses).
-    Promise.all([
-      fetch(base + '?f=json').then(function (r) { return r.json(); }),
-      fetch(base + '/query?where=1%3D1&outFields=*&returnGeometry=false&resultRecordCount=40&f=json').then(function (r) { return r.json(); })
-    ]).then(function (res) {
-      var meta = res[0] || {}, j = res[1] || {};
-      if (j.error) throw new Error(j.error.message || 'ArcGIS error');
-      var alias = {}; (meta.fields || j.fields || []).forEach(function (f) { alias[f.name] = f.alias || f.name; });
-      var feats = j.features || [];
-      if (!feats.length) { box.innerHTML = '<p class="muted">No current records.</p>'; return; }
-      var SKIP = /objectid|shape|globalid|guid|^fid$|_id$|latitude|longitude|^x$|^y$/i;
-      function interesting(a) {
-        return Object.keys(a).filter(function (k) {
-          var v = a[k];
-          return !SKIP.test(k) && v !== null && v !== '' && v !== 0 && String(v).length < 400;
-        });
-      }
-      // No field-name guessing: headline each case with its first substantive
-      // VALUES verbatim, expansion shows every labeled field, and the schema
-      // line names what this layer actually carries.
-      var schemaLine = '<p class="portal muted">fields: ' + Object.keys(alias).filter(function(k){return !SKIP.test(k);}).map(function(k){return escHtml(alias[k]||k);}).join(', ').slice(0, 300) + '</p>';
-      box.innerHTML = schemaLine + feats.map(function (f, idx) {
-        var a = f.attributes || {};
-        var keys = interesting(a);
-        var vals = keys.map(function (k) {
-          var v = String(a[k]);
-          if (/^\d{12,13}$/.test(v)) v = new Date(Number(v)).toISOString().slice(0,10);
-          return v;
-        });
-        var head = vals.slice(0, 3).join(' · ');
-        var detail = keys.map(function (k) {
-          var v = String(a[k]);
-          if (/^\d{12,13}$/.test(v)) v = new Date(Number(v)).toISOString().slice(0,10);
-          return '<div><span class="muted">' + escHtml(alias[k] || k) + ':</span> ' + escHtml(v) + '</div>';
-        }).join('');
-        return '<div class="row devrec" data-i="' + idx + '">' +
-          escHtml(head || 'no attributes on this case') +
-          '<div class="agitems hid">' + detail + '</div></div>';
-      }).join('');
-      box.querySelectorAll('.devrec').forEach(function (r) {
-        r.style.cursor = 'pointer';
-        r.addEventListener('click', function () {
-          r.querySelector('.agitems').classList.toggle('hid');
-        });
-      });
-    }).catch(function (e) { box.innerHTML = '<p class="err">unavailable from this browser too: ' + escHtml(String(e.message || e)) + '</p>'; });
+    fetch(base + '/query?where=1%3D1&outFields=*&returnGeometry=false&orderByFields=CREATEDDATE%20DESC&resultRecordCount=60&f=json')
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j.error) throw new Error(j.error.message || 'ArcGIS error');
+        var cases = (j.features || []).map(function (f) { return devCase(f.attributes || {}); });
+        if (!cases.length) { box.innerHTML = '<p class="muted">No current cases.</p>'; return; }
+        var hearings = cases.filter(function (c) { return c.hearing; });
+        box.innerHTML =
+          '<p class="portal muted">' + cases.length + ' cases · ' + hearings.length + ' with a hearing set</p>' +
+          cases.map(devRowHtml).join('');
+        injectDevLeads(cases);
+      })
+      .catch(function (e) { box.innerHTML = '<p class="err">unavailable: ' + escHtml(String(e.message || e)) + '</p>'; });
   }
-  // ---- tabs ----
-  document.querySelectorAll('#tabbar .tb').forEach(function (b) {
-    if (b.dataset.wired) return; b.dataset.wired = '1';
-    b.addEventListener('click', function () {
-      document.querySelectorAll('#tabbar .tb').forEach(function (x) { x.classList.toggle('on', x === b); });
-      ['leads','records','gov','ev'].forEach(function (t) {
-        document.getElementById('panel-' + t).classList.toggle('hid', t !== b.dataset.tab);
-      });
-    });
-  });
-  document.querySelectorAll('.lead.has-deed').forEach(function (l) {
-    if (l.dataset.wired) return; l.dataset.wired = '1';
-    l.addEventListener('click', function () { if (l.dataset.deed) openDrawer(l.dataset.deed); });
-  });
-
   clientDiscover();
   loadDevRecords();
   // Special-event permits: hunt the city's open-data folder for a layer whose
@@ -528,15 +552,14 @@ function initTrib(){
       return L.esri.featureLayer({ url: __TRIB.gis.base + '/' + meta.id, pointToLayer: function (g, latlng) {
         return L.circleMarker(latlng, { radius: 5, color: '#7c3aed', weight: 2, fillOpacity: .5 });
       }}).bindPopup(function (l) {
-        var a = (l.feature && l.feature.properties) || {};
-        var rows = Object.keys(a).filter(function (k) {
-          return a[k] !== null && a[k] !== '' && !/objectid|shape|globalid/i.test(k);
-        }).slice(0, 10).map(function (k) {
-          var v = String(a[k]);
-          if (/^\d{12,13}$/.test(v)) v = new Date(Number(v)).toISOString().slice(0,10);
-          return '<b>' + k + ':</b> ' + v;
-        });
-        return rows.join('<br>') || 'no attributes';
+        var c = devCase((l.feature && l.feature.properties) || {});
+        return '<b>' + (c.addr || c.id) + '</b>' +
+          (c.kind ? '<br>' + c.kind : '') +
+          (c.board ? '<br>' + c.board : '') +
+          (c.status ? '<br>Status: ' + c.status : '') +
+          (c.hearing ? '<br><b>Hearing: ' + c.hearing + '</b>' : '') +
+          (c.hood ? '<br>' + c.hood : '') + (c.dist ? ' · District ' + c.dist : '') +
+          (c.filed ? '<br><small>filed ' + c.filed + ' · ' + c.id + '</small>' : '');
       });
     }
     return L.esri.dynamicMapLayer({ url: __TRIB.gis.base, layers: [meta.id], opacity: .55 });
