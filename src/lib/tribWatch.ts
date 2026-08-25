@@ -4,7 +4,7 @@
 // so restarts and repeat scans stay silent.
 import { sqliteGetSingleton, sqliteSetSingleton } from "./storage/sqlite";
 import { notify } from "./push";
-import { fetchDeeds, fetchDistress, fetchWarn, fetchEvents, fetchTampaMeetings, fetchBoccMeetings, watchHit, type DeedRow } from "./trib";
+import { fetchDeeds, fetchDistress, fetchWarn, fetchTampaMeetings, fetchBoccMeetings, watchHit, type DeedRow } from "./trib";
 
 type WatchState = { lastRun?: number; seen?: string[] };
 const KEY = "trib-watch";
@@ -43,10 +43,6 @@ export async function runTribWatchScan(): Promise<{ ran: boolean; alerts: number
       // Every Hillsborough WARN row alerts regardless of watchlist: rare + newsworthy.
       text: `${w.company} (${w.employees || "?"} employees) ${w.date} WATCHALWAYS`, url: "/trib",
     });
-  });
-  await safe(async () => {
-    const { items } = await fetchEvents();
-    for (const e of items) candidates.push({ id: `ev-${e.url}`, label: "Event", text: `${e.title} ${e.where}`, url: "/trib" });
   });
   await safe(async () => {
     const { items } = await fetchTampaMeetings();

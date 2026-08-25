@@ -1,6 +1,6 @@
 // tampatrib: fetch + cache + radar helpers, ported from the original PHP
 // sub-site. Server-side only.
-import { WATCHLIST, BIG_SALE, NOMINAL_MAX, DEED_DAYS, CACHE_TTL, EVENTS_URL, DISTRESS_DOCTYPE_CANDIDATES, WARN_URLS } from "@/app/trib/config";
+import { WATCHLIST, BIG_SALE, NOMINAL_MAX, DEED_DAYS, CACHE_TTL, DISTRESS_DOCTYPE_CANDIDATES, WARN_URLS } from "@/app/trib/config";
 
 const UA = "Mozilla/5.0 (Macintosh) tampatrib-subsite/1.0";
 
@@ -389,39 +389,6 @@ export async function parseAgendaPage(url: string): Promise<{ title: string; ite
   };
 }
 
-// ---- events wall (Creative Loafing community calendar) ------------------
-// The EventSearch page is server-rendered Foundation markup: each event is an
-// anchor to community.cltampa.com/event/<slug>-<id>. Title comes from the
-// anchor text or the card image alt; date/venue best-effort from the card.
-export type EventItem = { title: string; url: string; when: string; where: string };
-
-export async function fetchEvents(): Promise<{ items: EventItem[] }> {
-  const html = await http(EVENTS_URL, { headers: {
-    "Accept": "text/html",
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
-  }});
-  const items: EventItem[] = [];
-  const seen = new Set<string>();
-  const re = /<a[^>]+href="(https:\/\/community\.cltampa\.com\/event\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(html)) && items.length < 40) {
-    const url = m[1].split("?")[0];
-    const id = url.match(/-(\d+)$/)?.[1] ?? url;
-    if (seen.has(id)) continue;
-    const inner = m[2];
-    let title = strip(inner);
-    if (!title) title = strip(inner.match(/alt="(?:Image: )?([^"]+)"/i)?.[1] ?? "");
-    if (!title || /^canceled/i.test(title)) continue;
-    seen.add(id);
-    // Look around the anchor for the card's date/venue lines.
-    const ctx = strip(html.slice(m.index, Math.min(html.length, m.index + 1600)));
-    const when = ctx.match(/\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*\.?,?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z.]*\s+\d{1,2}[^|<]{0,28}/i)?.[0]?.trim() ?? "";
-    const where = ctx.match(/\bat\s+([A-Z][^.|]{2,60}?)(?:\s{2}|\s·|$)/)?.[1]?.trim() ?? "";
-    items.push({ title: title.slice(0, 140), url, when, where });
-  }
-  if (items.length === 0) throw new Error("no events parsed");
-  return { items };
-}
 
 // ---- distress radar (lis pendens / foreclosure filings) -----------------
 // Same Clerk Search API as the deeds pull. A lis pendens is the first public
@@ -507,7 +474,7 @@ const money = (n: number) => "$" + n.toLocaleString("en-US");
 
 export function buildLeads(input: {
   deeds: DeedRow[]; distress: DeedRow[]; warn: WarnRow[];
-  meetings: MeetingItem[]; events: EventItem[];
+  meetings: MeetingItem[];
 }): Lead[] {
   const leads: Lead[] = [];
 
@@ -562,15 +529,6 @@ export function buildLeads(input: {
     });
   }
 
-  for (const e of input.events) {
-    const w = watchHit(`${e.title} ${e.where}`);
-    if (!w) continue;
-    leads.push({
-      id: `ev-${e.url}`, score: 15, kind: "event",
-      why: `watchlist match on an event: ${w}`,
-      what: `${e.title}${e.where ? " · " + e.where : ""}`, date: e.when,
-    });
-  }
 
   return leads.sort((a, b) => b.score - a.score).slice(0, 30);
 }

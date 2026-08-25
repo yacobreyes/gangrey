@@ -3,9 +3,9 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/adminAuth";
 import {
   cached, fetchDeeds, fetchNws, geolocateDeeds, deedBadges, watchHit,
-  fetchTampaMeetings, fetchBoccMeetings, discoverPlanningLayers, fetchDevCoord, fetchEvents,
+  fetchTampaMeetings, fetchBoccMeetings, discoverPlanningLayers, fetchDevCoord,
   fetchDistress, fetchWarn, buildLeads,
-  type DeedRow, type NwsAlert, type MeetingItem, type GisLayer, type EventItem, type WarnRow,
+  type DeedRow, type NwsAlert, type MeetingItem, type GisLayer, type WarnRow,
 } from "@/lib/trib";
 import { DEED_DAYS, CACHE_TTL } from "./config";
 
@@ -116,7 +116,6 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
     cached("gis_layers", discoverPlanningLayers as unknown as () => Promise<Record<string, unknown>>, force),
     cached("devcoord", fetchDevCoord as unknown as () => Promise<Record<string, unknown>>, force),
   ]);
-  const events = await cached("events", fetchEvents as unknown as () => Promise<Record<string, unknown>>, force);
   const distress = await cached("distress", fetchDistress as unknown as () => Promise<Record<string, unknown>>, force);
   const warn = await cached("warn", fetchWarn as unknown as () => Promise<Record<string, unknown>>, force);
   const rows = (deeds.rows as DeedRow[]) ?? [];
@@ -125,10 +124,9 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
 
   const tampaItems = (tampaMtgs.items as MeetingItem[]) ?? [];
   const boccItems = (boccMtgs.items as MeetingItem[]) ?? [];
-  const eventItems = (events.items as EventItem[]) ?? [];
   const distressRows = (distress.rows as DeedRow[]) ?? [];
   const warnItems = (warn.items as WarnRow[]) ?? [];
-  const leads = buildLeads({ deeds: rows, distress: distressRows, warn: warnItems, meetings: [...tampaItems, ...boccItems], events: eventItems });
+  const leads = buildLeads({ deeds: rows, distress: distressRows, warn: warnItems, meetings: [...tampaItems, ...boccItems] });
 
   const now = new Date().toLocaleString("en-US", {
     timeZone: "America/New_York", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
@@ -171,7 +169,7 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
             <button className="tb on" data-tab="leads">Leads{leads.length ? ` (${leads.length})` : ""}</button>
             <button className="tb" data-tab="records">Records</button>
             <button className="tb" data-tab="gov">Government</button>
-            <button className="tb" data-tab="ev">Events</button>
+            <button className="tb" data-tab="ev">Permits</button>
           </div>
 
           <div className="panel" id="panel-leads">
@@ -256,17 +254,8 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
           </div>
 
           <div className="panel hid" id="panel-ev">
-            <h2>This weekend</h2>
-            <p className="portal"><a href="https://community.cltampa.com/tampa/EventSearch?narrowByDate=This+Weekend&sortType=date&v=d" target="_blank" rel="noreferrer">calendar ↗</a></p>
-            {events._error ? <p className="err">unavailable: {String(events._error)}</p> : null}
-            {eventItems.slice(0, 15).map((e, i) => (
-              <div className="row" key={i}>
-                <a href={e.url} target="_blank" rel="noreferrer">{watchHit(e.title + " " + e.where) ? <mark>{e.title}</mark> : e.title}</a>
-                {(e.when || e.where) ? <span className="muted"> · {[e.when, e.where].filter(Boolean).join(" · ")}</span> : null}
-              </div>
-            ))}
-
-            <h2 className="gap">Special-event permits</h2>
+            <h2>Special-event permits — City of Tampa</h2>
+            <p className="portal muted">Street closures and festivals, from the city&#39;s own permit records.</p>
             <div id="sep"><p className="spin">searching the city&#39;s open data…</p></div>
           </div>
         </aside>
