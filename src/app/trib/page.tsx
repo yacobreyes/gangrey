@@ -72,7 +72,7 @@ const CSS = `
  #drawer .party{margin:.7rem 0 .2rem;font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
  #drawer .hist .row{font-size:.85rem}
  .spin{color:var(--muted);font-size:.85rem}
- .layers{position:absolute;z-index:800;top:.6rem;left:.6rem;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.35rem .6rem;display:flex;gap:.7rem;flex-wrap:wrap;font-size:.8rem;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+ .layers{position:absolute;z-index:800;top:.6rem;right:.6rem;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.35rem .6rem;display:flex;gap:.7rem;flex-wrap:wrap;font-size:.8rem;box-shadow:0 2px 10px rgba(0,0,0,.15)}
  .layers label{display:flex;align-items:center;gap:.3rem;cursor:pointer;white-space:nowrap}
  .mappane{position:relative;min-height:45vh}
  .devco .row{font-size:.85rem}
@@ -128,12 +128,7 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
         <div className="mappane">
           <div className="layers" id="layerbox">
             <strong style={{ color: "var(--muted)" }}>Layers</strong>
-            {(mapData.gis.layers).map(l => (
-              <label key={l.key}><input type="checkbox" data-layer={l.key} /> {
-                l.key === "zoning" ? "Zoning" : l.key === "flu" ? "Future Land Use"
-                : l.key === "devcoord" ? "Dev Coordination" : l.key === "cra" ? "CRAs"
-                : l.key === "council" ? "Council Districts" : l.name}</label>
-            ))}
+            <span className="muted" id="layerload">loading…</span>
           </div>
           <div id="map" />
         </div>
@@ -164,17 +159,7 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
           <h2 style={{ marginTop: "1rem" }}>Development records — City of Tampa</h2>
           <p className="portal"><a href="https://arcgis.tampagov.net/arcgis/rest/services/OpenData/Planning/MapServer" target="_blank" rel="noreferrer">source layer ↗</a>
             <a href="https://city-tampa.opendata.arcgis.com/" target="_blank" rel="noreferrer">Tampa open data ↗</a></p>
-          {devco._error ? <p className="err">unavailable: {String(devco._error)}</p> : null}
-          <div className="devco">
-          {(((devco.items as Record<string, unknown>[]) ?? []).slice(0, 20)).map((it, i) => {
-            const name = String(it.NAME ?? it.ProjectName ?? it.PROJECT ?? it.Name ?? it.TITLE ?? Object.values(it)[0] ?? "record");
-            const addr = String(it.ADDRESS ?? it.Address ?? it.LOCATION ?? it.SiteAddress ?? "");
-            return (
-              <div className="row" key={i}>{watchHit(name + " " + addr) ? <mark>{name}</mark> : name}
-                {addr ? <span className="muted"> · {addr}</span> : null}</div>
-            );
-          })}
-          </div>
+          <div className="devco" id="devco"><p className="spin">loading from the city&#39;s ArcGIS…</p></div>
 
           <h2 style={{ marginTop: "1rem" }}>Deeds — last {DEED_DAYS} days, Hillsborough Clerk ({rows.length})</h2>
           {deeds._error ? <p className="err">unavailable: {String(deeds._error)}</p> : null}
@@ -296,7 +281,70 @@ function initTrib(){
     markers[id].on('click', function () { openDrawer(id); });
   });
   // ---- toggleable city GIS overlays (zoning / FLU / CRA / districts) ----
-  // Rendered by the city's own MapServer (its cartography), via esri-leaflet.
+  // Discovery + dev-records run in the BROWSER: the city's ArcGIS serves its
+  // CMS error page to datacenter IPs (the server got HTML, not JSON), while a
+  // normal browser IP gets the real service. Server-side results are used
+  // when present; otherwise the client fills them in.
+  var GIS_BASE = 'https://arcgis.tampagov.net/arcgis/rest/services/OpenData/Planning/MapServer';
+  if (!__TRIB.gis.base) __TRIB.gis.base = GIS_BASE;
+  var LAYER_WANTS = [
+    ['zoning', /zoning\s*district/i], ['flu', /future\s*land\s*use/i],
+    ['devcoord', /development\s*coordination/i], ['cra', /community\s*redevelopment/i],
+    ['council', /council\s*district/i]
+  ];
+  var LAYER_LABEL = { zoning: 'Zoning', flu: 'Future Land Use', devcoord: 'Dev Coordination', cra: 'CRAs', council: 'Council Districts' };
+  function buildChips() {
+    var box = document.getElementById('layerbox');
+    var load = document.getElementById('layerload');
+    if (load) load.remove();
+    __TRIB.gis.layers.forEach(function (l) {
+      if (box.querySelector('[data-layer="' + l.key + '"]')) return;
+      var lab = document.createElement('label');
+      lab.innerHTML = '<input type="checkbox" data-layer="' + l.key + '"> ' + (LAYER_LABEL[l.key] || l.name);
+      box.appendChild(lab);
+      wireChip(lab.querySelector('input'));
+    });
+  }
+  function clientDiscover() {
+    if (__TRIB.gis.layers.length) { buildChips(); return; }
+    fetch(GIS_BASE + '?f=pjson').then(function (r) { return r.json(); }).then(function (j) {
+      (j.layers || []).forEach(function (l) {
+        LAYER_WANTS.forEach(function (w) {
+          if (w[1].test(String(l.name || '')) && !__TRIB.gis.layers.some(function (x) { return x.key === w[0]; }))
+            __TRIB.gis.layers.push({ id: Number(l.id), name: String(l.name), key: w[0] });
+        });
+      });
+      if (!__TRIB.gis.layers.some(function (x) { return x.key === 'devcoord'; }))
+        __TRIB.gis.layers.push({ id: 31, name: 'Development Coordination Locations', key: 'devcoord' });
+      buildChips();
+    }).catch(function () {
+      // Directory unreachable even from the browser: offer the one known layer.
+      __TRIB.gis.layers.push({ id: 31, name: 'Development Coordination Locations', key: 'devcoord' });
+      buildChips();
+    });
+  }
+  function loadDevRecords() {
+    var box = document.getElementById('devco');
+    if (!box || box.dataset.loaded) return;
+    box.dataset.loaded = '1';
+    var lyr = (__TRIB.gis.layers.find(function (x) { return x.key === 'devcoord'; }) || { id: 31 });
+    fetch(__TRIB.gis.base + '/' + lyr.id + '/query?where=1%3D1&outFields=*&returnGeometry=false&resultRecordCount=25&f=json')
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j.error) throw new Error(j.error.message || 'ArcGIS error');
+        var feats = j.features || [];
+        if (!feats.length) { box.innerHTML = '<p class="muted">No current records.</p>'; return; }
+        box.innerHTML = feats.map(function (f) {
+          var a = f.attributes || {};
+          var name = a.NAME || a.ProjectName || a.PROJECT || a.Name || a.TITLE || Object.values(a)[0] || 'record';
+          var addr = a.ADDRESS || a.Address || a.LOCATION || a.SiteAddress || '';
+          return '<div class="row">' + escHtml(String(name)) + (addr ? ' <span class="muted">· ' + escHtml(String(addr)) + '</span>' : '') + '</div>';
+        }).join('');
+      })
+      .catch(function (e) { box.innerHTML = '<p class="err">unavailable from this browser too: ' + escHtml(String(e.message || e)) + '</p>'; });
+  }
+  clientDiscover();
+  loadDevRecords();
   var gisOverlays = {};
   function gisLayerFor(key) {
     var meta = __TRIB.gis.layers.find(function (l) { return l.key === key; });
@@ -313,8 +361,8 @@ function initTrib(){
     }
     return L.esri.dynamicMapLayer({ url: __TRIB.gis.base, layers: [meta.id], opacity: .55 });
   }
-  document.querySelectorAll('#layerbox input[type=checkbox]').forEach(function (cb) {
-    if (cb.dataset.wired) return; cb.dataset.wired = '1';
+  function wireChip(cb) {
+    if (!cb || cb.dataset.wired) return; cb.dataset.wired = '1';
     cb.addEventListener('change', function () {
       var key = cb.dataset.layer;
       if (cb.checked) {
@@ -324,7 +372,8 @@ function initTrib(){
         map.removeLayer(gisOverlays[key]);
       }
     });
-  });
+  }
+  document.querySelectorAll('#layerbox input[type=checkbox]').forEach(wireChip);
 
   var _q = document.getElementById('q');
   if (!_q.dataset.wired) { _q.dataset.wired = '1';
