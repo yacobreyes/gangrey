@@ -1,32 +1,9 @@
 // tampatrib: fetch + cache + radar helpers, ported from the original PHP
 // sub-site. Server-side only.
-import { createHmac, timingSafeEqual } from "crypto";
 import { XMLParser } from "fast-xml-parser";
 import { WATCHLIST, BIG_SALE, NOMINAL_MAX, DEED_DAYS, CACHE_TTL } from "@/app/trib/config";
 
 const UA = "Mozilla/5.0 (Macintosh) tampatrib-subsite/1.0";
-
-// ---- auth --------------------------------------------------------------
-// Cookie value = HMAC(password) with the server secret, so changing either
-// the password or NEXTAUTH_SECRET invalidates every session at once.
-export const TRIB_COOKIE = "trib_ok";
-
-export function tribPassword(): string | null {
-  return process.env.TRIB_PASSWORD || null;
-}
-
-export function tribToken(): string | null {
-  const pw = tribPassword();
-  if (!pw) return null;
-  return createHmac("sha256", process.env.NEXTAUTH_SECRET ?? "trib").update(`trib:${pw}`).digest("base64url");
-}
-
-export function tribTokenValid(value: string | undefined | null): boolean {
-  const want = tribToken();
-  if (!want || !value) return false;
-  const a = Buffer.from(value), b = Buffer.from(want);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
 
 // ---- fetch + cache -----------------------------------------------------
 // In-memory, per-process (a single long-lived container serves the site).

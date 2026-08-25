@@ -1,22 +1,30 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { cookies } from "next/headers";
+import { getCurrentUser } from "@/lib/adminAuth";
 import {
-  TRIB_COOKIE, tribPassword, tribTokenValid,
   cached, fetchDeeds, fetchNws, fetchRss, fetchReddit,
   deedBadges, watchHit, type DeedRow, type FeedItem, type RedditItem, type NwsAlert,
 } from "@/lib/trib";
 import { NEWS_FEEDS, SUBREDDITS, DEED_DAYS, CACHE_TTL } from "./config";
 
 // Private reporting dashboard, ported from the tampatrib PHP sub-site.
-// Secret by construction: noindex, never in the sitemap or robots.txt, and
-// the route 404s entirely unless TRIB_PASSWORD is configured.
+// Gated like the DeLorean, but tighter: only a signed-in Imago ADMIN gets the
+// page; everyone else gets a bare 404 with no login form, no name, nothing to
+// suggest the route exists. noindex, never in the sitemap or robots.txt.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "tampatrib",
-  robots: { index: false, follow: false },
-};
+// Metadata is gated too: static metadata resolves even for a notFound()
+// render and rides along in the RSC payload, so an anonymous 404 would carry
+// the string "tampatrib" for anyone reading the page source. Outsiders get
+// only a robots tag.
+export async function generateMetadata(): Promise<Metadata> {
+  const me = await getCurrentUser();
+  const admin = !!me && me.role === "admin";
+  return {
+    ...(admin ? { title: "tampatrib" } : {}),
+    robots: { index: false, follow: false },
+  };
+}
 
 function esc(s: string): string {
   return s; // JSX escapes; helper kept for parity where strings interpolate
@@ -62,26 +70,10 @@ const CSS = `
  .login button{padding:.5rem 1rem;border-radius:8px;border:0;background:var(--accent);color:#fff;cursor:pointer}
 `;
 
-export default async function TribPage({ searchParams }: { searchParams: Promise<{ force?: string; bad?: string }> }) {
-  if (!tribPassword()) notFound();
+export default async function TribPage({ searchParams }: { searchParams: Promise<{ force?: string }> }) {
+  const me = await getCurrentUser();
+  if (!me || me.role !== "admin") notFound();
   const sp = await searchParams;
-
-  const authed = tribTokenValid((await cookies()).get(TRIB_COOKIE)?.value);
-  if (!authed) {
-    return (
-      <div className="login">
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        <div>
-          <h1>🕸 tampatrib</h1>
-          {sp.bad && <p className="err">Wrong password.</p>}
-          <form method="post" action="/trib/auth">
-            <input type="password" name="pw" placeholder="password" autoFocus />
-            <button>Enter</button>
-          </form>
-        </div>
-      </div>
-    );
-  }
 
   const force = sp.force === "1";
   const [deeds, nws, newsEntries, redditEntries] = await Promise.all([
@@ -103,7 +95,7 @@ export default async function TribPage({ searchParams }: { searchParams: Promise
       <meta httpEquiv="refresh" content="900" />
       <header className="trib">
         <h1>🕸 tampatrib</h1>
-        <span className="muted">{esc(now)} · <a href="/trib?force=1">refresh feeds</a> · <a href="/trib/auth?logout=1">lock</a></span>
+        <span className="muted">{esc(now)} · <a href="/trib?force=1">refresh feeds</a></span>
         <input id="q" placeholder="filter everything… (name, street, LLC)" />
       </header>
 
