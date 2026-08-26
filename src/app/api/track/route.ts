@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   if (!rateLimit(ip, "track", 600, 60 * 1000)) return NextResponse.json({ ok: false }, { status: 429 });
 
-  let body: { s?: string; k?: string; sid?: string; r?: string; ms?: number; page?: boolean };
+  let body: { s?: string; k?: string; sid?: string; r?: string; u?: string; ms?: number; page?: boolean };
   try { body = await req.json(); } catch { return NextResponse.json({ ok: false }, { status: 400 }); }
   const slug = String(body.s ?? "").slice(0, 200);
   const session = String(body.sid ?? "").slice(0, 40);
@@ -57,7 +57,15 @@ export async function POST(req: NextRequest) {
   }
 
   const selfHost = hostOf(process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org");
-  const { host, source } = sourceFromHost(hostOf(String(body.r ?? "")), selfHost);
+  const ref = sourceFromHost(hostOf(String(body.r ?? "")), selfHost);
+  // utm_source on the landing URL (our email links carry utm_source=newsletter
+  // / welcome-email) beats the referrer: mail clients send no referrer, so
+  // without this every email click files under Direct. Sanitized to a short
+  // label — it's client-supplied — and title-cased for the Sources table.
+  const utm = String(body.u ?? "").toLowerCase().replace(/[^a-z0-9 _-]/g, "").slice(0, 40).trim();
+  const { host, source } = utm
+    ? { host: ref.host, source: utm.replace(/[_-]+/g, " ").replace(/^./, c => c.toUpperCase()) }
+    : ref;
 
   // Non-story pages (archive listing, homepage, sections...) record under a
   // "page:" slug so they surface in Top Pages, never Top Stories.

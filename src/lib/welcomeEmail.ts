@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import { submissionEmailHtml, escapeHtml } from "./submissionEmail";
 import { sqliteAllPublishedPostsLight } from "./storage/sqlite";
 import { straightenQuotes } from "./straighten";
+import { tagEmailLinks } from "./emailUtm";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org";
 
@@ -29,7 +30,9 @@ export async function sendWelcomeEmail(to: string): Promise<void> {
       ${p.byline ? `<span style="color:#392a22 !important;font-size:14px;"> &middot; ${escapeHtml(straightenQuotes(p.byline))}</span>` : ""}
     </p>`).join("");
 
-  const html = submissionEmailHtml(
+  // Tagged so story clicks from this email attribute to it in Analytics
+  // instead of "Direct" (mail clients send no referrer).
+  const html = tagEmailLinks(submissionEmailHtml(
     `<p style="font-size:17px;line-height:1.7;color:#000000 !important;margin:0 0 20px;">
        Thanks for signing up. Gangrey publishes true stories for the time you have. Start with what's on our front page:
      </p>
@@ -41,7 +44,7 @@ export async function sendWelcomeEmail(to: string): Promise<void> {
        Not you, or changed your mind? <a href="${SITE_URL}/unsubscribe?email=${encodeURIComponent(to)}" style="color:#8a8a8c !important;">Unsubscribe</a>.
      </p>`,
     "Welcome to Gangrey"
-  );
+  ), "welcome-email");
 
   const resend = new Resend(apiKey);
   // The SDK resolves with { error } instead of throwing; surface it so the

@@ -35,7 +35,10 @@ export default function StoryVisitTracker({ slug }: { slug: string }) {
     if (!alreadyViewed) {
       fetch("/api/track", {
         method: "POST", keepalive: true, headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ s: slug, k: "v", sid, r: document.referrer || "" }),
+        // utm_source (from newsletter/welcome-email links) beats the referrer
+        // server-side — mail clients send no referrer, so without it every
+        // email click counts as Direct.
+        body: JSON.stringify({ s: slug, k: "v", sid, r: document.referrer || "", u: new URLSearchParams(location.search).get("utm_source") || "" }),
       }).catch(() => {});
     }
 

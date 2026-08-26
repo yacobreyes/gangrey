@@ -9,6 +9,7 @@
 // photos).
 import type { PortableTextBlock } from "@portabletext/types";
 import { straightenQuotes, straightenBlocks } from "./straighten";
+import { tagEmailLinks } from "./emailUtm";
 import { CRIMSON } from "./palette";
 import {
   NL_FONT as FONT, NL_SERIF as SERIF, NL_GROUND as GROUND, NL_PAPER as PAPER,
@@ -346,9 +347,12 @@ export function renderNewsletterPageHtml(opts: NlOpts): string {
 }
 
 // Email version — same sheet, wrapped with the email document shell (preview
-// text, light color-scheme lock).
+// text, light color-scheme lock). Own-site links get utm_source=newsletter so
+// clicks attribute to the newsletter in Analytics instead of "Direct" (mail
+// clients send no referrer). The web reader (renderNewsletterPageHtml) stays
+// untagged — those are on-site clicks.
 export function renderNewsletterHtml(opts: NlOpts): string {
-  return `<!DOCTYPE html>
+  return tagEmailLinks(`<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light only">
 <style>
@@ -361,5 +365,5 @@ export function renderNewsletterHtml(opts: NlOpts): string {
       ${renderNewsletterSheet(opts, true)}
     </td></tr>
   </table>
-</body></html>`;
+</body></html>`, "newsletter");
 }

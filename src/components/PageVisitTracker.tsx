@@ -22,7 +22,9 @@ export default function PageVisitTracker({ label }: { label: string }) {
 
     fetch("/api/track", {
       method: "POST", keepalive: true, headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ s: label, k: "v", page: true, sid, r: document.referrer || "" }),
+      // utm_source beats the referrer server-side (email clicks arrive with no
+      // referrer and would otherwise count as Direct).
+      body: JSON.stringify({ s: label, k: "v", page: true, sid, r: document.referrer || "", u: new URLSearchParams(location.search).get("utm_source") || "" }),
     }).catch(() => {});
   }, [label]);
 
