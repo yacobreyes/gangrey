@@ -61,7 +61,7 @@ export async function POST(req: Request) {
   // the submission, which is already stored above). Sent from the submissions
   // address so replies land in the submissions inbox, not the newsletter one.
   const apiKey = process.env.GANGREY_RESEND_KEY ?? process.env.RESEND_API_KEY;
-  const from = process.env.SUBMISSIONS_FROM ?? "Gangrey <submissions@gangrey.org>";
+  const from = process.env.SUBMISSIONS_FROM ?? "The Tampa Tribune <submissions@gangrey.org>";
   if (apiKey) {
     try {
       const resend = new Resend(apiKey);
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
          <p style="font-size:13px;line-height:1.6;color:#8a8a8c !important;margin:22px 0 0;">You don't need to reply to this note.</p>`,
         "Submission Received"
       );
-      await resend.emails.send({ from, to: [email], subject: "We received your Gangrey submission", html });
+      await resend.emails.send({ from, to: [email], subject: "We received your Tampa Tribune submission", html });
     } catch (e) {
       console.log(`[submit] confirmation email failed: ${e instanceof Error ? e.message : e}`);
     }

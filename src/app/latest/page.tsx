@@ -9,9 +9,9 @@ import ListingHeader from "@/components/ListingHeader";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "Gangrey | The Latest",
+  title: "The Tampa Tribune | The Latest",
   alternates: { canonical: "/latest" },
-  description: "The newest writing from Gangrey.",
+  description: "The newest writing from The Tampa Tribune.",
 };
 
 export default async function LatestPage() {
@@ -34,7 +34,7 @@ export default async function LatestPage() {
       `}</style>
       <MagHeader />
       <main className="listing-main">
-        <ListingHeader title="The Latest" sub="The newest voices and stories from Gangrey." marginBottom={36} />
+        <ListingHeader title="The Latest" sub="The newest voices and stories from The Tampa Tribune." marginBottom={36} />
         {published.length > 0
           ? <StoryRowList posts={published} />
           : <p className="listing-empty">No stories yet.</p>}

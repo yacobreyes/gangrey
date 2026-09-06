@@ -4,7 +4,7 @@ import MagHeader from "@/components/MagHeader";
 import MagFooter from "@/components/MagFooter";
 
 export const metadata: Metadata = {
-  title: "Gangrey | Thank You",
+  title: "The Tampa Tribune | Thank You",
   robots: { index: false, follow: false },
 };
 
@@ -17,7 +17,7 @@ export default function StoreSuccessPage() {
           Order confirmed.
         </h1>
         <p style={{ fontFamily: "var(--font-body)", fontSize: 18, lineHeight: 1.5, color: "#392a22", margin: "0 0 32px" }}>
-          Thanks for supporting Gangrey. A receipt is on its way to your inbox, and your order will ship soon.
+          Thanks for supporting The Tampa Tribune. A receipt is on its way to your inbox, and your order will ship soon.
         </p>
         <Link href="/store" style={{ fontFamily: "var(--font-subhead)", fontWeight: 700, fontSize: 12, letterSpacing: ".16em", textTransform: "uppercase", color: "#490000" }}>
           ← Back to Shop

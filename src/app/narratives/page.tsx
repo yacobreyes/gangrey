@@ -6,7 +6,7 @@ const def = SECTIONS.find(s => s.path === "narratives")!;
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: `Gangrey | ${def.title}`,
+  title: `The Tampa Tribune | ${def.title}`,
   description: def.description,
   alternates: { canonical: "/narratives" },
 };

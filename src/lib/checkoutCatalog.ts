@@ -9,16 +9,16 @@ export const SUBSCRIPTION_CATALOG: Record<SubscriptionItem, {
   amount: number; // cents
   interval: "month" | "year";
 }> = {
-  monthly: { name: "Gangrey Monthly Membership", amount: 800, interval: "month" },
-  annual: { name: "Gangrey Annual Membership", amount: 4800, interval: "year" },
-  founding: { name: "Gangrey Founding Membership", amount: 10000, interval: "year" },
+  monthly: { name: "Tampa Tribune Monthly Membership", amount: 800, interval: "month" },
+  annual: { name: "Tampa Tribune Annual Membership", amount: 4800, interval: "year" },
+  founding: { name: "Tampa Tribune Founding Membership", amount: 10000, interval: "year" },
 };
 
 export const MERCH_CATALOG: Record<MerchItem, {
   name: string;
   amount: number; // cents
 }> = {
-  tote: { name: "Gangrey Tote", amount: 3000 },
-  tee: { name: "Gangrey Tee", amount: 2500 },
-  sweatshirt: { name: "Gangrey Sweatshirt", amount: 3500 },
+  tote: { name: "Tampa Tribune Tote", amount: 3000 },
+  tee: { name: "Tampa Tribune Tee", amount: 2500 },
+  sweatshirt: { name: "Tampa Tribune Sweatshirt", amount: 3500 },
 };

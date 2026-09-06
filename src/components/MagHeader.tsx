@@ -28,7 +28,7 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
 
   const logoInner = (
     // eslint-disable-next-line @next/next/no-img-element
-    <img className="mag-wordmark-img" src="/Wordmark.png?v=7" alt="Gangrey" fetchPriority="high" decoding="sync" />
+    <img className="mag-wordmark-img" src="/Wordmark.png?v=7" alt="The Tampa Tribune" fetchPriority="high" decoding="sync" />
   );
 
   return (
@@ -265,7 +265,7 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
               <input
                 ref={searchInputRef}
                 type="search"
-                placeholder={`Try "Gangrey"`}
+                placeholder={`Try "Tampa"`}
                 value={searchQ}
                 onChange={e => setSearchQ(e.target.value)}
                 autoComplete="off"
@@ -302,7 +302,7 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
               </svg>
               <input
                 type="search"
-                placeholder={`Try "Gangrey"`}
+                placeholder={`Try "Tampa"`}
                 value={searchQ}
                 onChange={e => setSearchQ(e.target.value)}
                 autoComplete="off"

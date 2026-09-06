@@ -25,8 +25,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const author = getAuthorBySlug(slug);
   if (!author) return {};
   return {
-    title: `Gangrey | ${author.name}`,
-    description: author.bio || `Stories by ${author.name} in Gangrey, a literary magazine.`,
+    title: `The Tampa Tribune | ${author.name}`,
+    description: author.bio || `Stories by ${author.name} in The Tampa Tribune, a literary magazine.`,
     alternates: { canonical: `/authors/${slug}` },
   };
 }
@@ -50,7 +50,7 @@ export default async function AuthorPage({ params }: { params: Promise<{ slug: s
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Gangrey", item: siteUrl },
+      { "@type": "ListItem", position: 1, name: "The Tampa Tribune", item: siteUrl },
       { "@type": "ListItem", position: 2, name: "Authors", item: `${siteUrl}/authors` },
       { "@type": "ListItem", position: 3, name: author.name, item: `${siteUrl}/authors/${slug}` },
     ],

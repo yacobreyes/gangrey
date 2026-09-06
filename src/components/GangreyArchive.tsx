@@ -158,7 +158,7 @@ export default function GangreyArchive({ posts, initialQuery = "", initialYear }
             placeholder="Search stories…"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            aria-label="Search Gangrey stories"
+            aria-label="Search The Tampa Tribune stories"
           />
           {query && (
             <button className="gr-search-clear" onClick={() => setQuery("")} aria-label="Clear search">×</button>

@@ -8,9 +8,9 @@ import MagFooter from "@/components/MagFooter";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "Gangrey | Issues",
+  title: "The Tampa Tribune | Issues",
   alternates: { canonical: "/issues" },
-  description: "Every newsletter issue from Gangrey, a literary magazine.",
+  description: "Every newsletter issue from The Tampa Tribune, a literary magazine.",
 };
 
 function formatDate(dateStr: string) {

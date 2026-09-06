@@ -8,7 +8,7 @@ import { getCurrentMember } from "@/lib/currentMember";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Gangrey | Your Membership",
+  title: "The Tampa Tribune | Your Membership",
   robots: { index: false, follow: false },
 };
 
@@ -43,7 +43,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                   {TIER_LABEL[current.member?.tier ?? ""] ?? "Member"} · Active
                 </div>
                 <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: 15, color: "#392a22", lineHeight: 1.5 }}>
-                  You have full access to the archive and every issue. Thank you for supporting Gangrey.
+                  You have full access to the archive and every issue. Thank you for supporting The Tampa Tribune.
                 </p>
               </div>
             ) : (

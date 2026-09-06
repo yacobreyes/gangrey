@@ -9,8 +9,8 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org";
 const gaId = process.env.NEXT_PUBLIC_GA_ID;
 
 export const metadata: Metadata = {
-  title: "Gangrey | A Literary Magazine",
-  description: "Gangrey is a literary magazine that publishes true stories for the time you have, from reported narratives and essays to micro-memoirs and craft talks.",
+  title: "The Tampa Tribune | A Literary Magazine",
+  description: "The Tampa Tribune is a literary magazine that publishes true stories for the time you have, from reported narratives and essays to micro-memoirs and craft talks.",
   metadataBase: new URL(siteUrl),
   // One favicon everywhere: the black circle-bubble "G". Every size (browser
   // tab 16/32, Google 48/96/192, apple-touch 180) is downscaled from the same
@@ -34,17 +34,17 @@ export const metadata: Metadata = {
     types: { "application/rss+xml": `${siteUrl}/feed.xml` },
   },
   openGraph: {
-    siteName: "Gangrey",
-    title: "Gangrey | A Literary Magazine",
+    siteName: "The Tampa Tribune",
+    title: "The Tampa Tribune | A Literary Magazine",
     // The real description, not the title repeated: this is the blurb a
     // shared homepage link shows under its headline.
     description: "True stories for the time you have: reported narratives, essays, micro-memoirs and craft talks.",
     url: siteUrl,
-    images: [{ url: "/open-graph.png", width: 1200, height: 630, alt: "Gangrey Magazine" }],
+    images: [{ url: "/open-graph.png", width: 1200, height: 630, alt: "The Tampa Tribune Magazine" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Gangrey | A Literary Magazine",
+    title: "The Tampa Tribune | A Literary Magazine",
     description: "True stories for the time you have: reported narratives, essays, micro-memoirs and craft talks.",
     images: ["/open-graph.png"],
   },
@@ -92,16 +92,16 @@ export default function RootLayout({
             {
               "@type": "Organization",
               "@id": `${siteUrl}/#organization`,
-              name: "Gangrey",
+              name: "The Tampa Tribune",
               url: siteUrl,
-              description: "Gangrey is a literary magazine that publishes true stories for the time you have, from reported narratives and essays to micro-memoirs and craft talks.",
+              description: "The Tampa Tribune is a literary magazine that publishes true stories for the time you have, from reported narratives and essays to micro-memoirs and craft talks.",
               logo: {
                 "@type": "ImageObject",
                 "@id": `${siteUrl}/#logo`,
                 url: `${siteUrl}/logo-square.png`,
                 width: 512,
                 height: 512,
-                caption: "Gangrey",
+                caption: "The Tampa Tribune",
               },
               image: { "@id": `${siteUrl}/#logo` },
               // Only profiles the magazine actually runs — this is a brand
@@ -112,7 +112,7 @@ export default function RootLayout({
               "@type": "WebSite",
               "@id": `${siteUrl}/#website`,
               url: siteUrl,
-              name: "Gangrey",
+              name: "The Tampa Tribune",
               description: "A literary magazine publishing true stories for the time you have.",
               inLanguage: "en-US",
               publisher: { "@id": `${siteUrl}/#organization` },

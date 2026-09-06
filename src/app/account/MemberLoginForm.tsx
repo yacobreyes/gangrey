@@ -37,7 +37,7 @@ export default function MemberLoginForm() {
   if (status === "sent") {
     return (
       <p style={{ fontFamily: "var(--font-body)", fontSize: 17, lineHeight: 1.5, color: "#392a22", margin: 0 }}>
-        If that email has a Gangrey membership, a sign-in link is on its way. Check your inbox.
+        If that email has a Tampa Tribune membership, a sign-in link is on its way. Check your inbox.
       </p>
     );
   }

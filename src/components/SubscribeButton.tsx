@@ -83,7 +83,7 @@ export default function SubscribeButton({
             >×</button>
 
             <p style={{ fontFamily: 'var(--font-headline)', fontSize: 32, fontWeight: 700, lineHeight: 1.05, letterSpacing: "-.02em", margin: "0 0 16px", textTransform: "none", whiteSpace: "normal", wordBreak: "break-word" }}>
-              Subscribe to Gangrey.
+              Subscribe to The Tampa Tribune.
             </p>
             <p style={{ fontFamily: 'var(--font-headline)', fontSize: 19, fontStyle: "italic", lineHeight: 1.5, color: "#ffffff", opacity: .9, margin: "0 0 28px", textTransform: "none", whiteSpace: "normal" }}>
               Get our latest issue delivered to your inbox.

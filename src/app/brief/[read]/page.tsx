@@ -12,8 +12,8 @@ export const revalidate = 60;
 export async function generateMetadata({ params }: { params: Promise<{ read: string }> }): Promise<Metadata> {
   const { read } = await params;
   return {
-    title: "Gangrey | Life, in Brief.",
-    description: "Short reads, sized to your window. One-, three-, and five-minute stories from Gangrey.",
+    title: "The Tampa Tribune | Life, in Brief.",
+    description: "Short reads, sized to your window. One-, three-, and five-minute stories from The Tampa Tribune.",
     alternates: { canonical: `/brief/${read}` },
   };
 }

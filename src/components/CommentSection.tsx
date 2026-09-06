@@ -99,7 +99,7 @@ export default function CommentSection({ slug }: { slug: string }) {
         )}
 
         {submitted ? (
-          <p style={{ fontFamily: "var(--font-subhead)", fontSize: "0.9rem", color: "#392a22" }}>Thanks — your comment is posted. You&apos;re now on the Gangrey list, too.</p>
+          <p style={{ fontFamily: "var(--font-subhead)", fontSize: "0.9rem", color: "#392a22" }}>Thanks — your comment is posted. You&apos;re now on The Tampa Tribune list, too.</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
             {/* Honeypot: off-screen, non-focusable, hidden from assistive tech.
@@ -140,7 +140,7 @@ export default function CommentSection({ slug }: { slug: string }) {
             {errors.text && <p style={{ ...ERR, marginTop: "-0.3rem" }}>{errors.text}</p>}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
               <p style={{ fontFamily: "var(--font-subhead)", fontSize: "0.75rem", color: "#8a8a8c", margin: 0 }}>
-                Posting subscribes you to the Gangrey newsletter. Unsubscribe anytime.
+                Posting subscribes you to The Tampa Tribune newsletter. Unsubscribe anytime.
               </p>
               <button
                 onClick={submit}

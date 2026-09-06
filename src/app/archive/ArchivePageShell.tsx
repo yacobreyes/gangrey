@@ -35,7 +35,7 @@ export default async function ArchivePageShell({ q = "", year }: { q?: string; y
 
   // Breadcrumb trail for search results: Home → Archive (→ year).
   const crumbs = [
-    { "@type": "ListItem", position: 1, name: "Gangrey", item: siteUrl },
+    { "@type": "ListItem", position: 1, name: "The Tampa Tribune", item: siteUrl },
     { "@type": "ListItem", position: 2, name: "Archive", item: `${siteUrl}/archive` },
     ...(year ? [{ "@type": "ListItem", position: 3, name: year, item: `${siteUrl}/archive/${year}` }] : []),
   ];

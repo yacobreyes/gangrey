@@ -48,7 +48,7 @@ export default function StoryPaywall() {
       <div className="story-paywall-inner">
         <h2 className="story-paywall-title">Keep reading with a membership</h2>
         <p className="story-paywall-sub">
-          This story is for Gangrey members. Join to read it in full, unlock the archive, and support narrative nonfiction.
+          This story is for The Tampa Tribune members. Join to read it in full, unlock the archive, and support narrative nonfiction.
         </p>
         <Link href="/subscribe" className="story-paywall-cta">Become a Member</Link>
         <Link href="/account" className="story-paywall-signin">Already a member? Sign in</Link>

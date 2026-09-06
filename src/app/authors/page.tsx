@@ -8,9 +8,9 @@ import AuthorsClient from "./AuthorsClient";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "Gangrey | Authors",
+  title: "The Tampa Tribune | Authors",
   alternates: { canonical: "/authors" },
-  description: "Every writer published in Gangrey.",
+  description: "Every writer published in The Tampa Tribune.",
 };
 
 export default async function AuthorsPage() {
