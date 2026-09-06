@@ -28,7 +28,7 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
 
   const logoInner = (
     // eslint-disable-next-line @next/next/no-img-element
-    <img className="mag-wordmark-img" src="/Wordmark.png?v=7" alt="The Tampa Tribune" fetchPriority="high" decoding="sync" />
+    <img className="mag-wordmark-img" src="/Wordmark.png?v=8" alt="The Tampa Tribune" fetchPriority="high" decoding="sync" />
   );
 
   return (

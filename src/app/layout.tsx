@@ -68,7 +68,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="https://use.typekit.net/umi3ufr.css" />
         {/* Preload the masthead wordmark so it's painted with the header instead
             of popping in a beat later (the "Gangrey blink" on refresh). */}
-        <link rel="preload" as="image" href="/Wordmark.png?v=7" fetchPriority="high" />
+        <link rel="preload" as="image" href="/Wordmark.png?v=8" fetchPriority="high" />
       </head>
       <body>
         {/* Site-level identity, as one @graph so the two entities reference
