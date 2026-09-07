@@ -53,10 +53,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const photo = postImageUrl(post.image, 1200, 630);
   const ogImage = photo
     ? { url: photo.startsWith("http") ? photo : siteUrl + photo, width: 1200, height: 630, alt: post.headline }
-    : { url: "/open-graph.png", width: 1200, height: 630, alt: "The Tampa Tribune" };
+    : { url: "/open-graph.png", width: 1200, height: 630, alt: "The Sunland Tribune" };
 
   return {
-    title: `The Tampa Tribune | ${seoTitle}`,
+    title: `The Sunland Tribune | ${seoTitle}`,
     description: seoDescription,
     alternates: { canonical: `/stories/${slug}` },
     openGraph: {
@@ -64,7 +64,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       url: postUrl,
       title: socialTitle,
       description,
-      siteName: "The Tampa Tribune",
+      siteName: "The Sunland Tribune",
       publishedTime: post.date,
       authors: [post.byline],
       images: [ogImage],
@@ -175,7 +175,7 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
         itemListElement: [
-          { "@type": "ListItem", position: 1, name: "The Tampa Tribune", item: siteUrl },
+          { "@type": "ListItem", position: 1, name: "The Sunland Tribune", item: siteUrl },
           {
             "@type": "ListItem", position: 2,
             name: post.section === "Archive" ? "Archive" : (post.section || "Latest"),

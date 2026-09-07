@@ -74,7 +74,7 @@ describe("renderNewsletterHtml", () => {
       cards: [{ cardType: "archive", headline: "Undated Piece", body: [] }],
     }));
     // Should not throw and should contain SOME "Gangrey · Archive" running head.
-    expect(html).toContain("The Tampa Tribune · Archive");
+    expect(html).toContain("The Sunland Tribune · Archive");
   });
 
   it("Classics issues hide Guest Editor and Volume/Issue", () => {

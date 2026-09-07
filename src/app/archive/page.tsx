@@ -7,7 +7,7 @@ import ArchivePageShell from "./ArchivePageShell";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "The Tampa Tribune | Archive",
+  title: "The Sunland Tribune | Archive",
   alternates: { canonical: "/archive" },
   description: "Writing once featured on the now-defunct Gangrey.com.",
 };

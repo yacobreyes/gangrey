@@ -37,7 +37,7 @@ export async function GET() {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>The Tampa Tribune</title>
+    <title>The Sunland Tribune</title>
     <link>${siteUrl}</link>
     <description>A literary blog about the ephemeral moments that make a life.</description>
     <language>en-us</language>

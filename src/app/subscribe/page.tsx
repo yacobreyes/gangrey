@@ -11,8 +11,8 @@ import { listFoundingMemberNames } from "@/lib/membership";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "The Tampa Tribune | Subscribe",
-  description: "Become a free or paid member of The Tampa Tribune, a literary magazine.",
+  title: "The Sunland Tribune | Subscribe",
+  description: "Become a free or paid member of The Sunland Tribune, a literary magazine.",
   alternates: { canonical: "/subscribe" },
 };
 
@@ -36,7 +36,7 @@ const PAID_TIERS: { key: SubscriptionItem; name: string; price: string; per: str
     name: "Founding Member",
     price: "$100",
     per: "/yr",
-    desc: "Everything in Annual, plus a Tampa Tribune tote, early access to the first issue, and your name on the founding members page.",
+    desc: "Everything in Annual, plus a Sunland Tribune tote, early access to the first issue, and your name on the founding members page.",
   },
 ];
 
@@ -148,7 +148,7 @@ export default async function SubscribePage() {
           <div className="tier">
             <h2 className="tier-name">Free Reader</h2>
             <div className="tier-price">$0</div>
-            <p className="tier-desc">Get announcements, select posts, calls for submissions, and our monthly Tampa Tribune Classics newsletter.</p>
+            <p className="tier-desc">Get announcements, select posts, calls for submissions, and our monthly Sunland Tribune Classics newsletter.</p>
             <SubscribeButton className="tier-join">Join →</SubscribeButton>
           </div>
           {PAID_TIERS.map(tier => (

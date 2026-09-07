@@ -16,9 +16,9 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org";
 export type SectionDef = { path: string; section: string; title: string; description: string };
 
 export const SECTIONS: SectionDef[] = [
-  { path: "narratives", section: "Narratives", title: "Narratives", description: "Reported narratives published in The Tampa Tribune." },
-  { path: "essays", section: "Essays", title: "Essays", description: "Essays published in The Tampa Tribune." },
-  { path: "micro-memoirs", section: "Micro-Memoir", title: "Micro-Memoirs", description: "Micro-memoirs published in The Tampa Tribune." },
+  { path: "narratives", section: "Narratives", title: "Narratives", description: "Reported narratives published in The Sunland Tribune." },
+  { path: "essays", section: "Essays", title: "Essays", description: "Essays published in The Sunland Tribune." },
+  { path: "micro-memoirs", section: "Micro-Memoir", title: "Micro-Memoirs", description: "Micro-memoirs published in The Sunland Tribune." },
 ];
 
 export default async function SectionListing({ def }: { def: SectionDef }) {
@@ -32,7 +32,7 @@ export default async function SectionListing({ def }: { def: SectionDef }) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "The Tampa Tribune", item: siteUrl },
+      { "@type": "ListItem", position: 1, name: "The Sunland Tribune", item: siteUrl },
       { "@type": "ListItem", position: 2, name: def.title, item: `${siteUrl}/${def.path}` },
     ],
   };

@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   // Login mail comes from the members address (newsletters come from
   // NEWSLETTER_FROM, submissions from submissions@) — override with
   // MEMBERS_FROM if it ever needs to change.
-  const from = process.env.MEMBERS_FROM ?? "The Tampa Tribune <members@gangrey.org>";
+  const from = process.env.MEMBERS_FROM ?? "The Sunland Tribune <members@gangrey.org>";
   if (!apiKey) {
     // Email isn't configured — surface a real error to the admin/dev, not the
     // silent-success path, since nothing would arrive.
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
 </head>
 <body style="margin:0;padding:0;background-color:#ffffff;">
   <div style="font-family:Georgia,serif;max-width:440px;margin:0 auto;padding:24px;color:#000000;background-color:#ffffff;">
-    <p style="font-size:18px;margin:0 0 16px;color:#000000;">Sign in to your Tampa Tribune membership</p>
+    <p style="font-size:18px;margin:0 0 16px;color:#000000;">Sign in to your Sunland Tribune membership</p>
     <p style="font-size:15px;line-height:1.5;color:#392a22;margin:0 0 24px;">Click the button below to sign in. This link expires in 15 minutes.</p>
     <table role="presentation" cellspacing="0" cellpadding="0" border="0">
       <tr>
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     const resend = new Resend(apiKey);
     // Resend reports API failures via the returned `error`, not by throwing —
     // ignoring it means "success" with no email ever arriving.
-    const { error } = await resend.emails.send({ from, to: [email], subject: "Sign in to The Tampa Tribune", html });
+    const { error } = await resend.emails.send({ from, to: [email], subject: "Sign in to The Sunland Tribune", html });
     if (error) {
       console.log(`[member-login] resend error for ${email}: ${error.message}`);
       return NextResponse.json({ error: "Couldn't send the login email. Try again." }, { status: 500 });

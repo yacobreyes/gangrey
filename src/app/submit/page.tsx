@@ -5,8 +5,8 @@ import ListingHeader from "@/components/ListingHeader";
 import SubmitForm from "./SubmitForm";
 
 export const metadata: Metadata = {
-  title: "The Tampa Tribune | Submit",
-  description: "Submit flash nonfiction to The Tampa Tribune: essays, reported narratives, and micro-memoirs.",
+  title: "The Sunland Tribune | Submit",
+  description: "Submit flash nonfiction to The Sunland Tribune: essays, reported narratives, and micro-memoirs.",
   alternates: { canonical: "/submit" },
 };
 

@@ -34,21 +34,21 @@ export async function sendWelcomeEmail(to: string): Promise<void> {
   // instead of "Direct" (mail clients send no referrer).
   const html = tagEmailLinks(submissionEmailHtml(
     `<p style="font-size:17px;line-height:1.7;color:#000000 !important;margin:0 0 20px;">
-       Thanks for signing up. The Tampa Tribune publishes true stories for the time you have. Start with what's on our front page:
+       Thanks for signing up. The Sunland Tribune publishes true stories for the time you have. Start with what's on our front page:
      </p>
      ${storyRows}
      <p style="font-size:17px;line-height:1.7;color:#000000 !important;margin:20px 0 0;">
-       From here you'll get our monthly Tampa Tribune Classics newsletter, and our issues when they launch.
+       From here you'll get our monthly Sunland Tribune Classics newsletter, and our issues when they launch.
      </p>
      <p style="font-size:13px;line-height:1.6;color:#8a8a8c !important;margin:22px 0 0;">
        Not you, or changed your mind? <a href="${SITE_URL}/unsubscribe?email=${encodeURIComponent(to)}" style="color:#8a8a8c !important;">Unsubscribe</a>.
      </p>`,
-    "Welcome to The Tampa Tribune"
+    "Welcome to The Sunland Tribune"
   ), "welcome-email");
 
   const resend = new Resend(apiKey);
   // The SDK resolves with { error } instead of throwing; surface it so the
   // caller's catch can log the failure rather than swallowing it.
-  const { error } = await resend.emails.send({ from, to: [to], subject: "Welcome to The Tampa Tribune", html });
+  const { error } = await resend.emails.send({ from, to: [to], subject: "Welcome to The Sunland Tribune", html });
   if (error) throw new Error(error.message || "Resend rejected the welcome email");
 }

@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: { params: Promise<{ year: str
     newest = String(Math.max(...posts.map(p => new Date(p.date).getUTCFullYear()).filter(Number.isFinite)));
   } catch { /* fall through to self-canonical */ }
   return {
-    title: `The Tampa Tribune | Archive: ${year}`,
+    title: `The Sunland Tribune | Archive: ${year}`,
     description: `Stories from ${year} once featured on the original Gangrey blog.`,
     alternates: { canonical: year === newest ? "/archive" : `/archive/${year}` },
   };

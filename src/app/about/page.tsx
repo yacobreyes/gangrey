@@ -7,9 +7,9 @@ import MagFooter from "@/components/MagFooter";
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "The Tampa Tribune | About",
+  title: "The Sunland Tribune | About",
   alternates: { canonical: "/about" },
-  description: "About The Tampa Tribune, a literary magazine by Yacob Reyes.",
+  description: "About The Sunland Tribune, a literary magazine by Yacob Reyes.",
 };
 
 export default async function AboutPage() {

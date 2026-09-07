@@ -26,9 +26,9 @@ async function getNewsletter(id: string): Promise<NewsletterDoc | null> {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const issue = await getIssue(slug);
-  if (!issue) return { title: "The Tampa Tribune | Issue" };
+  if (!issue) return { title: "The Sunland Tribune | Issue" };
   return {
-    title: `The Tampa Tribune | ${issue.title ?? "Issue"}`,
+    title: `The Sunland Tribune | ${issue.title ?? "Issue"}`,
     description: issue.description ?? undefined,
     alternates: { canonical: `/issues/${slug}` },
   };

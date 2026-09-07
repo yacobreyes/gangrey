@@ -6,15 +6,15 @@ import CheckoutButton from "@/components/CheckoutButton";
 import type { MerchItem } from "@/lib/checkoutCatalog";
 
 export const metadata: Metadata = {
-  title: "The Tampa Tribune | Shop",
+  title: "The Sunland Tribune | Shop",
   alternates: { canonical: "/store" },
-  description: "Merchandise and memberships from The Tampa Tribune, a literary magazine.",
+  description: "Merchandise and memberships from The Sunland Tribune, a literary magazine.",
 };
 
 const PRODUCTS: { key: MerchItem; kicker: string; name: string; price: string }[] = [
-  { key: "tote", kicker: "Canvas", name: "Tampa Tribune Tote", price: "$30" },
-  { key: "tee", kicker: "Apparel", name: "Tampa Tribune Tee", price: "$25" },
-  { key: "sweatshirt", kicker: "Apparel", name: "Tampa Tribune Sweatshirt", price: "$35" },
+  { key: "tote", kicker: "Canvas", name: "Sunland Tribune Tote", price: "$30" },
+  { key: "tee", kicker: "Apparel", name: "Sunland Tribune Tee", price: "$25" },
+  { key: "sweatshirt", kicker: "Apparel", name: "Sunland Tribune Sweatshirt", price: "$35" },
 ];
 
 export default function StorePage() {

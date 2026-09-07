@@ -237,7 +237,7 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean; web?: b
                 <div style="width:44px;height:44px;border-radius:50%;background:${CRIMSON};color:#ffffff;font-family:${FONT};font-size:16px;font-weight:700;text-align:center;line-height:44px;">${initials(card.byline)}</div>
               </td>
               <td valign="middle" style="padding-left:12px;">
-                <div style="font-family:${FONT};font-size:15px;font-weight:700;color:${GROUND};line-height:1.2;">${esc(card.byline ?? "The Tampa Tribune")}</div>
+                <div style="font-family:${FONT};font-size:15px;font-weight:700;color:${GROUND};line-height:1.2;">${esc(card.byline ?? "The Sunland Tribune")}</div>
                 <div style="font-family:${FONT};font-size:13px;color:${EARTH};line-height:1.2;margin-top:2px;">${esc(card.headline ?? "")} · ${shortDate}</div>
               </td>
             </tr></table>
@@ -264,7 +264,7 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean; web?: b
       <div style="background:transparent;padding:26px 4px;">
         <div style="position:relative;${opts.web ? "" : "filter:drop-shadow(0 8px 16px rgba(0,0,0,0.5));"}">
           <div style="background:${PAPER};clip-path:${TORN[c]};padding:34px 28px 40px;">
-            <div style="border-bottom:1px solid ${GROUND};padding-bottom:7px;margin-bottom:18px;font-family:${SERIF};font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:${GROUND};">The Tampa Tribune · Archive &nbsp;·&nbsp; ${esc(fmtDate(card.date))}</div>
+            <div style="border-bottom:1px solid ${GROUND};padding-bottom:7px;margin-bottom:18px;font-family:${SERIF};font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:${GROUND};">The Sunland Tribune · Archive &nbsp;·&nbsp; ${esc(fmtDate(card.date))}</div>
             <h2 style="font-family:${SERIF};font-size:${HEAD_SIZE}px;font-weight:700;line-height:${HEAD_LINE};color:${GROUND};text-align:left;margin:0 0 8px;">${esc(card.headline ?? "")}</h2>
             ${card.byline ? `<p style="font-family:${SERIF};font-size:12px;letter-spacing:0.02em;color:${EARTH};text-align:left;margin:0 0 16px;">By ${esc(card.byline)}</p>` : ""}
             ${img}
@@ -287,8 +287,8 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean; web?: b
           </tr></table>
           <a href="${SITE_URL}" target="_blank" rel="noopener" style="text-decoration:none;">
             ${raw.classics
-              ? `<img src="${base}/wordmark-classics-email-hd.png" alt="Tampa Tribune Classics" width="290" height="54" style="width:290px;height:54px;max-width:80%;display:block;margin:0 auto 20px;border:0;" />`
-              : `<img src="${base}/wordmark-white-email-hd.png" alt="The Tampa Tribune" width="290" height="106" style="width:290px;height:106px;max-width:80%;display:block;margin:0 auto 20px;border:0;" />`
+              ? `<img src="${base}/wordmark-classics-email-hd.png" alt="Sunland Tribune Classics" width="290" height="54" style="width:290px;height:54px;max-width:80%;display:block;margin:0 auto 20px;border:0;" />`
+              : `<img src="${base}/wordmark-white-email-hd.png" alt="The Sunland Tribune" width="290" height="106" style="width:290px;height:106px;max-width:80%;display:block;margin:0 auto 20px;border:0;" />`
             }
           </a>
           <div style="width:40px;height:2px;background:${CRIMSON};margin:0 auto 20px;"></div>
@@ -334,7 +334,7 @@ function renderNewsletterSheet(opts: NlOpts, includeMasthead: boolean, web = fal
     ${renderNewsletterContent(opts, { masthead: includeMasthead, web })}
     ${memberCallout}
     <div style="background:${GROUND};padding:24px 34px;text-align:center;">
-      <p style="font-family:${FONT};font-size:10px;line-height:1.7;letter-spacing:0.14em;text-transform:uppercase;color:${RULE};margin:0 0 10px;">You're receiving this because you subscribed to The Tampa Tribune</p>
+      <p style="font-family:${FONT};font-size:10px;line-height:1.7;letter-spacing:0.14em;text-transform:uppercase;color:${RULE};margin:0 0 10px;">You're receiving this because you subscribed to The Sunland Tribune</p>
       <a href="${SITE_URL}/unsubscribe" target="_blank" rel="noopener" style="font-family:${FONT};font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#ffffff;text-decoration:none;border-bottom:1px solid ${CRIMSON};padding-bottom:2px;">Unsubscribe</a>
     </div>
   </div>`;
