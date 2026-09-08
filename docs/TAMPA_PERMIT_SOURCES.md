@@ -26,8 +26,10 @@ Base: https://arcgis.tampagov.net/arcgis/rest/services/Planning/PermitsAll/Featu
 - capabilities: Query. maxRecordCount 2000 (standard 32000 without geometry).
   Supports pagination, orderBy, statistics, geoJSON. Dates are epoch ms in
   America/New_York.
-- Freshness: NOT YET VERIFIED (sample rows were 2019-era low OBJECTIDs; run
-  a max(LASTUPDATE) statistics query to confirm the daily-update claim).
+- Freshness: VERIFIED. max(LASTUPDATE) = 1788566400000 (Sept 4, 2026) when
+  checked Sept 10, 2026 — actively maintained, with history back to at least
+  2019 (low OBJECTIDs are old rows, so first-seen detection has a real
+  baseline).
 
 Fields (all confirmed):
 | Field | Type | Notes |
