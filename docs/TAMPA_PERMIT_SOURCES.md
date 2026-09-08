@@ -132,3 +132,20 @@ The scrapped Lead Desk implementation (commits c620791..f8c6116, reverted in
 content-hash file dedupe, record dedupe by permit id (never report date),
 first_seen_at distinct from filing date, field-change versioning with blank
 protection, config-driven scoring, parcel/address clustering, ranked queue.
+
+## Source 5 — HCPA_Parcels_All (VERIFIED; inline enrichment)
+
+Base: https://services.arcgis.com/apTfC6SUmnNfnxuF/ArcGIS/rest/services/HCPA_Parcels_All/FeatureServer/0
+Property Appraiser parcels, countywide, query-capable, indexed on FOLIO,
+SITE_ADDR and OWNER. Key fields (confirmed with live samples): FOLIO
+(10 digits; the permit feed's PARCEL minus the dot), OWNER, DBA (business
+name when present), JUST/LAND/BLDG values, S_DATE + S_AMT (last sale),
+ACT (year built), DOR_C (use code), HEAT_AR, ACREAGE, SITE_ADDR/CITY/ZIP.
+Used by the Lead Desk panel for one-time per-lead browser lookups (county
+leads by FOLIO, Tampa leads by SITE_ADDR), stored in leads.db contexts.
+
+Checked and rejected: arcgis.tampagov.net/BusinessTax holds only
+BusinessTaxInspectors (inspector zones), no business-name records.
+Other promising county services for later: CodeEnforcementCasesMapService,
+Planned_Developments_and_Entitlements_Public_View, Site-Subdivision_DevReview_View,
+HCPA_Zoning_2026, Hotels, Commercial_Parcels_2026.
