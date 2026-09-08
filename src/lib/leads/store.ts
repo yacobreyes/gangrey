@@ -482,7 +482,10 @@ function scoreRecord(n: Norm, isCo = false, existingName = ""): { score: number;
     // A CO on a commercial record: the business is about to open.
     if (isCo) reasons.push([4, "certificate of occupancy"]);
   }
-  for (const list of [cfg.keywordSignals, cfg.brandSignals]) {
+  // Alcohol rows already scored their class; generic keywords ("restaurant",
+  // "bar") would only restate it. Brands still count everywhere.
+  const lists = n.uid.startsWith("tampaab:") ? [cfg.brandSignals] : [cfg.keywordSignals, cfg.brandSignals];
+  for (const list of lists) {
     for (const [pattern, points, label] of list) {
       try { if (new RegExp(pattern, "i").test(hay)) reasons.push([points, label]); } catch { /* bad config pattern */ }
     }
