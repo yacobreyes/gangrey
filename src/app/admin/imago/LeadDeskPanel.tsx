@@ -254,7 +254,7 @@ export default function LeadDeskPanel() {
           <option value={0}>Any score</option><option value={4}>Score 4+</option><option value={8}>Score 8+</option><option value={12}>Score 12+</option>
         </select>
         <select value={days} onChange={e => setDays(Number(e.target.value))} style={{ fontFamily: FONT, fontSize: "0.8rem", padding: "0.35rem 0.5rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", color: TEXT_DARK }}>
-          <option value={1}>Today</option><option value={3}>3 days</option><option value={7}>7 days</option><option value={30}>30 days</option>
+          <option value={1}>Today</option><option value={3}>3 days</option><option value={7}>7 days</option><option value={30}>30 days</option><option value={90}>90 days</option><option value={180}>6 months</option>
         </select>
         {data && (
           <span style={{ fontSize: "0.8rem", color: TEXT_MUTED, marginLeft: "auto" }}>
