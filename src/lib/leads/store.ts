@@ -457,7 +457,10 @@ export function getQueue(f: QueueFilter = {}) {
     if (f.onlyNew && !lead.isNew) continue;
     if (f.onlyChanged && !lead.isChanged) continue;
     if (f.minScore != null && lead.topScore < f.minScore) continue;
-    if (f.restaurants && !RESTAURANT_RE.test(hay)) continue;
+    // Restaurant signals only mean a restaurant in a commercial context — a
+    // house's kitchen or bathroom plumbing is not a lead.
+    const hayCommercial = /commercial|mercantile|assembly|business|mixed.?use/i.test(hay);
+    if (f.restaurants && !(RESTAURANT_RE.test(hay) && hayCommercial)) continue;
     // Development is the "big real estate, minus food" pile: anything
     // restaurant-flagged lives under the Restaurants chip instead, so the
     // two filters never overlap.
