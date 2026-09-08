@@ -52,19 +52,25 @@ const money = (n: number | null) => n == null ? "" : "$" + Math.round(n).toLocal
 // that gap is where the scoop still lives.
 function scoopAngle(lead: Lead): string {
   const covDate = lead.coverage?.latest?.date ?? "";
+  const headline = (lead.coverage?.latest?.title ?? "").toLowerCase();
   if (!covDate) return "Coverage date unknown. Compare their story against the permit timeline below.";
   const after = (d?: string | null) => !!d && d.slice(0, 10) > covDate;
   const stop = lead.permits.find(p => p.stopWork && (after(p.changedAt) || after(p.firstSeenAt)));
-  if (stop) return `Stop work order landed AFTER that story (${stop.permitNo}). The trouble is unreported.`;
+  if (stop) return `Stop work order landed after that story (${stop.permitNo}). Likely unreported - verify.`;
+  // The CO trailing a story does not mean the opening went unreported —
+  // paperwork trails reality, and a headline saying "opens" settles it.
   const co = lead.permits.find(p => p.uid.includes("|CO|") && after(p.changedAt ?? p.firstSeenAt));
-  if (co) return "Certificate of occupancy came AFTER that story. The opening is unreported.";
+  if (co && !/open|debut|launch|now serving/.test(headline)) {
+    return "CO recorded after that story. If they only covered the announcement, the opening may be unreported - verify.";
+  }
+  if (co) return "They covered the opening. Nothing left here unless the business itself is a story.";
   const changed = lead.permits.filter(p => after(p.changedAt)).length;
   const newer = lead.permits.filter(p => after(p.firstSeenAt)).length;
   if (lead.newestSourceDate > covDate || changed || newer) {
     const parts: string[] = [];
     if (newer) parts.push(`${newer} permit${newer === 1 ? "" : "s"} filed since`);
     if (changed) parts.push(`${changed} status change${changed === 1 ? "" : "s"} since`);
-    return `Coverage predates the latest permit activity (${parts.join(", ") || "newer city dates"}). The progress since ${covDate.slice(0, 10)} is unreported - and you hold the owner and valuation.`;
+    return `Coverage predates the latest permit activity (${parts.join(", ") || "newer city dates"}). The progress since ${covDate.slice(0, 10)} may be unreported - and you hold the owner and valuation.`;
   }
   return "Coverage is current. Your edge is the context on this card: owner, sale price, and the permit paper trail.";
 }
@@ -91,6 +97,7 @@ export default function LeadDeskPanel() {
   const [minScore, setMinScore] = useState(4);
   const [days, setDays] = useState(7);
   const [sort, setSort] = useState<"date" | "score">("date");
+  const [area, setArea] = useState<"" | SourceId>("");
   const [collecting, setCollecting] = useState(false);
   const [status, setStatus] = useState("");
   const [open, setOpen] = useState<string | null>(null);
@@ -106,11 +113,12 @@ export default function LeadDeskPanel() {
     if (filter === "uncovered") params.set("uncovered", "1");
     if (minScore > 0) params.set("minScore", String(minScore));
     params.set("sort", sort);
+    if (area) params.set("source", area);
     try {
       const r = await fetch(`/api/admin/leads/queue?${params}`, { cache: "no-store" });
       if (r.ok) setData(await r.json());
     } catch { /* keep last good queue */ }
-  }, [filter, minScore, days, sort]);
+  }, [filter, minScore, days, sort, area]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -331,6 +339,9 @@ export default function LeadDeskPanel() {
         ))}
         <select value={minScore} onChange={e => setMinScore(Number(e.target.value))} style={{ fontFamily: FONT, fontSize: "0.8rem", padding: "0.35rem 0.5rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", color: TEXT_DARK }}>
           <option value={0}>Any score</option><option value={4}>Score 4+</option><option value={8}>Score 8+</option><option value={12}>Score 12+</option>
+        </select>
+        <select value={area} onChange={e => setArea(e.target.value as "" | SourceId)} style={{ fontFamily: FONT, fontSize: "0.8rem", padding: "0.35rem 0.5rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", color: TEXT_DARK }}>
+          <option value="">Both areas</option><option value="tampa">City of Tampa</option><option value="hcfl">Hillsborough County</option>
         </select>
         <select value={sort} onChange={e => setSort(e.target.value as "date" | "score")} style={{ fontFamily: FONT, fontSize: "0.8rem", padding: "0.35rem 0.5rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", color: TEXT_DARK }}>
           <option value="date">Newest filed</option><option value="score">Highest score</option>
