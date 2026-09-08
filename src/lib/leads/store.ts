@@ -93,7 +93,28 @@ export function leadsDb(): Database.Database {
   `);
   // Additive migration for databases created before the contact column.
   try { _db.exec(`ALTER TABLE permits ADD COLUMN contact TEXT DEFAULT ''`); } catch { /* exists */ }
+  pruneOutOfAreaCounty(_db);
   return _db;
+}
+
+// County rows collected before ZIP scoping existed (or after the allowlist
+// changes) leave the database; the raw batches on disk are untouched.
+function pruneOutOfAreaCounty(db: Database.Database): void {
+  try {
+    const allow = leadsConfig().countyZipAllowlist;
+    if (!allow.length) return;
+    const rows = db.prepare(`SELECT uid, raw_json FROM permits WHERE source IN ('hcfl', 'hcdev')`).all() as { uid: string; raw_json: string }[];
+    const del = db.prepare(`DELETE FROM permits WHERE uid = ?`);
+    const tx = db.transaction(() => {
+      for (const r of rows) {
+        let raw: Raw = {};
+        try { raw = JSON.parse(r.raw_json); } catch { continue; }
+        const z = countyZip(raw);
+        if (!z || !allow.includes(z)) del.run(r.uid);
+      }
+    });
+    tx();
+  } catch { /* best effort */ }
 }
 
 // ---------- config (scoring lists editable without a deploy) ----------
