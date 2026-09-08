@@ -7,19 +7,15 @@ import type { NlVersion } from "../../../newsletterActions";
 
 export const dynamic = "force-dynamic";
 
-export default async function EditNewsletterPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ new?: string; classics?: string }> }) {
+export default async function EditNewsletterPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ new?: string }> }) {
   const authed = await isAuthed();
   if (!authed) redirect("/admin/imago");
 
   const { id } = await params;
-  const { new: isNewParam, classics: classicsParam } = await searchParams;
+  const { new: isNewParam } = await searchParams;
   // ?new=1 (Create new) opens straight into editing; every other entry opens
   // read-only so you can watch the current editor without claiming the lock.
   const isNew = isNewParam === "1";
-  // ?classics=1 only matters for a brand-new newsletter — it seeds the editor
-  // as a Gangrey Classics issue (archive-only cards). Once a doc exists, its
-  // own `classics` field (below) is the source of truth.
-  const isNewClassics = isNew && classicsParam === "1";
 
   // Both queries only need the id, so run them concurrently instead of
   // waiting on the draft fetch before starting the versions fetch.
@@ -58,5 +54,5 @@ export default async function EditNewsletterPage({ params, searchParams }: { par
       .map(u => [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email).filter(Boolean);
   } catch {}
 
-  return <NewsletterEditorClient newsletterId={id} initial={initial} initialVersions={versions} isNew={isNew} newIsClassics={isNewClassics} editors={editors} />;
+  return <NewsletterEditorClient newsletterId={id} initial={initial} initialVersions={versions} isNew={isNew} editors={editors} />;
 }

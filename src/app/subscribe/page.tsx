@@ -148,7 +148,7 @@ export default async function SubscribePage() {
           <div className="tier">
             <h2 className="tier-name">Free Reader</h2>
             <div className="tier-price">$0</div>
-            <p className="tier-desc">Get announcements, select posts, calls for submissions, and our monthly Sunland Tribune Classics newsletter.</p>
+            <p className="tier-desc">Get announcements, select posts, calls for submissions, and our monthly newsletter.</p>
             <SubscribeButton className="tier-join">Join →</SubscribeButton>
           </div>
           {PAID_TIERS.map(tier => (

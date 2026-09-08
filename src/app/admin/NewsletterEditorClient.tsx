@@ -10,7 +10,7 @@ import { straightenQuotes } from "@/lib/straighten";
 import { useEditLock } from "./useEditLock";
 import EditLockBanner from "./EditLockBanner";
 import { watchLock, type LockHolder } from "./lockActions";
-import { saveNewsletter, deleteNewsletter, sendNewsletter, sendTestNewsletter, getPostsForNewsletter, getArchiveOnThisDay, getNewsletterPostBody, type NlVersion, type NlPickablePost } from "./newsletterActions";
+import { saveNewsletter, deleteNewsletter, sendNewsletter, sendTestNewsletter, getPostsForNewsletter, getNewsletterPostBody, type NlVersion, type NlPickablePost } from "./newsletterActions";
 import { createPostFromNewsletterCard, checkSlugsExist } from "./actions";
 import ScheduleModal from "@/components/ScheduleModal";
 import type { JSONContent, Editor } from "@tiptap/react";
@@ -273,12 +273,6 @@ export default function NewsletterEditorClient({
   const [findPosts, setFindPosts] = useState<NlPickablePost[]>([]);
   const [findLoading, setFindLoading] = useState(false);
   const [findQuery, setFindQuery] = useState("");
-  // "On this day in Gangrey" — Classics-only archive pieces first published on
-  // today's calendar day; toggled open below the cover.
-  const [showOnThisDay, setShowOnThisDay] = useState(false);
-  const [onThisDay, setOnThisDay] = useState<NlPickablePost[]>([]);
-  const [onThisDayLoading, setOnThisDayLoading] = useState(false);
-  const onThisDayLoaded = useRef(false);
   const [findShowDraftScheduled, setFindShowDraftScheduled] = useState(false);
   const [nlInsertingPost, setNlInsertingPost] = useState<NlPickablePost | null>(null);
   const nlInsertChipRef = useRef<HTMLDivElement | null>(null);
@@ -394,14 +388,6 @@ export default function NewsletterEditorClient({
     setFindLoading(true);
     getPostsForNewsletter().then(setFindPosts).catch(() => setFindPosts([])).finally(() => setFindLoading(false));
   }, [showFindContent]);
-
-  // Load "On this day" archive pieces the first time the section is opened.
-  useEffect(() => {
-    if (!showOnThisDay || onThisDayLoaded.current) return;
-    onThisDayLoaded.current = true;
-    setOnThisDayLoading(true);
-    getArchiveOnThisDay().then(setOnThisDay).catch(() => setOnThisDay([])).finally(() => setOnThisDayLoading(false));
-  }, [showOnThisDay]);
 
   // Press-and-drag a story out of the find-content panel into the card list.
   // Mirrors the card-reorder drag above: a floating chip follows the cursor,
@@ -893,50 +879,11 @@ export default function NewsletterEditorClient({
       )}
 
       {/* Floating "find content" trigger — fixed to the left edge, hidden while the panel is open */}
-      {!isMobile && !showFindContent && !showOnThisDay && !nlReadOnly && (
+      {!isMobile && !showFindContent && !nlReadOnly && (
         <button type="button" title="Find content" onClick={() => setShowFindContent(true)}
           style={{ position: "fixed", top: "calc(80px + var(--safe-top))", left: 24, zIndex: 50, width: 44, height: 44, borderRadius: "50%", background: CRIMSON, color: "white", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 2px 10px rgba(0,0,0,0.2)" }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
         </button>
-      )}
-
-      {/* "On this day in Gangrey" clock — Classics only, sits below Find content */}
-      {nlClassics && !isMobile && !showFindContent && !showOnThisDay && !nlReadOnly && (
-        <button type="button" title="On this day in Gangrey" onClick={() => setShowOnThisDay(true)}
-          style={{ position: "fixed", top: "calc(132px + var(--safe-top))", left: 24, zIndex: 50, width: 44, height: 44, borderRadius: "50%", background: "white", color: CRIMSON, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 2px 10px rgba(0,0,0,0.14)" }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
-        </button>
-      )}
-
-      {/* On this day panel — archive pieces first published on today's date */}
-      {showOnThisDay && !nlReadOnly && (
-        <div className="nl-find-panel" style={{ position: "fixed", top: "calc(64px + var(--safe-top))", left: 12, height: "calc(100% - 76px - var(--safe-top))", width: 296, maxWidth: "88vw", zIndex: 400, background: "white", border: `1px solid ${BORDER}`, borderRadius: 8, boxShadow: "4px 0 24px rgba(0,0,0,0.12)", display: "flex", flexDirection: "column", overflowY: "auto" }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", padding: "1rem 1.25rem", borderBottom: `1px solid ${BORDER}` }}>
-            <span style={{ minWidth: 0 }}>
-              <span style={{ display: "block", fontFamily: FONT, fontWeight: 700, color: TEXT_DARK }}>On this day in Gangrey</span>
-              <span style={{ display: "block", fontFamily: FONT, fontSize: "0.78rem", color: TEXT_MUTED, marginTop: 2 }}>First published on {new Date().toLocaleDateString("en-US", { timeZone: "America/New_York", month: "long", day: "numeric" })}</span>
-            </span>
-            <button type="button" title="Close" onClick={() => setShowOnThisDay(false)} style={{ background: "none", border: "none", fontSize: "1.3rem", cursor: "pointer", color: TEXT_MUTED, lineHeight: 1, flexShrink: 0 }}>×</button>
-          </div>
-          <div style={{ flex: 1, overflowY: "auto" }}>
-            {onThisDayLoading ? (
-              <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, padding: "1rem 1.25rem" }}>Looking through the archive…</p>
-            ) : onThisDay.length === 0 ? (
-              <p style={{ fontFamily: FONT, fontSize: "0.85rem", color: TEXT_MUTED, padding: "1rem 1.25rem" }}>No archive pieces first ran on this date. Use Find content to pull in a piece from another day.</p>
-            ) : onThisDay.map(p => (
-              <button key={p.id} type="button" onClick={() => insertPostAsCard(p, nlCards.length)}
-                style={{ display: "flex", alignItems: "center", gap: "0.7rem", width: "100%", background: "none", border: "none", borderBottom: `1px solid ${BORDER}`, padding: "0.85rem 1.25rem", cursor: "pointer", textAlign: "left" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "#f7f7f7")} onMouseLeave={e => (e.currentTarget.style.background = "none")}>
-                <span style={{ fontFamily: FONT, fontSize: "0.72rem", fontWeight: 800, color: CRIMSON, flexShrink: 0, width: 36 }}>{(p.date ?? "").slice(0, 4)}</span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontFamily: FONT, fontSize: "0.9rem", fontWeight: 600, color: TEXT_DARK, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.headline || "Untitled"}</span>
-                  {p.byline && <span style={{ display: "block", fontFamily: FONT, fontSize: "0.76rem", color: TEXT_MUTED }}>{p.byline}</span>}
-                </span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={CRIMSON} strokeWidth="2.2" strokeLinecap="round" style={{ flexShrink: 0 }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              </button>
-            ))}
-          </div>
-        </div>
       )}
 
       {/* Find content panel — pull a story in as a new card */}
@@ -1088,7 +1035,7 @@ export default function NewsletterEditorClient({
 
       {/* Content — when the find panel is open on desktop, reserve its width on
           the left so the centered page never slides underneath it. */}
-      <div style={{ flex: 1, overflowY: "auto", background: "#f5f8fa", paddingTop: "2rem", paddingBottom: "4rem", paddingRight: "1rem", paddingLeft: (showFindContent || showOnThisDay) && !isMobile ? 320 : "1rem", transition: "padding-left 0.2s", marginTop: isMobile && nlActiveE && !nlActiveE.isDestroyed && !nlReadOnly ? "calc(101px + var(--safe-top))" : "calc(52px + var(--safe-top))" }}>
+      <div style={{ flex: 1, overflowY: "auto", background: "#f5f8fa", paddingTop: "2rem", paddingBottom: "4rem", paddingRight: "1rem", paddingLeft: showFindContent && !isMobile ? 320 : "1rem", transition: "padding-left 0.2s", marginTop: isMobile && nlActiveE && !nlActiveE.isDestroyed && !nlReadOnly ? "calc(101px + var(--safe-top))" : "calc(52px + var(--safe-top))" }}>
         {/* Magazine page — 600px to match the email's inbox-safe width */}
         <div style={{ maxWidth: 600, margin: "0 auto", background: "#ffffff", boxShadow: "0 4px 32px rgba(0,0,0,0.18)" }}>
 

@@ -7,7 +7,7 @@ import { tagEmailLinks } from "./emailUtm";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.gangrey.org";
 
 // Sent once, when a NEW subscriber signs up. Points them at what's on the
-// homepage right now and sets expectations: a monthly classics newsletter,
+// homepage right now and sets expectations: a monthly newsletter,
 // and issues when they launch. Best-effort by design; a send failure must
 // never fail the signup that triggered it.
 export async function sendWelcomeEmail(to: string): Promise<void> {
@@ -38,7 +38,7 @@ export async function sendWelcomeEmail(to: string): Promise<void> {
      </p>
      ${storyRows}
      <p style="font-size:17px;line-height:1.7;color:#000000 !important;margin:20px 0 0;">
-       From here you'll get our monthly Sunland Tribune Classics newsletter, and our issues when they launch.
+       From here you'll get our monthly newsletter, and our issues when they launch.
      </p>
      <p style="font-size:13px;line-height:1.6;color:#8a8a8c !important;margin:22px 0 0;">
        Not you, or changed your mind? <a href="${SITE_URL}/unsubscribe?email=${encodeURIComponent(to)}" style="color:#8a8a8c !important;">Unsubscribe</a>.
