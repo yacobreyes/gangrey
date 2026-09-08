@@ -96,7 +96,7 @@ export default function ScoopPanel() {
     <div style={{ fontFamily: FONT, maxWidth: 860 }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: "1rem" }}>
         <div>
-          <h1 className="admin-h1">Scoop</h1>
+          <h1 className="admin-h1">Lead Desk</h1>
           <p className="admin-sub">
             {lastImport
               ? `Last import ${day(lastImport.imported_at)}: ${lastImport.row_count.toLocaleString()} rows, ${lastImport.inserted_count} new, ${lastImport.changed_count} changed.`

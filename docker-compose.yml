@@ -18,6 +18,8 @@ services:
     environment:
       STORAGE_BACKEND: sqlite
       DATA_DIR: /data
+      # Where the Imago Scoop panel finds the standalone Lead Desk service.
+      LEADDESK_URL: http://leaddesk:3100
       # Auth (required for the admin):
       #   NEXTAUTH_SECRET: generate with `openssl rand -base64 32`
       #   GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET: admin Google sign-in
@@ -35,4 +37,16 @@ services:
       # agnostic and doesn't conflict on pull.
     env_file:
       - .env.selfhost
+    restart: unless-stopped
+
+  # Tampa Lead Desk — standalone reporting-desk service. Its own scheduler,
+  # SQLite database (leaddesk.db) and raw archive under ./data; keeps
+  # collecting daily even while the site container rebuilds. No public port —
+  # only Imago reaches it over the compose network.
+  leaddesk:
+    build: ./leaddesk
+    volumes:
+      - ./data:/data
+    environment:
+      DATA_DIR: /data
     restart: unless-stopped

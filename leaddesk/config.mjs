@@ -1,53 +1,35 @@
 import fs from "fs";
 import path from "path";
 
-// Scoop configuration. Defaults live here in code; drop a scoop.config.json in
-// DATA_DIR to override any part without a deploy (keyword lists are meant to
-// be edited over time as scoring gets tuned).
-export type ScoopConfig = {
-  // CKAN dataset carrying the City of Tampa building permits (BLDS standard,
-  // updated daily) — the automated discovery feed.
-  ckanBase: string;
-  ckanDatasetId: string;
-  // Accela Citizen Access links, used for manual lookups from the lead queue.
-  accelaSearchUrl: string;
-  accelaDailyReportUrl: string;
-  // Map of our normalized field -> candidate source column headers, matched
-  // case-insensitively after stripping spaces/underscores. Raw columns are
-  // always preserved verbatim in raw_json regardless of this map.
-  fieldMap: Record<string, string[]>;
-  // Scoring: [pattern, points, label]. Patterns match case-insensitively
-  // against record type + description + project name.
-  typeSignals: [string, number, string][];
-  keywordSignals: [string, number, string][];
-  brandSignals: [string, number, string][];
-  valuationTiers: { min: number; points: number; label: string }[];
-  highPriorityMin: number;
-  watchMin: number;
-};
+// Tampa Lead Desk configuration. Defaults here; drop a leaddesk.config.json in
+// DATA_DIR to override any part (the scoring lists are meant to be tuned).
+export const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
 
-const DEFAULTS: ScoopConfig = {
+const DEFAULTS = {
+  // Collector 1 (primary): the City of Tampa's own ArcGIS server — city-run,
+  // JSON, no WAF. Resolved layer by layer at run time.
+  arcgisBase: "https://arcgis.tampagov.net/arcgis/rest/services/Planning/PermitsAll/FeatureServer",
+  // Collector 2 (fallback): the city's CivicData CKAN dataset (CSV, BLDS).
   ckanBase: "https://www.civicdata.com",
   ckanDatasetId: "tampa_permit_standard_permits_v11_17914",
+  // Where a lead's "open the source record" link points.
   accelaSearchUrl: "https://aca-prod.accela.com/TAMPA/Cap/CapHome.aspx?module=Building&TabName=Building",
-  accelaDailyReportUrl: "https://aca-prod.accela.com/TAMPA/Report/ReportParameter.aspx?module=Building&reportID=478&reportType=LINK_REPORT_LIST",
+  // Daily collection hour, UTC (11 = 7am New York in daylight time).
+  fetchHourUtc: 11,
+  // normalized field -> candidate source column/attribute names, matched
+  // case-insensitively with punctuation stripped. Raw fields are always
+  // preserved verbatim regardless of this map.
   fieldMap: {
-    // BLDS-standard names first, then common Accela export variants. Verified
-    // against the real feed after the first fetch (see docs/TAMPA_DAILY_PERMIT_REPORT.md).
-    permitId: ["permitnum", "permitnumber", "recordid", "recordnumber", "permit_no", "altid"],
+    permitId: ["permitnum", "permitnumber", "recordid", "recordnumber", "permit_no", "altid", "objectid"],
     recordType: ["permitclassmapped", "permittype", "permitclass", "recordtype", "type", "worktype", "permittypedesc"],
     description: ["description", "workdescription", "projectdescription", "shortnotes", "permitdescription"],
     projectName: ["projectname", "project", "name"],
     address: ["originaladdress1", "address", "siteaddress", "fulladdress", "location"],
-    city: ["originalcity", "city"],
-    zip: ["originalzip", "zip", "zipcode", "postalcode"],
     parcel: ["pin", "parcelnumber", "parcelid", "folio", "folionumber", "parcel"],
     status: ["statuscurrent", "status", "currentstatus", "appstatus", "recordstatus"],
     appliedDate: ["applieddate", "applicationdate", "fileddate", "dateapplied", "opened", "createddate"],
     issuedDate: ["issueddate", "dateissued", "issuedate"],
-    completedDate: ["completeddate", "finaleddate", "closeddate"],
-    expiresDate: ["expiresdate", "expirationdate"],
-    valuation: ["estprojectcost", "valuation", "jobvalue", "constructioncost", "declaredvaluation", "totalfees"],
+    valuation: ["estprojectcost", "valuation", "jobvalue", "constructioncost", "declaredvaluation"],
     contractor: ["contractorcompanyname", "contractorname", "contractor", "contractorcompanydesc"],
     applicant: ["applicantname", "applicant"],
     owner: ["ownername", "owner"],
@@ -82,27 +64,23 @@ const DEFAULTS: ScoopConfig = {
     ["aldi", 5, "Aldi"], ["sprouts", 5, "Sprouts"], ["target", 5, "Target"], ["amazon", 5, "Amazon"],
   ],
   valuationTiers: [
-    { min: 10_000_000, points: 5, label: "valuation > $10M" },
-    { min: 1_000_000, points: 3, label: "valuation > $1M" },
-    { min: 250_000, points: 2, label: "valuation > $250K" },
-    { min: 100_000, points: 1, label: "valuation > $100K" },
+    { min: 10000000, points: 5, label: "valuation > $10M" },
+    { min: 1000000, points: 3, label: "valuation > $1M" },
+    { min: 250000, points: 2, label: "valuation > $250K" },
+    { min: 100000, points: 1, label: "valuation > $100K" },
   ],
   highPriorityMin: 8,
   watchMin: 4,
 };
 
-export function dataDir(): string {
-  return process.env.DATA_DIR || path.join(process.cwd(), "data");
-}
-
-let cached: ScoopConfig | null = null;
-export function scoopConfig(): ScoopConfig {
+let cached = null;
+export function config() {
   if (cached) return cached;
-  let overrides: Partial<ScoopConfig> = {};
+  let overrides = {};
   try {
-    const p = path.join(dataDir(), "scoop.config.json");
+    const p = path.join(DATA_DIR, "leaddesk.config.json");
     if (fs.existsSync(p)) overrides = JSON.parse(fs.readFileSync(p, "utf8"));
-  } catch { /* bad JSON: fall back to defaults */ }
+  } catch { /* bad JSON: run on defaults */ }
   cached = { ...DEFAULTS, ...overrides, fieldMap: { ...DEFAULTS.fieldMap, ...(overrides.fieldMap ?? {}) } };
   return cached;
 }
