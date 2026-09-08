@@ -350,9 +350,28 @@ function normTampaAb(r: Raw): Norm | null {
   };
 }
 
+// The alcohol-permit feed is a registry of businesses that already exist.
+// A permit naming one of them at the same address is an existing business
+// doing work, not a new business coming — unless the text says otherwise.
+function knownBusinessAt(db: Database.Database, address: string, hay: string): string {
+  if (!address) return "";
+  const norm = normalizeAddress(address);
+  const rows = db.prepare(`SELECT description, created_date, first_seen_at FROM permits WHERE source = 'tampaab' AND cluster_key = ? LIMIT 20`)
+    .all(`addr:${norm}`) as { description: string; created_date: string; first_seen_at: string }[];
+  for (const r of rows) {
+    const name = String(r.description ?? "").split(" - ")[0].trim();
+    const core = name.toLowerCase().replace(/^(the|a|an)\s+/, "").split(/\s+/).slice(0, 2).join(" ");
+    // Only a license that predates this permit by a while counts as "already there".
+    const licensed = r.created_date || r.first_seen_at.slice(0, 10);
+    const oldEnough = licensed && Date.parse(licensed) < Date.now() - 180 * 86400_000;
+    if (core.length >= 4 && oldEnough && hay.includes(core)) return name;
+  }
+  return "";
+}
+
 // ---------- scoring ----------
 
-function scoreRecord(n: Norm, isCo = false): { score: number; reasons: [number, string][] } {
+function scoreRecord(n: Norm, isCo = false, existingName = ""): { score: number; reasons: [number, string][] } {
   const cfg = leadsConfig();
   const reasons: [number, string][] = [];
   const hay = `${n.record_type} ${n.type2} ${n.description} ${n.occupancy}`.toLowerCase();
@@ -374,6 +393,13 @@ function scoreRecord(n: Norm, isCo = false): { score: number; reasons: [number, 
     else if (/package sales|convenience|gasoline|shopper/.test(t)) reasons.push([1, "package sales permit"]);
     else reasons.push([3, "alcohol permit"]);
     if (n.units != null && n.units >= 150) reasons.push([2, `${Math.round(n.units)} seats`]);
+    // An old, active, unchanged license is a registry entry (used to recognize
+    // existing businesses), not a lead in itself.
+    const licensed = n.created_date || n.issued_date;
+    const longStanding = licensed && Date.parse(licensed) < Date.now() - 180 * 86400_000;
+    if (longStanding && /^active$/i.test(n.status) && !/suspended|revoked/i.test(n.description)) {
+      return { score: 1, reasons: [[0, "long-standing license (registry entry)"]] };
+    }
   }
   if (n.is_plan) {
     // Development review applications: the coded use type is authoritative.
@@ -442,6 +468,9 @@ function scoreRecord(n: Norm, isCo = false): { score: number; reasons: [number, 
   if (sameOperator && !newTenantCue && !reasons.some(([, l]) => l === "stop work order" || l === "commercial new construction") && score > 3) {
     score = 3;
     reasons.push([0, "remodel by the existing business (score capped)"]);
+  } else if (existingName && !newTenantCue && !reasons.some(([, l]) => l === "stop work order" || l === "commercial new construction") && score > 3) {
+    score = 3;
+    reasons.push([0, `${existingName} already licensed here: existing business (score capped)`]);
   } else if (/remodel|renovat/.test(hay) && n.description.includes(" - ")) {
     reasons.push([0, "named business on a remodel: new tenant or existing? verify"]);
   }
@@ -491,7 +520,9 @@ export function ingestRecords(source: SourceId, records: Raw[]): IngestSummary {
       const n = norm(raw);
       if (!n) { skipped++; continue; }
       const isCo = source === "hcfl" && String(raw.CATEGORY ?? "").trim().toUpperCase() === "CO";
-      const { score, reasons } = scoreRecord(n, isCo);
+      const existingName = source === "tampa" || source === "hcfl"
+        ? knownBusinessAt(db, n.address, `${n.record_type} ${n.description}`.toLowerCase()) : "";
+      const { score, reasons } = scoreRecord(n, isCo, existingName);
       // Parcel keys use digits only so the county permit feed (023867.0000)
       // and the development-review feed (0238670000) cluster together.
       const parcelDigits = n.parcel.replace(/\D/g, "");
@@ -511,7 +542,7 @@ export function ingestRecords(source: SourceId, records: Raw[]): IngestSummary {
         for (const f of TRACKED) if (merged[f] === "" || merged[f] === null) merged[f] = existing[f] ?? merged[f];
         // Re-score on the merged values, so a blank description in a later
         // export doesn't strip the restaurant signals it scored on before.
-        const s2 = scoreRecord({ ...(merged as unknown as Norm), is_plan: source === "hcdev" || source === "tampaent" }, isCo);
+        const s2 = scoreRecord({ ...(merged as unknown as Norm), is_plan: source === "hcdev" || source === "tampaent" }, isCo, existingName);
         merged.score = s2.score;
         merged.score_reasons = JSON.stringify(s2.reasons);
         updStmt.run(merged);
@@ -551,7 +582,7 @@ export function collectState() {
 
 // ---------- queue ----------
 
-export type QueueFilter = { sinceDays?: number; onlyNew?: boolean; onlyChanged?: boolean; restaurants?: boolean; development?: boolean; uncovered?: boolean; includeDone?: boolean; minScore?: number; source?: SourceId; sort?: "score" | "date" };
+export type QueueFilter = { sinceDays?: number; onlyNew?: boolean; onlyChanged?: boolean; restaurants?: boolean; development?: boolean; uncovered?: boolean; includeDone?: boolean; minScore?: number; source?: SourceId; sort?: "score" | "date"; q?: string };
 
 const RESTAURANT_RE = /restaurant|cafe|café|coffee|\bbar\b|brewery|taproom|pizza|grill|kitchen|hood|grease|ansul|drive.?thr|assembly|food/i;
 const DEVELOPMENT_RE = /new construction|addition|demolition|mixed.?use|multifamily|multi-family|apartments|hotel|tower|warehouse/i;
@@ -559,11 +590,20 @@ const DEVELOPMENT_RE = /new construction|addition|demolition|mixed.?use|multifam
 export function getQueue(f: QueueFilter = {}) {
   const db = leadsDb();
   const since = new Date(Date.now() - (f.sinceDays ?? 7) * 86400_000).toISOString();
-  const rows = db.prepare(`
-    SELECT * FROM permits WHERE cluster_key IN (
-      SELECT DISTINCT cluster_key FROM permits
-      WHERE first_seen_at >= @since OR (changed_at IS NOT NULL AND changed_at >= @since)
-    )`).all({ since }) as Record<string, unknown>[];
+  const q = (f.q ?? "").trim();
+  // A search looks at everything ever collected (no window, no floors) —
+  // "where is the Yard House permit?" must be answerable in one box.
+  const rows = q
+    ? db.prepare(`
+        SELECT * FROM permits WHERE cluster_key IN (
+          SELECT DISTINCT cluster_key FROM permits
+          WHERE description LIKE @like OR address LIKE @like OR permit_no LIKE @like OR contact LIKE @like OR raw_json LIKE @like
+        )`).all({ like: `%${q}%` }) as Record<string, unknown>[]
+    : db.prepare(`
+        SELECT * FROM permits WHERE cluster_key IN (
+          SELECT DISTINCT cluster_key FROM permits
+          WHERE first_seen_at >= @since OR (changed_at IS NOT NULL AND changed_at >= @since)
+        )`).all({ since }) as Record<string, unknown>[];
 
   const clusters = new Map<string, Record<string, unknown>[]>();
   for (const r of rows) {
@@ -639,7 +679,7 @@ export function getQueue(f: QueueFilter = {}) {
       permitCount: permits.length,
       // A project with several permits is realer than one with one, so the
       // cluster earns up to +3 beyond its strongest permit.
-      topScore: Number(top.score ?? 0) + Math.min(3, permits.length - 1),
+      topScore: Number(top.score ?? 0) + (Number(top.score ?? 0) >= cfg.watchMin ? Math.min(3, permits.length - 1) : 0),
       isNew, isChanged, completed, stale, newestSourceDate, latestActivity,
       reasons: reasons.sort((a, b) => b[0] - a[0]).slice(0, 8),
       context: null as null | { owner: string; dba: string; justValue: number | null; saleAmt: number | null; saleDate: string; yearBuilt: number | null },
@@ -657,6 +697,7 @@ export function getQueue(f: QueueFilter = {}) {
     };
     // Finished projects are history, not leads — out of the queue unless
     // explicitly asked for.
+    if (q) { leads.push(lead); continue; } // search shows everything that matches
     if (completed && !f.includeDone) continue;
     if (f.onlyNew && !lead.isNew) continue;
     if (f.onlyChanged && !lead.isChanged) continue;

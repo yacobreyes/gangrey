@@ -150,7 +150,10 @@ function plainSummary(lead: Lead): string {
   const when = lead.newestSourceDate ? ` Filed ${day(lead.newestSourceDate)}.` : "";
   const money = lead.permits.find(p => p.valuation)?.valuation;
   const val = money ? ` Valued at $${Math.round(money).toLocaleString("en-US")}.` : "";
-  const own = lead.context?.owner ? ` Property owned by ${lead.context.owner}${lead.context.saleAmt ? `, bought ${lead.context.saleDate ? day(lead.context.saleDate) : ""} for $${Math.round(lead.context.saleAmt).toLocaleString("en-US")}` : ""}.` : "";
+  // Owner and appraisal already sit on the context line; only the sale is
+  // worth a sentence, and only when it is recent enough to mean something.
+  const recentSale = lead.context?.saleAmt && lead.context.saleDate && Date.parse(lead.context.saleDate) > Date.now() - 3 * 365 * 86400_000;
+  const own = recentSale ? ` The property sold ${day(lead.context!.saleDate)} for $${Math.round(lead.context!.saleAmt!).toLocaleString("en-US")}.` : "";
   const stop = lead.permits.some(p => p.stopWork) ? " A STOP WORK ORDER is on this permit." : "";
   const cov = lead.coverage?.checked ? (lead.coverage.hits > 0 ? " Some coverage exists (see below)." : " No coverage found.") : "";
   return `${who}${kind} at ${lead.address}${lead.jurisdiction ? `, ${lead.jurisdiction}` : ""}${status}.${when}${val}${own}${stop}${cov}`;
@@ -169,6 +172,7 @@ export default function LeadDeskPanel() {
   const [sort, setSort] = useState<"date" | "score">("date");
   const [area, setArea] = useState<"" | SourceId>("");
   const [showDone, setShowDone] = useState(false);
+  const [search, setSearch] = useState("");
   const [collecting, setCollecting] = useState(false);
   const [status, setStatus] = useState("");
   const [open, setOpen] = useState<string | null>(null);
@@ -186,11 +190,12 @@ export default function LeadDeskPanel() {
     params.set("sort", sort);
     if (area) params.set("source", area);
     if (showDone) params.set("done", "1");
+    if (search.trim()) params.set("q", search.trim());
     try {
       const r = await fetch(`/api/admin/leads/queue?${params}`, { cache: "no-store" });
       if (r.ok) setData(await r.json());
     } catch { /* keep last good queue */ }
-  }, [kind, onlyNew, onlyChanged, onlyUncovered, minScore, days, sort, area, showDone]);
+  }, [kind, onlyNew, onlyChanged, onlyUncovered, minScore, days, sort, area, showDone, search]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -419,6 +424,9 @@ export default function LeadDeskPanel() {
         <p style={{ fontSize: "0.85rem", color: TEXT_DARK, background: "#f4f2ee", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "0.6rem 0.9rem", margin: "0 0 1rem" }}>{status}</p>
       )}
 
+      {/* Search: everything ever collected, no filters. */}
+      <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search everything collected: a business, an address, a permit number"
+        style={{ fontFamily: FONT, fontSize: "0.88rem", padding: "0.55rem 0.8rem", border: `1px solid ${BORDER}`, borderRadius: 8, width: "100%", boxSizing: "border-box", marginBottom: 10, background: "white", color: TEXT_DARK }} />
       {/* Row 1: the question. Kind is one choice; the "only" toggles stack. */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
         {kinds.map(([key, label]) => (

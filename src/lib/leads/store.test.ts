@@ -183,6 +183,24 @@ describe("lead desk pipeline", () => {
     expect(susp.reasons.map(r => r[1])).toContain("alcohol license suspended or revoked");
   });
 
+  it("a permit naming a business already licensed at the address is capped", () => {
+    ingestRecords("tampaab", [{
+      OBJECTID: 9, APP_NUM: "AB-22-0000900", BUS_NAME: "Wagamama", BUS_OWNER_NAME: "WGM LLC", AB_CLASS_PREFIX: "Restaurant (COP-Only)",
+      HISTORY_ACTION: "Active", PERMIT_ADDR: "1050 Water St", ORD_LTR_DT: Date.now() - 900 * 86400_000, LASTUPDATE: Date.now() - 86400_000,
+    }]);
+    ingestRecords("tampa", [tampaRow({
+      RECORD_ID: "BDE-26-0900001", ADDRESS: "1050 Water St", PROJECTNAME2: "Wagamama Pan Asian Block F2 Ground Floor",
+      PROJECTDESCRIPTION: "Interior work at restaurant and bar",
+    })]);
+    const lead = getQueue({ source: "tampa" }).leads.find(l => l.address === "1050 Water St" && l.permits.some(p => p.permitNo === "BDE-26-0900001"))
+      ?? getQueue({ minScore: 0 }).leads.find(l => l.permits.some(p => p.permitNo === "BDE-26-0900001"))!;
+    expect(lead).toBeTruthy();
+    expect(lead.permits.some(p => p.permitNo === "BDE-26-0900001")).toBe(true);
+    // The cap leaves the whole cluster (one permit) at 3 or below.
+    expect(lead.topScore).toBeLessThanOrEqual(3);
+    expect(lead.reasons.map(r => r[1]).some(l => /already licensed here/.test(l))).toBe(true);
+  });
+
   it("identical batches are refused by hash", () => {
     const rows = [tampaRow({ RECORD_ID: "BDE-26-0700000" })];
     ingestRecords("tampa", rows);
