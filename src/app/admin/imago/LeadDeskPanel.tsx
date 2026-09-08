@@ -352,7 +352,7 @@ export default function LeadDeskPanel() {
                       {!lead.completed && lead.stale && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#6e6e73" }}>OLD PERMIT</span>}
                     </span>
                     <span style={{ display: "block", fontSize: "0.8rem", color: TEXT_MUTED, marginTop: 2 }}>
-                      {lead.jurisdiction}{lead.jurisdiction ? " · " : ""}{lead.permitCount} permit{lead.permitCount === 1 ? "" : "s"} · first seen {day(lead.firstSeen)}{topVal > 0 ? ` · ${money(topVal)}` : ""}
+                      {lead.jurisdiction}{lead.jurisdiction ? " · " : ""}{lead.permitCount} permit{lead.permitCount === 1 ? "" : "s"}{lead.newestSourceDate ? ` · city date ${day(lead.newestSourceDate)}` : ""} · collected {day(lead.firstSeen)}{topVal > 0 ? ` · ${money(topVal)}` : ""}
                     </span>
                     {lead.context && (
                       <span style={{ display: "block", fontSize: "0.78rem", color: "#3a5a40", marginTop: 4 }}>
