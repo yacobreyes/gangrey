@@ -10,7 +10,7 @@ import path from "path";
 // and serves the ranked queue. Schemas are the VERIFIED ones in
 // docs/TAMPA_PERMIT_SOURCES.md — no guessed field names.
 
-export type SourceId = "tampa" | "hcfl";
+export type SourceId = "tampa" | "hcfl" | "hcdev";
 
 const DATA_DIR = () => process.env.DATA_DIR || path.join(process.cwd(), "data");
 
@@ -60,7 +60,8 @@ export function leadsDb(): Database.Database {
       score_reasons TEXT DEFAULT '[]',
       first_seen_at TEXT NOT NULL,
       last_seen_at TEXT NOT NULL,
-      changed_at TEXT
+      changed_at TEXT,
+      contact TEXT DEFAULT ''             -- applicant contact, when the feed carries one
     );
     CREATE INDEX IF NOT EXISTS idx_leads_cluster ON permits (cluster_key);
     CREATE INDEX IF NOT EXISTS idx_leads_seen ON permits (first_seen_at);
@@ -90,6 +91,8 @@ export function leadsDb(): Database.Database {
       fetched_at TEXT NOT NULL
     );
   `);
+  // Additive migration for databases created before the contact column.
+  try { _db.exec(`ALTER TABLE permits ADD COLUMN contact TEXT DEFAULT ''`); } catch { /* exists */ }
   return _db;
 }
 
@@ -186,6 +189,8 @@ type Norm = {
   stop_work: number; valuation: number | null; sq_ft: number | null; units: number | null;
   neighborhood: string; council: string; cra: string;
   issued_date: string; created_date: string; source_updated: string; link: string;
+  contact?: string;
+  is_plan?: boolean; // application-stage record (development review), not a permit
 };
 
 // City of Tampa Planning/PermitsAll layer 0. RECORD_ID is unique.
@@ -229,6 +234,42 @@ function normHcfl(r: Raw): Norm | null {
   };
 }
 
+// Hillsborough Site-Subdivision_DevReview_View layer 0 "Projects By Review
+// Status": development review applications as SUBMITTED (site plans and
+// subdivisions), months before permits. Verified schema; ProjectType is coded.
+const HCDEV_TYPES: Record<string, string> = {
+  SFA: "single-family attached", SFD: "single-family detached", Multifamily: "multifamily", MobileHomes: "mobile homes",
+  CondoResident: "residential condo", CondoComm: "commercial condo", MinorSiteDevelopment: "minor site development",
+  CommercialMultiSite: "commercial multi-site", Educational: "educational", Religious: "religious", Industrial: "industrial",
+  Medical: "medical", Professional: "professional office", SeniorFacilities: "senior facilities", CommOther: "commercial",
+  Roadway: "roadway", Utilities: "utilities", MixedUse: "mixed use", other: "other", RetailRestaurant: "retail/restaurant",
+  GradingES: "grading", Hotel: "hotel", LotReconfig: "lot reconfiguration", Agricultural: "agricultural",
+  "Warehouse/Storage": "warehouse/storage", Automotive: "automotive", Financial: "financial", Recreational: "recreational",
+  Infrastructure: "infrastructure", Amenities: "amenities", PublicFacilities: "public facilities", Parking: "parking",
+};
+function normHcdev(r: Raw): Norm | null {
+  const id = s(r.RecordNum) || s(r.globalid);
+  if (!id) return null;
+  const ptype = HCDEV_TYPES[s(r.ProjectType)] ?? s(r.ProjectType);
+  const name = s(r.ProjectName) || s(r.ICPName);
+  const contact = [[s(r.ContactFirst), s(r.ContactLast)].filter(Boolean).join(" "), s(r.ContactPhone), s(r.ContactEmail)].filter(Boolean).join(" · ");
+  return {
+    uid: `hcdev:${id}`, permit_no: s(r.RecordNum) || "plan",
+    record_type: [s(r.ApplicationType), ptype ? `${ptype} plan` : ""].filter(Boolean).join(" - "),
+    type2: s(r.ApplicationGroup),
+    description: [name, s(r.description), s(r.Comments)].filter(Boolean).join(" - "),
+    address: [s(r.Address) || [s(r.RoadPrefix), s(r.RoadName), s(r.RoadType)].filter(Boolean).join(" ")].filter(Boolean).join(" "),
+    jurisdiction: s(r.City) ? `${s(r.City)} (plan)` : "Hillsborough (plan)",
+    parcel: s(r.ParentFolio) || s(r.folio), status: s(r.ReviewStatus) || s(r.status),
+    occupancy: ptype, stop_work: 0,
+    valuation: null, sq_ft: num(r.FootageProposedBldg) ?? num(r.FootageTotal), units: num(r.TotalResUnits) ?? num(r.LotsTotal),
+    neighborhood: "", council: "", cra: "",
+    issued_date: epochToDay(r.ReviewApprovalDate), created_date: epochToDay(r.SubmissionDate),
+    source_updated: epochToDay(r.ApplicationStatusDate) || epochToDay(r.EditDate),
+    link: s(r.hillsgovhub), contact, is_plan: true,
+  };
+}
+
 // ---------- scoring ----------
 
 function scoreRecord(n: Norm, isCo = false): { score: number; reasons: [number, string][] } {
@@ -239,6 +280,19 @@ function scoreRecord(n: Norm, isCo = false): { score: number; reasons: [number, 
   const residential = /residential|single.?family|\bsfr\b/.test(hay) && !commercial;
 
   if (n.stop_work) reasons.push([6, "stop work order"]);
+  if (n.is_plan) {
+    // Development review applications: the coded use type is authoritative.
+    const t = n.occupancy;
+    if (/hotel/.test(t)) reasons.push([7, "hotel plan filed"]);
+    else if (/retail\/restaurant/.test(t)) reasons.push([6, "retail/restaurant plan filed"]);
+    else if (/mixed use/.test(t)) reasons.push([5, "mixed-use plan filed"]);
+    else if (/multifamily|condo/.test(t)) reasons.push([4, "multifamily plan filed"]);
+    else if (/commercial|industrial|warehouse|medical|professional|automotive|financial|senior|recreational/.test(t)) reasons.push([3, `${t} plan filed`]);
+    else if (/single-family|mobile homes/.test(t)) reasons.push([1, `${t} plan filed`]);
+    if (n.units != null && n.units >= 200) reasons.push([3, `${Math.round(n.units)} units`]);
+    else if (n.units != null && n.units >= 50) reasons.push([2, `${Math.round(n.units)} units`]);
+    if (/in review|resubmit/i.test(n.status)) reasons.push([1, "in review now"]);
+  }
   if (commercial) {
     // Work type: what kind of commercial activity this is.
     if (/new construction/.test(hay)) reasons.push([5, "commercial new construction"]);
@@ -299,7 +353,7 @@ function scoreRecord(n: Norm, isCo = false): { score: number; reasons: [number, 
   return { score, reasons };
 }
 
-const TRACKED = ["record_type", "description", "address", "status", "occupancy", "stop_work", "valuation", "sq_ft", "units", "issued_date", "source_updated", "link"] as const;
+const TRACKED = ["record_type", "description", "address", "status", "occupancy", "stop_work", "valuation", "sq_ft", "units", "issued_date", "source_updated", "link", "contact"] as const;
 
 export type IngestSummary = {
   alreadyIngested: boolean; rowCount: number; inserted: number; changed: number; unchanged: number; skipped: number;
@@ -318,13 +372,13 @@ export function ingestRecords(source: SourceId, records: Raw[]): IngestSummary {
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, `${hash.slice(0, 12)}-${source}.json`), buf);
 
-  const norm = source === "tampa" ? normTampa : normHcfl;
+  const norm = source === "tampa" ? normTampa : source === "hcdev" ? normHcdev : normHcfl;
   let inserted = 0, changed = 0, unchanged = 0, skipped = 0;
 
   const getStmt = db.prepare(`SELECT * FROM permits WHERE uid = ?`);
-  const insStmt = db.prepare(`INSERT INTO permits (uid, source, permit_no, raw_json, record_type, type2, description, address, jurisdiction, parcel, status, occupancy, stop_work, valuation, sq_ft, units, neighborhood, council, cra, issued_date, created_date, source_updated, link, cluster_key, score, score_reasons, first_seen_at, last_seen_at)
-    VALUES (@uid, @source, @permit_no, @raw_json, @record_type, @type2, @description, @address, @jurisdiction, @parcel, @status, @occupancy, @stop_work, @valuation, @sq_ft, @units, @neighborhood, @council, @cra, @issued_date, @created_date, @source_updated, @link, @cluster_key, @score, @score_reasons, @now, @now)`);
-  const updStmt = db.prepare(`UPDATE permits SET raw_json=@raw_json, record_type=@record_type, type2=@type2, description=@description, address=@address, jurisdiction=@jurisdiction, parcel=@parcel, status=@status, occupancy=@occupancy, stop_work=@stop_work, valuation=@valuation, sq_ft=@sq_ft, units=@units, neighborhood=@neighborhood, council=@council, cra=@cra, issued_date=@issued_date, created_date=@created_date, source_updated=@source_updated, link=@link, cluster_key=@cluster_key, score=@score, score_reasons=@score_reasons, last_seen_at=@now, changed_at=@now WHERE uid=@uid`);
+  const insStmt = db.prepare(`INSERT INTO permits (uid, source, permit_no, raw_json, record_type, type2, description, address, jurisdiction, parcel, status, occupancy, stop_work, valuation, sq_ft, units, neighborhood, council, cra, issued_date, created_date, source_updated, link, contact, cluster_key, score, score_reasons, first_seen_at, last_seen_at)
+    VALUES (@uid, @source, @permit_no, @raw_json, @record_type, @type2, @description, @address, @jurisdiction, @parcel, @status, @occupancy, @stop_work, @valuation, @sq_ft, @units, @neighborhood, @council, @cra, @issued_date, @created_date, @source_updated, @link, @contact, @cluster_key, @score, @score_reasons, @now, @now)`);
+  const updStmt = db.prepare(`UPDATE permits SET raw_json=@raw_json, record_type=@record_type, type2=@type2, description=@description, address=@address, jurisdiction=@jurisdiction, parcel=@parcel, status=@status, occupancy=@occupancy, stop_work=@stop_work, valuation=@valuation, sq_ft=@sq_ft, units=@units, neighborhood=@neighborhood, council=@council, cra=@cra, issued_date=@issued_date, created_date=@created_date, source_updated=@source_updated, link=@link, contact=@contact, cluster_key=@cluster_key, score=@score, score_reasons=@score_reasons, last_seen_at=@now, changed_at=@now WHERE uid=@uid`);
   const touchStmt = db.prepare(`UPDATE permits SET last_seen_at=@now WHERE uid=@uid`);
   const verStmt = db.prepare(`INSERT INTO permit_versions (uid, changed_at, diff_json) VALUES (?, ?, ?)`);
   const ing = db.prepare(`INSERT INTO ingests (source, batch_hash, ingested_at) VALUES (?, ?, ?)`).run(source, hash, now);
@@ -335,8 +389,12 @@ export function ingestRecords(source: SourceId, records: Raw[]): IngestSummary {
       if (!n) { skipped++; continue; }
       const isCo = source === "hcfl" && String(raw.CATEGORY ?? "").trim().toUpperCase() === "CO";
       const { score, reasons } = scoreRecord(n, isCo);
-      const cluster_key = n.parcel ? `parcel:${n.parcel}` : n.address ? `addr:${normalizeAddress(n.address)}` : n.uid;
-      const row = { ...n, source, raw_json: JSON.stringify(raw), cluster_key, score, score_reasons: JSON.stringify(reasons), now };
+      // Parcel keys use digits only so the county permit feed (023867.0000)
+      // and the development-review feed (0238670000) cluster together.
+      const parcelDigits = n.parcel.replace(/\D/g, "");
+      const cluster_key = parcelDigits.length >= 8 ? `parcel:${parcelDigits}` : n.address ? `addr:${normalizeAddress(n.address)}` : n.uid;
+      const { is_plan: _plan, ...persist } = n;
+      const row = { ...persist, contact: n.contact ?? "", source, raw_json: JSON.stringify(raw), cluster_key, score, score_reasons: JSON.stringify(reasons), now };
       const existing = getStmt.get(n.uid) as Record<string, unknown> | undefined;
       if (!existing) { insStmt.run(row); inserted++; continue; }
       const diff: Record<string, { from: unknown; to: unknown }> = {};
@@ -350,7 +408,7 @@ export function ingestRecords(source: SourceId, records: Raw[]): IngestSummary {
         for (const f of TRACKED) if (merged[f] === "" || merged[f] === null) merged[f] = existing[f] ?? merged[f];
         // Re-score on the merged values, so a blank description in a later
         // export doesn't strip the restaurant signals it scored on before.
-        const s2 = scoreRecord(merged as unknown as Norm, isCo);
+        const s2 = scoreRecord({ ...(merged as unknown as Norm), is_plan: source === "hcdev" }, isCo);
         merged.score = s2.score;
         merged.score_reasons = JSON.stringify(s2.reasons);
         updStmt.run(merged);
@@ -382,6 +440,7 @@ export function collectState() {
   return {
     tampa: { lastCollect: get("last_collect_tampa"), since: sinceFor("last_collect_tampa") },
     hcfl: { lastCollect: get("last_collect_hcfl"), since: sinceFor("last_collect_hcfl") },
+    hcdev: { lastCollect: get("last_collect_hcdev"), since: sinceFor("last_collect_hcdev") },
   };
 }
 
@@ -448,7 +507,7 @@ export function getQueue(f: QueueFilter = {}) {
     const latestActivity = [...sourceDates, ...permits.map(p => String(p.source_updated ?? "")).filter(Boolean)].sort().slice(-1)[0] ?? "";
     const freshCutoff = new Date(Date.now() - cfg.newRequiresSourceWithinDays * 86400_000).toISOString().slice(0, 10);
     const staleCutoff = new Date(Date.now() - cfg.staleAfterDays * 86400_000).toISOString().slice(0, 10);
-    const DONE_RE = /complete|finaled|closed|expired|withdrawn|void/i;
+    const DONE_RE = /complete|finaled|closed|expired|withdrawn|void|cancelled/i;
     const completed = permits.length > 0 && permits.every(p => DONE_RE.test(String(p.status ?? "")));
     const stale = !!newestSourceDate && newestSourceDate < staleCutoff;
     // NEW means new PROJECT: first seen recently AND the city's own dates
@@ -486,6 +545,7 @@ export function getQueue(f: QueueFilter = {}) {
         recordType: String(p.record_type || p.type2 || ""), description: String(p.description ?? "").slice(0, 220),
         status: String(p.status ?? ""), valuation: (p.valuation as number | null) ?? null,
         stopWork: Number(p.stop_work ?? 0) === 1, link: String(p.link ?? ""),
+        contact: String(p.contact ?? ""), isPlan: String(p.source) === "hcdev",
         firstSeenAt: String(p.first_seen_at), changedAt: p.changed_at ? String(p.changed_at) : null,
         whatChanged: p.changed_at && String(p.changed_at) >= since ? describeChange(String(p.uid)) : "",
       })),

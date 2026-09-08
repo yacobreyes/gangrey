@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     restaurants: q.get("restaurants") === "1",
     development: q.get("development") === "1",
     minScore: q.get("minScore") ? Number(q.get("minScore")) : undefined,
-    source: (q.get("source") === "tampa" || q.get("source") === "hcfl") ? (q.get("source") as "tampa" | "hcfl") : undefined,
+    source: (["tampa", "hcfl", "hcdev"].includes(q.get("source") ?? "")) ? (q.get("source") as "tampa" | "hcfl" | "hcdev") : undefined,
   });
   return NextResponse.json({ ...data, state: collectState() });
 }

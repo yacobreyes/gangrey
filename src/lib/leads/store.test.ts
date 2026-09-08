@@ -126,6 +126,26 @@ describe("lead desk pipeline", () => {
     expect(getQueue({ restaurants: true }).leads.some(l => l.address === "3644 W Kennedy Blvd")).toBe(true);
   });
 
+  it("county development-review applications ingest as plans and score by use type", () => {
+    const r = ingestRecords("hcdev", [{
+      objectid: 5, globalid: "{ABC-123}", RecordNum: "SIT-26-0042", ProjectName: "Brandon Crossing Hotel",
+      ApplicationType: "Site Development", ProjectType: "Hotel", ApplicationGroup: "Commercial",
+      Address: "1200 W Brandon Blvd", City: "Brandon", ParentFolio: "0738450000", ReviewStatus: "In Review",
+      SubmissionDate: Date.now() - 3 * 86400_000, ApplicationStatusDate: Date.now() - 86400_000, EditDate: Date.now() - 86400_000,
+      FootageProposedBldg: 88000, TotalResUnits: null, description: "New 6-story 140 room select-service hotel",
+      ContactFirst: "Jane", ContactLast: "Doe", ContactPhone: "8135551212", ContactEmail: "jane@example.com",
+      hillsgovhub: "https://hillsgovhub.example/SIT-26-0042",
+    }]);
+    expect(r.inserted).toBe(1);
+    const lead = getQueue({ source: "hcdev" }).leads.find(l => l.address === "1200 W Brandon Blvd")!;
+    expect(lead).toBeTruthy();
+    expect(lead.isNew).toBe(true);
+    expect(lead.reasons.map(x => x[1])).toContain("hotel plan filed");
+    expect(lead.topScore).toBeGreaterThanOrEqual(8);
+    expect(lead.permits[0].contact).toContain("Jane Doe");
+    expect(lead.permits[0].isPlan).toBe(true);
+  });
+
   it("identical batches are refused by hash", () => {
     const rows = [tampaRow({ RECORD_ID: "BDE-26-0700000" })];
     ingestRecords("tampa", rows);

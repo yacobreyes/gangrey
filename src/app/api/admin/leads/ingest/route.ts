@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as { source?: string; records?: unknown[] };
     const source = body.source as SourceId;
-    if (source !== "tampa" && source !== "hcfl") return NextResponse.json({ error: "Bad source" }, { status: 400 });
+    if (source !== "tampa" && source !== "hcfl" && source !== "hcdev") return NextResponse.json({ error: "Bad source" }, { status: 400 });
     const records = Array.isArray(body.records) ? body.records as Record<string, unknown>[] : [];
     // An empty batch is a successful check that found nothing new — record
     // the collection time so the panel shows when the feed was last checked.

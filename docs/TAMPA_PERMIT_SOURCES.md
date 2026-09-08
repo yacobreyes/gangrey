@@ -149,3 +149,33 @@ BusinessTaxInspectors (inspector zones), no business-name records.
 Other promising county services for later: CodeEnforcementCasesMapService,
 Planned_Developments_and_Entitlements_Public_View, Site-Subdivision_DevReview_View,
 HCPA_Zoning_2026, Hotels, Commercial_Parcels_2026.
+
+## Source 6 — Hillsborough Site-Subdivision_DevReview_View (VERIFIED; "plans filed")
+
+Base: https://services.arcgis.com/apTfC6SUmnNfnxuF/ArcGIS/rest/services/Site-Subdivision_DevReview_View/FeatureServer/0
+Layer "Projects By Review Status": development review applications as
+SUBMITTED (site plans and subdivisions), months before permits. Anonymous
+query allowed; dates UTC; data edited Sept 2026. Key fields: SubmissionDate,
+ApplicationType, ApplicationGroup (Subdivision/Site/Commercial/Residential),
+ProjectType (coded: Hotel, RetailRestaurant, MixedUse, Multifamily, CommOther,
+Industrial, Warehouse/Storage, Medical, SFD, SFA...), ProjectName (full-text
+indexed), ICPName, Address + Road* parts + City/Zip, ParentFolio/folio,
+Acreage, TotalResUnits/LotsTotal, FootageProposedBldg/FootageTotal,
+ReviewStatus (In Review, Resubmit Required, Approved, Approved with
+Conditions, Insufficient for Review, Expired/Cancelled), ReviewApprovalDate,
+ApplicationStatusDate, EditDate (indexed; used for incremental collection),
+description (4000), Comments, hillsgovhub (link), ContactFirst/Last/Phone/
+Email (applicant contact), Zoning/ZoningProp/ZoningPetition, RecordNum.
+Ingested as source "hcdev"; scored by the coded use type; clustered with the
+permit feeds by folio digits.
+
+Checked and set aside: Planned_Developments_and_Entitlements_Public_View
+(zoning-atlas PD polygons: NZONE/RZ codes, acreage, a hyperlink; no dates or
+descriptions worth a feed).
+
+Tampa Planning folder (arcgis.tampagov.net/arcgis/rest/services/Planning):
+ActiveEntitlementLocations, AlcoholBeverage, ConstructionInspections,
+CRACommercialInitiative, LiveLocalAct, PermitsAll, PlanningViewer,
+SingleFamilyPermits, TampaCRAInitiatives, TreePermits. Next to verify:
+ActiveEntitlementLocations (city plans filed) and AlcoholBeverage (alcohol
+permit applications precede new bars/restaurants).
