@@ -106,6 +106,7 @@ type LeadsConfig = {
   initialWindowDays: number; // first browser collection reaches back this far
   newRequiresSourceWithinDays: number;
   staleAfterDays: number;
+  maintenanceSignals: string[];
 };
 
 const DEFAULT_CONFIG: LeadsConfig = {
@@ -144,6 +145,14 @@ const DEFAULT_CONFIG: LeadsConfig = {
   // resurface finished projects as new.
   newRequiresSourceWithinDays: 90,
   staleAfterDays: 365,
+  // Maintenance work is never a lead: any of these cap the score at 1 unless
+  // a stop-work order, a recognized brand, or new construction is present.
+  maintenanceSignals: [
+    "\\brepair\\b", "\\bemergency\\b", "re-?pipe", "re-?roof", "water heater",
+    "change.?out", "like.?for.?like", "water damage", "\\bfence\\b", "\\bshed\\b",
+    "window replacement", "siding", "pool (heater|pump|resurfac)", "\\bhvac replacement\\b",
+    "sewer line", "gas line repair", "leak",
+  ],
 };
 
 let cachedConfig: LeadsConfig | null = null;
@@ -265,6 +274,14 @@ function scoreRecord(n: Norm, isCo = false): { score: number; reasons: [number, 
   let score = reasons.reduce((sum, [p]) => sum + p, 0);
   // Plain residential noise never outranks commercial leads.
   if (residential && score > 3 && !reasons.some(([, l]) => l === "stop work order")) score = 3;
+  // Maintenance work (repairs, re-pipes, water heaters...) is never a lead.
+  const maintenance = cfg.maintenanceSignals.some(p => { try { return new RegExp(p, "i").test(hay); } catch { return false; } });
+  const newsyAnyway = reasons.some(([, l]) => l === "stop work order" || l === "commercial new construction")
+    || cfg.brandSignals.some(([p]) => { try { return new RegExp(p, "i").test(hay); } catch { return false; } });
+  if (maintenance && !newsyAnyway && score > 1) {
+    score = 1;
+    reasons.push([0, "maintenance work (score capped)"]);
+  }
   return { score, reasons };
 }
 

@@ -88,6 +88,18 @@ describe("lead desk pipeline", () => {
     expect(getQueue({ onlyNew: true }).leads.some(l => l.address === "9999 Drury Ln")).toBe(false);
   });
 
+  it("maintenance work is capped below the queue floor", () => {
+    ingestRecords("tampa", [tampaRow({
+      RECORD_ID: "BDE-26-0600001", RECORDTYPE: "Residential Building Alterations (Renovations)",
+      PROJECTNAME2: "Plumbing Repair", ADDRESS: "12 Leak Ln", OCCUPANCYTYPE: "Residential",
+      PROJECTDESCRIPTION: "EMERGENCY PLUMBING REPAIR. DEMO / REPLACE SLAB TO REPLACE SEWER LINES FOR TWO BATHROOMS AND KITCHEN",
+    })]);
+    const lead = getQueue({}).leads.find(l => l.address === "12 Leak Ln")!;
+    expect(lead.topScore).toBeLessThanOrEqual(1);
+    expect(getQueue({ minScore: 4 }).leads.some(l => l.address === "12 Leak Ln")).toBe(false);
+    expect(getQueue({ restaurants: true }).leads.some(l => l.address === "12 Leak Ln")).toBe(false);
+  });
+
   it("identical batches are refused by hash", () => {
     const rows = [tampaRow({ RECORD_ID: "BDE-26-0700000" })];
     ingestRecords("tampa", rows);
