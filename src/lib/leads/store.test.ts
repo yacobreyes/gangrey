@@ -74,6 +74,20 @@ describe("lead desk pipeline", () => {
     expect(lead.reasons.map(r => r[1])).toContain("stop work order");
   });
 
+  it("an old completed permit is never NEW, even when first seen today", () => {
+    ingestRecords("hcfl", [hcflRow({
+      OBJECTID: 77, PERMIT__: "HOTEL-OLD-1", ADDRESS: "9999 Drury Ln", PARCEL: "999999.0000",
+      STATUS_1: "Complete", DESCRIPTION: "New 8 story 210 room hotel",
+      ISSUED_DATE: Date.now() - 500 * 86400_000, COMBINED_DATE: Date.now() - 500 * 86400_000,
+    })]);
+    const lead = getQueue({}).leads.find(l => l.address === "9999 Drury Ln")!;
+    expect(lead).toBeTruthy();
+    expect(lead.isNew).toBe(false);
+    expect(lead.completed).toBe(true);
+    expect(lead.stale).toBe(true);
+    expect(getQueue({ onlyNew: true }).leads.some(l => l.address === "9999 Drury Ln")).toBe(false);
+  });
+
   it("identical batches are refused by hash", () => {
     const rows = [tampaRow({ RECORD_ID: "BDE-26-0700000" })];
     ingestRecords("tampa", rows);

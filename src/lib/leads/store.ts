@@ -99,6 +99,8 @@ type LeadsConfig = {
   highPriorityMin: number;
   watchMin: number;
   initialWindowDays: number; // first browser collection reaches back this far
+  newRequiresSourceWithinDays: number;
+  staleAfterDays: number;
 };
 
 const DEFAULT_CONFIG: LeadsConfig = {
@@ -132,6 +134,11 @@ const DEFAULT_CONFIG: LeadsConfig = {
   highPriorityMin: 8,
   watchMin: 4,
   initialWindowDays: 30,
+  // A lead only counts as NEW if the city's own dates are this fresh —
+  // otherwise a backfill or an administrative touch on an old permit would
+  // resurface finished projects as new.
+  newRequiresSourceWithinDays: 90,
+  staleAfterDays: 365,
 };
 
 let cachedConfig: LeadsConfig | null = null;
@@ -395,7 +402,20 @@ export function getQueue(f: QueueFilter = {}) {
   for (const [clusterKey, permits] of clusters) {
     const sorted = [...permits].sort((a, b) => Number(b.score) - Number(a.score));
     const top = sorted[0];
-    const isNew = permits.some(p => String(p.first_seen_at) >= since);
+    // The city's own newest date on this project (filed or issued).
+    const sourceDates = permits.flatMap(p => [String(p.issued_date ?? ""), String(p.created_date ?? "")].filter(Boolean)).sort();
+    const newestSourceDate = sourceDates.slice(-1)[0] ?? "";
+    const freshCutoff = new Date(Date.now() - cfg.newRequiresSourceWithinDays * 86400_000).toISOString().slice(0, 10);
+    const staleCutoff = new Date(Date.now() - cfg.staleAfterDays * 86400_000).toISOString().slice(0, 10);
+    const DONE_RE = /complete|finaled|closed|expired|withdrawn|void/i;
+    const completed = permits.length > 0 && permits.every(p => DONE_RE.test(String(p.status ?? "")));
+    const stale = !!newestSourceDate && newestSourceDate < staleCutoff;
+    // NEW means new PROJECT: first seen recently AND the city's own dates
+    // agree it's fresh. An old permit resurfacing with new paperwork (or a
+    // backfill) is activity, not news of something coming.
+    const isNew = permits.some(p => String(p.first_seen_at) >= since)
+      && !completed && !stale
+      && (!newestSourceDate || newestSourceDate >= freshCutoff);
     const isChanged = permits.some(p => p.changed_at && String(p.changed_at) >= since);
     const reasons: [number, string][] = [];
     const seen = new Set<string>();
@@ -412,8 +432,10 @@ export function getQueue(f: QueueFilter = {}) {
       parcel: String(top.parcel ?? ""),
       firstSeen: permits.map(p => String(p.first_seen_at)).sort()[0],
       permitCount: permits.length,
-      topScore: Number(top.score ?? 0),
-      isNew, isChanged,
+      // A project with several permits is realer than one with one, so the
+      // cluster earns up to +3 beyond its strongest permit.
+      topScore: Number(top.score ?? 0) + Math.min(3, permits.length - 1),
+      isNew, isChanged, completed, stale, newestSourceDate,
       reasons: reasons.sort((a, b) => b[0] - a[0]).slice(0, 8),
       context: null as null | { owner: string; dba: string; justValue: number | null; saleAmt: number | null; saleDate: string; yearBuilt: number | null },
       contextChecked: false,

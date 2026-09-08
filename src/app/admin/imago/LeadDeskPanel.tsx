@@ -36,7 +36,8 @@ type LeadContext = { owner: string; dba: string; justValue: number | null; saleA
 type Lead = {
   clusterKey: string; address: string; jurisdiction: string; parcel: string;
   firstSeen: string; permitCount: number; topScore: number;
-  isNew: boolean; isChanged: boolean; reasons: [number, string][]; permits: LeadPermit[];
+  isNew: boolean; isChanged: boolean; completed: boolean; stale: boolean; newestSourceDate: string;
+  reasons: [number, string][]; permits: LeadPermit[];
   context: LeadContext | null; contextChecked: boolean;
 };
 type QueueResponse = {
@@ -301,7 +302,9 @@ export default function LeadDeskPanel() {
                     <span style={{ display: "block", fontWeight: 700, fontSize: "0.95rem", color: TEXT_DARK }}>
                       {lead.address || lead.clusterKey}
                       {lead.isNew && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: CRIMSON }}>NEW</span>}
-                      {!lead.isNew && lead.isChanged && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#b8860b" }}>CHANGED</span>}
+                      {!lead.isNew && lead.isChanged && !lead.completed && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#b8860b" }}>CHANGED</span>}
+                      {lead.completed && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#6e6e73" }}>DONE</span>}
+                      {!lead.completed && lead.stale && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#6e6e73" }}>OLD PERMIT</span>}
                     </span>
                     <span style={{ display: "block", fontSize: "0.8rem", color: TEXT_MUTED, marginTop: 2 }}>
                       {lead.jurisdiction}{lead.jurisdiction ? " · " : ""}{lead.permitCount} permit{lead.permitCount === 1 ? "" : "s"} · first seen {day(lead.firstSeen)}{topVal > 0 ? ` · ${money(topVal)}` : ""}
