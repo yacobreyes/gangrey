@@ -44,16 +44,6 @@ simply don't run.
 
 ## Deploying updates
 
-To make deploys hands-off, install the auto-deploy cron once (as root):
-
-    cd ~/gangrey && ./auto-deploy.sh --install
-
-From then on the server checks the branch every 5 minutes and runs
-./deploy.sh whenever new commits land, so a push is a deploy and no ssh
-session is needed for routine updates. Log: /var/log/gangrey-autodeploy.log.
-Remove with ./auto-deploy.sh --uninstall.
-
-
 On the server, run the zero-downtime deploy script — it pulls, builds the new
 image while the old container keeps serving, then swaps:
 
