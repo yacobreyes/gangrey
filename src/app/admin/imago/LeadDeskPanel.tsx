@@ -48,9 +48,9 @@ type QueueResponse = {
 
 const money = (n: number | null) => n == null ? "" : "$" + Math.round(n).toLocaleString("en-US");
 
-// For a covered lead: what has happened on the permits SINCE the story ran —
-// that gap is where the scoop still lives.
-function scoopAngle(lead: Lead): string {
+// For a covered lead: what has happened on the permits SINCE the story ran.
+// Not a scoop — a scoop is unreported. This is the follow-up angle, if any.
+function followUpAngle(lead: Lead): string {
   const covDate = lead.coverage?.latest?.date ?? "";
   const headline = (lead.coverage?.latest?.title ?? "").toLowerCase();
   if (!covDate) return "Coverage date unknown. Compare their story against the permit timeline below.";
@@ -412,7 +412,7 @@ export default function LeadDeskPanel() {
                     )}
                     {lead.coverage && lead.coverage.hits > 0 && (
                       <span style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, color: "#1a5276", marginTop: 2 }}>
-                        Scoop: {scoopAngle(lead)}
+                        Follow-up: {followUpAngle(lead)}
                       </span>
                     )}
                     {lead.reasons.length > 0 && (
