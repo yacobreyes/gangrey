@@ -70,11 +70,50 @@ export default function ScoopPanel() {
     return `${(s.rowCount ?? 0).toLocaleString()} rows processed: ${s.inserted ?? 0} new, ${s.changed ?? 0} changed, ${s.unchanged ?? 0} unchanged${s.errors ? `, ${s.errors} errors` : ""}.`;
   }
 
+  // The city's WAF blocks datacenter IPs (the VPS) but serves normal user
+  // connections, and ArcGIS sends CORS headers so browser apps can query it.
+  // When the server-side collectors fail, collect right here in the browser
+  // and hand the records to the Lead Desk service.
+  const ARCGIS = "https://arcgis.tampagov.net/arcgis/rest/services/Planning/PermitsAll/FeatureServer";
+  async function browserCollect(): Promise<ImportResult> {
+    const meta = await (await fetch(`${ARCGIS}?f=json`)).json();
+    const layers: number[] = (meta.layers ?? []).map((l: { id: number }) => l.id);
+    if (!layers.length) throw new Error("No layers on the city's ArcGIS service");
+    const records: Record<string, unknown>[] = [];
+    for (const id of layers) {
+      for (let offset = 0, page = 0; page < 200; page++) {
+        setNotice(`Collecting from the city's GIS server through your connection… ${records.length.toLocaleString()} records`);
+        const q = `${ARCGIS}/${id}/query?where=1%3D1&outFields=*&returnGeometry=false&f=json&resultOffset=${offset}&resultRecordCount=2000`;
+        const data = await (await fetch(q)).json();
+        if (data.error) throw new Error(data.error.message || "ArcGIS query error");
+        const feats: { attributes?: Record<string, unknown> }[] = data.features ?? [];
+        for (const f of feats) if (f.attributes) records.push(f.attributes);
+        if (!data.exceededTransferLimit && feats.length < 2000) break;
+        if (feats.length === 0) break;
+        offset += feats.length;
+      }
+    }
+    if (!records.length) throw new Error("The city's GIS server returned no records");
+    const day = new Date().toISOString().slice(0, 10);
+    const r = await fetch("/api/admin/scoop/import-json", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ filename: `arcgis-browser-${day}.json`, records }),
+    });
+    return r.json();
+  }
+
   async function fetchNow() {
     setBusy("fetch"); setNotice("Fetching the latest report from the city feed…");
     try {
       const r = await fetch("/api/admin/scoop/fetch", { method: "POST" });
-      setNotice(describeImport(await r.json()));
+      const s: ImportResult = await r.json();
+      if (s.error && /collector failed|HTTP 40|HTTP 5/i.test(s.error)) {
+        // Server IP is blocked by the city's WAF — collect via this browser.
+        setNotice("The city blocks the server's IP. Collecting through your browser instead…");
+        setNotice(describeImport(await browserCollect()));
+      } else {
+        setNotice(describeImport(s));
+      }
     } catch (e) { setNotice(`Fetch failed: ${String(e)}`); }
     setBusy(""); load();
   }

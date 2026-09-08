@@ -51,6 +51,16 @@ const server = http.createServer(async (req, res) => {
       setMeta("last_collect_at", new Date().toISOString());
       return json(res, 200, summary);
     }
+    if (req.method === "POST" && url.pathname === "/import-json") {
+      // Records collected in the reporter's browser (the city's WAF blocks
+      // datacenter IPs but serves normal user connections; ArcGIS sends CORS
+      // headers precisely so browser apps can query it).
+      const buf = await readBody(req);
+      const body = JSON.parse(buf.toString("utf8"));
+      const records = Array.isArray(body.records) ? body.records : [];
+      if (!records.length) return json(res, 400, { error: "No records" });
+      return json(res, 200, importRecords(records, buf, String(body.filename || "browser-collect.json"), "browser"));
+    }
     if (req.method === "POST" && url.pathname === "/import") {
       const filename = url.searchParams.get("filename") || "report.csv";
       const buf = await readBody(req);
