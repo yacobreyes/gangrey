@@ -10,7 +10,7 @@ import path from "path";
 // and serves the ranked queue. Schemas are the VERIFIED ones in
 // docs/TAMPA_PERMIT_SOURCES.md — no guessed field names.
 
-export type SourceId = "tampa" | "hcfl" | "hcdev" | "tampaent";
+export type SourceId = "tampa" | "hcfl" | "hcdev" | "tampaent" | "tampaab";
 
 const DATA_DIR = () => process.env.DATA_DIR || path.join(process.cwd(), "data");
 
@@ -303,6 +303,48 @@ function normTampaEnt(r: Raw): Norm | null {
   };
 }
 
+// City of Tampa Planning/AlcoholBeverage layer 0 "Alcohol Beverage Sale
+// Locations" (verified): every alcohol-sales permit with the BUSINESS NAME,
+// owner, phone, class (restaurant, bar/lounge, nightclub, hotel, distillery,
+// venue), seats, hours, and enforcement (suspension, revocation). Dates UTC.
+const AB_HISTORY: Record<string, string> = {
+  Active: "Active", Dry: "Dry (no longer selling)", Hist_AB_Pmt_Chg: "Permit change", Hist_BusAdd_Chg: "Address change",
+  Hist_BusNm_Chg: "Business name change", Hist_Contact_Chg: "Contact change", Hist_Not_Identified: "History",
+  Hist_Ord_Chg: "Ordinance change", Hist_Other: "Other change", Hist_Owner_Chg: "Owner change",
+};
+function normTampaAb(r: Raw): Norm | null {
+  const id = s(r.APP_NUM) || s(r.GlobalID);
+  if (!id) return null;
+  const name = s(r.BUS_NAME);
+  const cls = s(r.AB_CLASS_PREFIX);
+  const cond = s(r.ABSALECONDITION);
+  const hist = AB_HISTORY[s(r.HISTORY_ACTION)] ?? s(r.HISTORY_ACTION);
+  const enforcement = [
+    s(r.ACT_SUSP).toLowerCase() === "yes" ? `SUSPENDED (${s(r.SUSP_ISSD) || "active suspension"})` : "",
+    s(r.REVOKE_DT) ? `LICENSE REVOKED ${epochToDay(r.REVOKE_DT)}` : "",
+    s(r.ADMIN_LT_FEE) ? `late fee: ${s(r.LT_FEE_REASON) || s(r.ADMIN_LT_FEE)}` : "",
+  ].filter(Boolean).join("; ");
+  const hours = [s(r.HRS_FRIDAY) ? `Fri ${s(r.HRS_FRIDAY)}` : "", s(r.HRS_SATURDAY) ? `Sat ${s(r.HRS_SATURDAY)}` : ""].filter(Boolean).join(", ");
+  const desc = [
+    name, [cls, cond].filter(Boolean).join(" / "), s(r.ABSALETYPE),
+    s(r.SEAT_COUNT) ? `${s(r.SEAT_COUNT)} seats` : "", s(r.SWC_AB).toLowerCase() === "yes" ? "sidewalk cafe" : "",
+    s(r.AMPFD_SOUND).toLowerCase() === "yes" ? "amplified sound" : "", hours, hist !== "Active" ? hist : "", enforcement, s(r.PMT_COMMENT),
+  ].filter(Boolean).join(" - ");
+  return {
+    uid: `tampaab:${id}`, permit_no: id,
+    record_type: `Alcohol permit${cls ? `: ${cls}` : ""}`, type2: hist,
+    description: desc,
+    address: s(r.PERMIT_ADDR) || [s(r.NUM), s(r.DIR), s(r.STREET_NAME), s(r.TYPE), s(r.SUFFIX)].filter(Boolean).join(" "),
+    jurisdiction: "Tampa (alcohol)", parcel: "", status: hist || "Active",
+    occupancy: `alcohol ${cls} ${cond}`.toLowerCase(), stop_work: 0,
+    valuation: null, sq_ft: num(r.AB_SLS_AREA_TTL_SF), units: num(r.SEAT_COUNT),
+    neighborhood: "", council: "", cra: "",
+    issued_date: epochToDay(r.ORD_LTR_DT) || epochToDay(r.PLACARD_DT), created_date: epochToDay(r.CREATEDATE),
+    source_updated: epochToDay(r.HISTORY_ACT_DT) || epochToDay(r.LASTUPDATE),
+    link: "", contact: [s(r.BUS_OWNER_NAME), s(r.BUS_PHONE) || s(r.BUS_OWN_PHONE), s(r.BUS_OWN_EMAIL)].filter(Boolean).join(" · "),
+  };
+}
+
 // ---------- scoring ----------
 
 function scoreRecord(n: Norm, isCo = false): { score: number; reasons: [number, string][] } {
@@ -313,6 +355,21 @@ function scoreRecord(n: Norm, isCo = false): { score: number; reasons: [number, 
   const residential = /residential|single.?family|\bsfr\b/.test(hay) && !commercial;
 
   if (n.stop_work) reasons.push([6, "stop work order"]);
+  if (n.uid.startsWith("tampaab:")) {
+    const t = n.occupancy;
+    if (/suspended|revoked/i.test(n.description)) reasons.push([7, "alcohol license suspended or revoked"]);
+    if (/name change|owner change/i.test(n.status)) reasons.push([5, "new operator at an alcohol-licensed spot"]);
+    else if (/dry/i.test(n.status)) reasons.push([3, "stopped selling alcohol (closed?)"]);
+    else if (/nightclub/.test(t)) reasons.push([6, "new nightclub alcohol permit"]);
+    else if (/bar\/lounge|bar|lounge/.test(t)) reasons.push([6, "new bar alcohol permit"]);
+    else if (/distillery|brewery/.test(t)) reasons.push([6, "new distillery/brewery permit"]);
+    else if (/restaurant/.test(t)) reasons.push([5, "new restaurant alcohol permit"]);
+    else if (/hotel|large venue/.test(t)) reasons.push([5, "new venue alcohol permit"]);
+    else if (/small venue|special restaurant/.test(t)) reasons.push([4, "new venue alcohol permit"]);
+    else if (/package sales|convenience|gasoline|shopper/.test(t)) reasons.push([1, "package sales permit"]);
+    else reasons.push([3, "alcohol permit"]);
+    if (n.units != null && n.units >= 150) reasons.push([2, `${Math.round(n.units)} seats`]);
+  }
   if (n.is_plan) {
     // Development review applications: the coded use type is authoritative.
     const t = n.occupancy;
@@ -384,7 +441,7 @@ function scoreRecord(n: Norm, isCo = false): { score: number; reasons: [number, 
     reasons.push([0, "named business on a remodel: new tenant or existing? verify"]);
   }
   // Maintenance work (repairs, re-pipes, water heaters...) is never a lead.
-  const maintenance = cfg.maintenanceSignals.some(p => { try { return new RegExp(p, "i").test(hay); } catch { return false; } });
+  const maintenance = !n.uid.startsWith("tampaab:") && cfg.maintenanceSignals.some(p => { try { return new RegExp(p, "i").test(hay); } catch { return false; } });
   const newsyAnyway = reasons.some(([, l]) => l === "stop work order" || l === "commercial new construction")
     || cfg.brandSignals.some(([p]) => { try { return new RegExp(p, "i").test(hay); } catch { return false; } });
   if (maintenance && !newsyAnyway && score > 1) {
@@ -413,7 +470,7 @@ export function ingestRecords(source: SourceId, records: Raw[]): IngestSummary {
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, `${hash.slice(0, 12)}-${source}.json`), buf);
 
-  const norm = source === "tampa" ? normTampa : source === "hcdev" ? normHcdev : source === "tampaent" ? normTampaEnt : normHcfl;
+  const norm = source === "tampa" ? normTampa : source === "hcdev" ? normHcdev : source === "tampaent" ? normTampaEnt : source === "tampaab" ? normTampaAb : normHcfl;
   let inserted = 0, changed = 0, unchanged = 0, skipped = 0;
 
   const getStmt = db.prepare(`SELECT * FROM permits WHERE uid = ?`);
@@ -483,6 +540,7 @@ export function collectState() {
     hcfl: { lastCollect: get("last_collect_hcfl"), since: sinceFor("last_collect_hcfl") },
     hcdev: { lastCollect: get("last_collect_hcdev"), since: sinceFor("last_collect_hcdev") },
     tampaent: { lastCollect: get("last_collect_tampaent"), since: sinceFor("last_collect_tampaent") },
+    tampaab: { lastCollect: get("last_collect_tampaab"), since: sinceFor("last_collect_tampaab") },
   };
 }
 
@@ -600,7 +658,7 @@ export function getQueue(f: QueueFilter = {}) {
     if (f.minScore != null && lead.topScore < f.minScore) continue;
     // Restaurant signals only mean a restaurant in a commercial context — a
     // house's kitchen or bathroom plumbing is not a lead.
-    const hayCommercial = /commercial|mercantile|assembly|business|mixed.?use/i.test(hay);
+    const hayCommercial = /commercial|mercantile|assembly|business|mixed.?use|alcohol|retail\/restaurant/i.test(hay);
     if (f.restaurants && !(RESTAURANT_RE.test(hay) && hayCommercial)) continue;
     // Development is the "big real estate, minus food" pile: anything
     // restaurant-flagged lives under the Restaurants chip instead, so the

@@ -198,3 +198,27 @@ General Land Use, Formal Decision), CRA, NEIGHBORHOOD, COUNCILDISTRICT,
 CREATEDDATE, LASTUPDATE, URL (Accela link). No free-text description.
 Ingested as source "tampaent"; alcohol-sales cases score as new bar/
 restaurant signals; hearing dates go into the description.
+
+Live rows for Source 7 (Sept 2026): RECORDALIAS is generic ("Design Exception
+1", "Formal Decision"), TENTATIVEHEARING is "N/A" until scheduled; the layer
+carries case type, address, neighborhood, council, CRA and the Accela URL but
+no project name. CREATEDDATE is current.
+
+## Source 8 — City of Tampa Planning/AlcoholBeverage (VERIFIED; business names)
+
+Base: https://arcgis.tampagov.net/arcgis/rest/services/Planning/AlcoholBeverage/FeatureServer/0
+"Alcohol Beverage Sale Locations", dates UTC. The only feed with business
+identity: BUS_NAME, BUS_OWNER_NAME(2), BUS_PHONE/BUS_OWN_PHONE, BUS_OWN_EMAIL,
+owner mailing address. Class: AB_CLASS_PREFIX (Restaurant, Special
+Restaurant, Bar/Lounge, Bar/Lounge/Nightclub, Hotel, Craft Distillery,
+Large/Small Venue, Bowling Alley, Convenience/Gasoline/Shopper's Goods...),
+AB_CLASS_SUFFIX, ABSALECONDITION (Consumption On Premises-Restaurant etc.),
+ABSALETYPE (Beer/Wine/Liquor). Operations: SEAT_COUNT, OCC_LOAD_IN/OUT,
+AB_SLS_AREA_*_SF, HRS_<DAY>, SWC_AB (sidewalk cafe), AMPFD_SOUND,
+OFF_DUTY_REQ. Lifecycle: HISTORY_ACTION (Active, Dry, Hist_BusNm_Chg,
+Hist_Owner_Chg, Hist_AB_Pmt_Chg...), HISTORY_ACT_DT, APP_NUM (case number),
+ORD_PERMIT, ORD_LTR_DT, PLACARD_DT, POST_* dates, CREATEDATE, LASTUPDATE.
+Enforcement: ACT_SUSP, SUSP_ISSD, SUSP_END_DT, REVOKE_LTR_DT, REVOKE_DT,
+ADMIN_LT_FEE, LT_FEE_REASON, ENFCMT_COMMENT. Address: NUM/DIR/STREET_NAME/
+TYPE/SUFFIX and PERMIT_ADDR. No Accela link field. Ingested as "tampaab";
+scored by class, operator changes, dry status and enforcement.

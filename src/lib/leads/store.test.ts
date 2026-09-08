@@ -162,6 +162,27 @@ describe("lead desk pipeline", () => {
     expect(lead.topScore).toBeLessThanOrEqual(3); // residential plan: low
   });
 
+  it("alcohol permits carry the business name and score by class", () => {
+    ingestRecords("tampaab", [{
+      OBJECTID: 1, APP_NUM: "AB-26-0000321", BUS_NAME: "Sunset Social Club", BUS_OWNER_NAME: "Maria Lopez", BUS_PHONE: "8135550101",
+      AB_CLASS_PREFIX: "Bar/Lounge/Nightclub (COP-Only)", ABSALECONDITION: "Consumption On Premises-Bar/Lounge/Nightclub", ABSALETYPE: "Beer/Wine/Liquor",
+      HISTORY_ACTION: "Active", NUM: "1600", DIR: "E", STREET_NAME: "7th", TYPE: "Ave", PERMIT_ADDR: "1600 E 7th Ave", SEAT_COUNT: "220",
+      AMPFD_SOUND: "Yes", CREATEDATE: Date.now() - 2 * 86400_000, LASTUPDATE: Date.now() - 86400_000, ACT_SUSP: "No",
+    }, {
+      OBJECTID: 2, APP_NUM: "AB-19-0000045", BUS_NAME: "Old Tavern", BUS_OWNER_NAME: "Pat Doe", AB_CLASS_PREFIX: "Bar/Lounge (COP-Only)",
+      HISTORY_ACTION: "Active", PERMIT_ADDR: "9 Suspended St", CREATEDATE: Date.now() - 900 * 86400_000, LASTUPDATE: Date.now() - 86400_000,
+      ACT_SUSP: "Yes", SUSP_ISSD: "0-30 days",
+    }]);
+    const club = getQueue({ source: "tampaab" }).leads.find(l => l.address === "1600 E 7th Ave")!;
+    expect(club).toBeTruthy();
+    expect(club.reasons.map(r => r[1])).toContain("new nightclub alcohol permit");
+    expect(club.permits[0].contact).toContain("Maria Lopez");
+    expect(club.permits[0].description.startsWith("Sunset Social Club")).toBe(true);
+    expect(getQueue({ restaurants: true, source: "tampaab" }).leads.some(l => l.address === "1600 E 7th Ave")).toBe(true);
+    const susp = getQueue({ source: "tampaab" }).leads.find(l => l.address === "9 Suspended St")!;
+    expect(susp.reasons.map(r => r[1])).toContain("alcohol license suspended or revoked");
+  });
+
   it("identical batches are refused by hash", () => {
     const rows = [tampaRow({ RECORD_ID: "BDE-26-0700000" })];
     ingestRecords("tampa", rows);
