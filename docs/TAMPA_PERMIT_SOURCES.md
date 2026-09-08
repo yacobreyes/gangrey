@@ -74,8 +74,44 @@ Base: https://services.arcgis.com/apTfC6SUmnNfnxuF/arcgis/rest/services/AccelaDa
   6 Subdivisions (polygon; map dressing).
 - A CO on a commercial address is a near-direct "business about to open"
   signal.
-- Layer 0 field list and sample rows: NOT YET CAPTURED — fetch
-  /0?f=json and /0/query?where=1%3D1&outFields=*&resultRecordCount=3&returnGeometry=false&f=json
+- Freshness: VERIFIED. Layer 0 dataLastEditDate = 1788524839406 (Sept 4-5,
+  2026) when checked Sept 10, 2026. Dates on this service are UTC (unlike
+  Tampa's, which are Eastern).
+
+Layer 0 (GIS_Dashboard_Issued_CO_Merged) fields, all confirmed:
+| Field | Type | Notes |
+| --- | --- | --- |
+| OBJECTID | oid | not stable — do not key on it |
+| PERMIT__ | string(255) | the permit number (display field) — primary key |
+| STATUS_1 | string | status |
+| TYPE | string | full record type |
+| TYPE2 | string(100) | 4-way rollup: Commercial/Residential x New Construction Starts/Others — free coarse filter |
+| CATEGORY | string(12) | |
+| DESCRIPTION | string (unbounded) | free text, scoring surface |
+| ADDRESS / CITY_1 | string | CITY_1 says which jurisdiction in the county |
+| PARCEL | string(255) | parcel id — the clustering key Tampa's layer lacks |
+| Value | double | DOLLAR VALUATION — Tampa's layer lacks this too |
+| OCCUPANCY_TYPE / OCCUPANCY_CATEGORY | string | restaurant/assembly detection |
+| BEDROOMS / BATHROOMS / House_Cnt / Unit_Cnt / SF_Living / SF_Cover / SF_Total | numeric | project scale |
+| ISSUED_DATE / COMPLETE_DATE / COMBINED_DATE | date (epoch ms UTC) | issue vs completion (CO) vs merged timeline |
+| ACA_LINK | string(500) | direct Accela record link (county portal) |
+
+Sample rows (verbatim, captured Sept 10 2026): PERMIT__ "COM05189",
+STATUS_1 "Complete", TYPE "Commercial New Construction", PARCEL
+"023867.0000", ADDRESS "5602 W Linebaugh Ave", CITY_1 "Tampa 33624",
+CATEGORY "ISSUED", TYPE2 "Commercial New Construction Starts", ACA_LINK
+https://aca-prod.accela.com/HCFL/Cap/CapDetail.aspx?... (agencyCode=HCFL).
+
+Caveats learned from the samples:
+- PERMIT__ is NOT unique: COM05190 appeared twice (same parcel/address,
+  CATEGORY ISSUED both times, different ISSUED_DATE). The merged layer also
+  mixes Issued and CO rows by design. Dedupe key must be composite
+  (PERMIT__ + CATEGORY + ISSUED_DATE) or use layers 3/4 separately.
+- Value / occupancy fields are null on older rows; fill rates need checking
+  on recent data before scoring leans on them.
+- CITY_1 carries jurisdiction + zip as one string ("Tampa 33624") — the
+  county feed includes Tampa-area addresses under the HCFL (county) portal,
+  so city/county overlap is real and must be handled, not assumed away.
 
 ## Source 3 — City of Tampa CKAN CSV on CivicData (fallback only)
 
