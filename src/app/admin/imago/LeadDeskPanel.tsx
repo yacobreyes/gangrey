@@ -75,7 +75,7 @@ type FilterKey = "all" | "new" | "changed" | "restaurants" | "development" | "un
 export default function LeadDeskPanel() {
   const [data, setData] = useState<QueueResponse | null>(null);
   const [filter, setFilter] = useState<FilterKey>("all");
-  const [minScore, setMinScore] = useState(0);
+  const [minScore, setMinScore] = useState(4);
   const [days, setDays] = useState(7);
   const [sort, setSort] = useState<"date" | "score">("date");
   const [collecting, setCollecting] = useState(false);
