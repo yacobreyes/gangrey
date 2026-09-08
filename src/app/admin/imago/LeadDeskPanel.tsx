@@ -32,10 +32,12 @@ type LeadPermit = {
   status: string; valuation: number | null; stopWork: boolean; link: string;
   firstSeenAt: string; changedAt: string | null; whatChanged?: string;
 };
+type LeadContext = { owner: string; dba: string; justValue: number | null; saleAmt: number | null; saleDate: string; yearBuilt: number | null };
 type Lead = {
   clusterKey: string; address: string; jurisdiction: string; parcel: string;
   firstSeen: string; permitCount: number; topScore: number;
   isNew: boolean; isChanged: boolean; reasons: [number, string][]; permits: LeadPermit[];
+  context: LeadContext | null; contextChecked: boolean;
 };
 type QueueResponse = {
   leads: Lead[]; total: number; bands: { high: number; watch: number };
@@ -155,6 +157,50 @@ export default function LeadDeskPanel() {
     load();
   }, [collecting, load]);
 
+  // Enrich visible leads with parcel context from the Property Appraiser's
+  // public HCPA_Parcels_All layer (owner, DBA, values, last sale). County
+  // leads join by FOLIO (the parcel number, digits only); Tampa leads by
+  // SITE_ADDR. Runs in the browser like the collectors; results are stored
+  // server-side so each lead is looked up once.
+  const HCPA = "https://services.arcgis.com/apTfC6SUmnNfnxuF/ArcGIS/rest/services/HCPA_Parcels_All/FeatureServer/0";
+  const enriching = useRef(false);
+  useEffect(() => {
+    if (!data || enriching.current) return;
+    const targets = data.leads.filter(l => !l.contextChecked).slice(0, 20);
+    if (!targets.length) return;
+    enriching.current = true;
+    (async () => {
+      const items: Record<string, unknown>[] = [];
+      for (const lead of targets) {
+        try {
+          const folio = lead.parcel.replace(/\D/g, "");
+          const addr = lead.address.toUpperCase().replace(/[.,]/g, "").replace(/\s+/g, " ").trim().replace(/'/g, "''");
+          const where = folio.length >= 8
+            ? `FOLIO='${folio}'`
+            : addr ? `UPPER(SITE_ADDR) LIKE '${addr}%'` : "";
+          if (!where) { items.push({ clusterKey: lead.clusterKey }); continue; }
+          const url = `${HCPA}/query?where=${encodeURIComponent(where)}&outFields=FOLIO,OWNER,DBA,JUST,S_AMT,S_DATE,ACT,SITE_ADDR&returnGeometry=false&resultRecordCount=1&f=json`;
+          const res = await (await fetch(url)).json();
+          const a = res.features?.[0]?.attributes;
+          items.push(a ? {
+            clusterKey: lead.clusterKey, owner: String(a.OWNER ?? "").trim(), dba: String(a.DBA ?? "").trim(),
+            folio: String(a.FOLIO ?? ""), justValue: a.JUST ?? null, saleAmt: a.S_AMT ?? null,
+            saleDate: a.S_DATE ? new Date(Number(a.S_DATE)).toISOString().slice(0, 10) : "",
+            yearBuilt: a.ACT ?? null, siteAddr: String(a.SITE_ADDR ?? ""),
+          } : { clusterKey: lead.clusterKey }); // record "looked, not found"
+        } catch { /* skip this lead; retried next open */ }
+      }
+      if (items.length) {
+        await fetch("/api/admin/leads/context", {
+          method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ items }),
+        }).catch(() => {});
+        load();
+      }
+      enriching.current = false;
+    })();
+  }, [data, load]);
+
   // Auto-collect when the panel opens if the last collection is stale (>6h).
   useEffect(() => {
     if (collectedOnce.current || !data) return;
@@ -240,6 +286,17 @@ export default function LeadDeskPanel() {
                     <span style={{ display: "block", fontSize: "0.8rem", color: TEXT_MUTED, marginTop: 2 }}>
                       {lead.jurisdiction}{lead.jurisdiction ? " · " : ""}{lead.permitCount} permit{lead.permitCount === 1 ? "" : "s"} · first seen {day(lead.firstSeen)}{topVal > 0 ? ` · ${money(topVal)}` : ""}
                     </span>
+                    {lead.context && (
+                      <span style={{ display: "block", fontSize: "0.78rem", color: "#3a5a40", marginTop: 4 }}>
+                        {[
+                          lead.context.owner ? `Owner: ${lead.context.owner}` : "",
+                          lead.context.dba ? `DBA: ${lead.context.dba}` : "",
+                          lead.context.justValue ? `Appraised ${money(lead.context.justValue)}` : "",
+                          lead.context.saleAmt ? `Last sale ${money(lead.context.saleAmt)}${lead.context.saleDate ? ` (${lead.context.saleDate.slice(0, 4)})` : ""}` : "",
+                          lead.context.yearBuilt ? `Built ${lead.context.yearBuilt}` : "",
+                        ].filter(Boolean).join("  ·  ")}
+                      </span>
+                    )}
                     {lead.reasons.length > 0 && (
                       <span style={{ display: "block", fontSize: "0.78rem", color: TEXT_DARK, marginTop: 4 }}>
                         {lead.reasons.map(([pts, label]) => `+${pts} ${label}`).join("  ·  ")}

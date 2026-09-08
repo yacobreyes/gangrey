@@ -71,6 +71,19 @@ export function leadsDb(): Database.Database {
       diff_json TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
+    CREATE TABLE IF NOT EXISTS contexts (
+      cluster_key TEXT PRIMARY KEY,      -- joins onto the lead's cluster
+      owner TEXT DEFAULT '',
+      dba TEXT DEFAULT '',               -- business name on the parcel
+      folio TEXT DEFAULT '',
+      just_value REAL,                   -- appraiser just value
+      sale_amt REAL,
+      sale_date TEXT DEFAULT '',
+      year_built INTEGER,
+      use_code TEXT DEFAULT '',
+      site_addr TEXT DEFAULT '',
+      fetched_at TEXT NOT NULL
+    );
   `);
   return _db;
 }
@@ -384,6 +397,8 @@ export function getQueue(f: QueueFilter = {}) {
       topScore: Number(top.score ?? 0),
       isNew, isChanged,
       reasons: reasons.sort((a, b) => b[0] - a[0]).slice(0, 8),
+      context: null as null | { owner: string; dba: string; justValue: number | null; saleAmt: number | null; saleDate: string; yearBuilt: number | null },
+      contextChecked: false,
       permits: sorted.slice(0, 12).map(p => ({
         uid: String(p.uid), permitNo: String(p.permit_no), source: String(p.source),
         recordType: String(p.record_type || p.type2 || ""), description: String(p.description ?? "").slice(0, 220),
@@ -405,6 +420,22 @@ export function getQueue(f: QueueFilter = {}) {
     leads.push(lead);
   }
   leads.sort((a, b) => b.topScore - a.topScore || b.firstSeen.localeCompare(a.firstSeen));
+  // Attach stored parcel context (owner, DBA, values, last sale) to each lead.
+  const keys = leads.slice(0, 200).map(l => l.clusterKey);
+  const ctxMap = getContexts(keys);
+  const checked = contextCheckedKeys(keys);
+  for (const l of leads) {
+    l.contextChecked = checked.has(l.clusterKey);
+    const c = ctxMap.get(l.clusterKey);
+    if (c && (c.owner || c.dba || c.just_value != null)) {
+      l.context = {
+        owner: String(c.owner ?? ""), dba: String(c.dba ?? "").trim(),
+        justValue: (c.just_value as number | null) ?? null,
+        saleAmt: (c.sale_amt as number | null) ?? null, saleDate: String(c.sale_date ?? ""),
+        yearBuilt: (c.year_built as number | null) ?? null,
+      };
+    }
+  }
   return {
     leads: leads.slice(0, 200),
     total: leads.length,
@@ -413,4 +444,56 @@ export function getQueue(f: QueueFilter = {}) {
       watch: leads.filter(l => l.topScore >= cfg.watchMin && l.topScore < cfg.highPriorityMin).length,
     },
   };
+}
+
+// ---------- parcel context (HCPA_Parcels_All enrichment) ----------
+
+export type ParcelContext = {
+  clusterKey: string; owner?: string; dba?: string; folio?: string;
+  justValue?: number | null; saleAmt?: number | null; saleDate?: string;
+  yearBuilt?: number | null; useCode?: string; siteAddr?: string;
+};
+
+// Saved by the panel after it queries the Property Appraiser's public parcel
+// layer in the browser. An entry with empty fields still records "looked, not
+// found" so the panel doesn't retry every load.
+export function saveContexts(items: ParcelContext[]): number {
+  const db = leadsDb();
+  const now = new Date().toISOString();
+  const stmt = db.prepare(`INSERT INTO contexts (cluster_key, owner, dba, folio, just_value, sale_amt, sale_date, year_built, use_code, site_addr, fetched_at)
+    VALUES (@clusterKey, @owner, @dba, @folio, @justValue, @saleAmt, @saleDate, @yearBuilt, @useCode, @siteAddr, @now)
+    ON CONFLICT(cluster_key) DO UPDATE SET owner=excluded.owner, dba=excluded.dba, folio=excluded.folio, just_value=excluded.just_value, sale_amt=excluded.sale_amt, sale_date=excluded.sale_date, year_built=excluded.year_built, use_code=excluded.use_code, site_addr=excluded.site_addr, fetched_at=excluded.fetched_at`);
+  let n = 0;
+  const tx = db.transaction(() => {
+    for (const it of items) {
+      if (!it.clusterKey) continue;
+      stmt.run({
+        clusterKey: it.clusterKey, owner: it.owner ?? "", dba: it.dba ?? "", folio: it.folio ?? "",
+        justValue: it.justValue ?? null, saleAmt: it.saleAmt ?? null, saleDate: it.saleDate ?? "",
+        yearBuilt: it.yearBuilt ?? null, useCode: it.useCode ?? "", siteAddr: it.siteAddr ?? "", now,
+      });
+      n++;
+    }
+  });
+  tx();
+  return n;
+}
+
+export function contextCheckedKeys(clusterKeys: string[]): Set<string> {
+  const db = leadsDb();
+  const out = new Set<string>();
+  const stmt = db.prepare(`SELECT cluster_key FROM contexts WHERE cluster_key = ?`);
+  for (const k of clusterKeys) if (stmt.get(k)) out.add(k);
+  return out;
+}
+
+export function getContexts(clusterKeys: string[]): Map<string, Record<string, unknown>> {
+  const db = leadsDb();
+  const out = new Map<string, Record<string, unknown>>();
+  const stmt = db.prepare(`SELECT * FROM contexts WHERE cluster_key = ?`);
+  for (const k of clusterKeys) {
+    const r = stmt.get(k) as Record<string, unknown> | undefined;
+    if (r) out.set(k, r);
+  }
+  return out;
 }
