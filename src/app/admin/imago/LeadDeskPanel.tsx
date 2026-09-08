@@ -84,11 +84,42 @@ function leadTitle(lead: Lead): string {
   // only where it is (a hotel's DBA on a ground-floor tenant's remodel).
   const brand = lead.reasons.map(r => r[1]).find(l => /^[A-Z]/.test(l) && !/^(Ansul)/.test(l));
   if (brand) return brand;
-  const desc = lead.permits.map(p => p.description).find(Boolean) ?? "";
-  const first = desc.split(" - ")[0].trim();
-  if (first && first.length <= 48 && !/^(new construction|demolition|interior|tenant|commercial|residential|remodel|renovation)/i.test(first)) return first;
+  const name = projectName(lead);
+  if (name) return name;
   if (lead.context?.dba) return `Work at ${lead.context.dba}`;
   return lead.permits[0]?.recordType || "Project";
+}
+
+// The permit description is often "WORK TYPE - Project Name - long text".
+// Find the segment that reads like a name: short, not a work-type phrase.
+const WORK_WORDS = /early start|\bpp\b|remodel|renovat|interior|alteration|tenant|new construction|demolition|commercial|residential|buildout|build-out|install|replace|repair|permit|^["“]/i;
+function projectName(lead: Lead): string {
+  const desc = lead.permits.map(p => p.description).find(Boolean) ?? "";
+  for (const seg of desc.split(" - ").map(x => x.trim())) {
+    if (seg && seg.length <= 48 && seg.length >= 3 && !WORK_WORDS.test(seg) && /[A-Za-z]{3}/.test(seg)) return seg;
+  }
+  return "";
+}
+
+// One plain-English line: what, who, where, when, and what we know around it.
+function plainSummary(lead: Lead): string {
+  const labels = lead.reasons.map(r => r[1]);
+  const name = projectName(lead) || (lead.reasons.map(r => r[1]).find(l => /^[A-Z]/.test(l) && l !== "Ansul system") ?? "");
+  const remodel = labels.some(l => l.startsWith("remodel of an existing"));
+  const food = labels.some(l => /restaurant|cafe|coffee|bar|brewery|pizza|grill|kitchen|drive-through|hood|grease|Ansul/i.test(l));
+  const bigDev = labels.some(l => /large development|major project|new construction|> \d/.test(l));
+  const kind = remodel ? "an existing business remodeling" : labels.includes("commercial new construction") ? "new construction"
+    : labels.includes("commercial demolition") ? "a demolition" : food ? (labels.includes("tenant buildout") ? "a restaurant buildout" : "restaurant-related work")
+    : bigDev ? "a large development" : labels.includes("commercial alteration") ? "a commercial renovation" : "permit activity";
+  const who = name ? `${name}: ` : "";
+  const status = lead.permits[0]?.status ? ` (${lead.permits[0].status.toLowerCase()})` : "";
+  const when = lead.latestActivity ? ` City activity ${day(lead.latestActivity)}.` : "";
+  const money = lead.permits.find(p => p.valuation)?.valuation;
+  const val = money ? ` Valued at $${Math.round(money).toLocaleString("en-US")}.` : "";
+  const own = lead.context?.owner ? ` Property owned by ${lead.context.owner}${lead.context.saleAmt ? `, bought ${lead.context.saleDate ? day(lead.context.saleDate) : ""} for $${Math.round(lead.context.saleAmt).toLocaleString("en-US")}` : ""}.` : "";
+  const stop = lead.permits.some(p => p.stopWork) ? " A STOP WORK ORDER is on this permit." : "";
+  const cov = lead.coverage?.checked ? (lead.coverage.hits > 0 ? " Some coverage exists (see below)." : " No coverage found.") : "";
+  return `${who}${kind} at ${lead.address}${lead.jurisdiction ? `, ${lead.jurisdiction}` : ""}${status}.${when}${val}${own}${stop}${cov}`;
 }
 
 type Kind = "all" | "restaurants" | "development";
@@ -245,12 +276,14 @@ export default function LeadDeskPanel() {
     const brand = lead.reasons.map(r => r[1]).find(l => /^[A-Z]/.test(l) && l !== "Ansul system");
     const street = lead.address.replace(/^[0-9-]+\s*/, "").split(" ").slice(0, 3).join(" ");
     const ownerWord = (lead.context?.owner ?? "").split(/\s+/).find(w => w.length > 3 && !/^(THE|LLC|INC|CORP|CORPORATION|COMPANY|TRUST|FAMILY|GROUP|HOLDINGS|PROPERTIES|DEVELOPMENT)$/i.test(w)) ?? "";
-    const nameClauses = [brand, ownerWord].filter(Boolean).map(n => `("${n}" "${street}")`);
+    const nameClauses = [brand, projectName(lead), ownerWord].filter(Boolean).map(n => `("${n}" "${street}")`);
     const query = [...nameClauses, `"${lead.address}"`].join(" OR ") + " Tampa";
     try {
+      const pn = projectName(lead);
+      const terms = [brand ?? "", pn, ownerWord, lead.address.split(" ").slice(0, 3).join(" ")].filter(t => t && t.length >= 4);
       const r = await fetch("/api/admin/leads/coverage", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ clusterKey: lead.clusterKey, query }),
+        body: JSON.stringify({ clusterKey: lead.clusterKey, query, terms, cityDate: lead.newestSourceDate || lead.latestActivity || "" }),
       });
       const d = await r.json();
       if (d.error) setCoverage(c => ({ ...c, [lead.clusterKey]: { error: d.error } }));
@@ -406,6 +439,9 @@ export default function LeadDeskPanel() {
                     </span>
                     <span style={{ display: "block", fontSize: "0.8rem", color: TEXT_MUTED, marginTop: 2 }}>
                       {lead.jurisdiction}{lead.jurisdiction ? " · " : ""}{lead.permitCount} permit{lead.permitCount === 1 ? "" : "s"}{lead.latestActivity ? ` · city activity ${day(lead.latestActivity)}` : ""}{lead.newestSourceDate && lead.newestSourceDate !== lead.latestActivity ? ` (filed ${day(lead.newestSourceDate)})` : ""} · collected {day(lead.firstSeen)}{topVal > 0 ? ` · ${money(topVal)}` : ""}
+                    </span>
+                    <span style={{ display: "block", fontSize: "0.82rem", color: TEXT_DARK, marginTop: 5, lineHeight: 1.4 }}>
+                      {plainSummary(lead)}
                     </span>
                     {lead.context && (
                       <span style={{ display: "block", fontSize: "0.78rem", color: "#3a5a40", marginTop: 4 }}>
