@@ -138,14 +138,15 @@ export default function LeadDeskPanel() {
     return `${feed.label}: ${s.inserted} new, ${s.changed} changed, ${s.unchanged} unchanged`;
   }
 
-  const collect = useCallback(async () => {
+  const collect = useCallback(async (backfillDays?: number) => {
     if (collecting) return;
     setCollecting(true);
     const results: string[] = [];
     try {
       const state: Record<SourceId, { since: string }> = await (await fetch("/api/admin/leads/state", { cache: "no-store" })).json();
+      const backfillSince = backfillDays ? new Date(Date.now() - backfillDays * 86400_000).toISOString().slice(0, 10) : null;
       for (const id of ["hcfl", "tampa"] as SourceId[]) {
-        try { results.push(await collectFeed(id, state[id].since)); }
+        try { results.push(await collectFeed(id, backfillSince ?? state[id].since)); }
         catch (e) { results.push(`${FEEDS[id].label}: failed (${e instanceof Error ? e.message : e})`); }
       }
     } catch (e) { results.push(`Collection failed: ${String(e)}`); }
@@ -180,10 +181,16 @@ export default function LeadDeskPanel() {
               : "First collection pulls the last 30 days from both public permit feeds."}
           </p>
         </div>
-        <button onClick={collect} disabled={collecting}
-          style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, padding: "0.55rem 1rem", borderRadius: 8, border: "none", background: CRIMSON, color: "white", cursor: collecting ? "default" : "pointer", opacity: collecting ? 0.6 : 1 }}>
-          {collecting ? "Collecting…" : "Collect now"}
-        </button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={() => collect()} disabled={collecting}
+            style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, padding: "0.55rem 1rem", borderRadius: 8, border: "none", background: CRIMSON, color: "white", cursor: collecting ? "default" : "pointer", opacity: collecting ? 0.6 : 1 }}>
+            {collecting ? "Collecting…" : "Collect now"}
+          </button>
+          <button onClick={() => collect(180)} disabled={collecting} title="Reaches back 6 months in both feeds (a few minutes; safe to repeat, duplicates are absorbed)"
+            style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, padding: "0.55rem 1rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", color: TEXT_DARK, cursor: collecting ? "default" : "pointer" }}>
+            Backfill 6 months
+          </button>
+        </div>
       </div>
 
       {status && (

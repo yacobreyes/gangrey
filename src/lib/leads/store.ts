@@ -369,7 +369,10 @@ export function getQueue(f: QueueFilter = {}) {
     if (f.onlyChanged && !lead.isChanged) continue;
     if (f.minScore != null && lead.topScore < f.minScore) continue;
     if (f.restaurants && !RESTAURANT_RE.test(hay)) continue;
-    if (f.development && !DEVELOPMENT_RE.test(hay)) continue;
+    // Development is the "big real estate, minus food" pile: anything
+    // restaurant-flagged lives under the Restaurants chip instead, so the
+    // two filters never overlap.
+    if (f.development && (!DEVELOPMENT_RE.test(hay) || RESTAURANT_RE.test(hay))) continue;
     if (f.source && !permits.some(p => p.source === f.source)) continue;
     leads.push(lead);
   }
