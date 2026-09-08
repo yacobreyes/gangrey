@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams;
   const data = getQueue({
     uncovered: q.get("uncovered") === "1",
+    sort: q.get("sort") === "score" ? "score" : "date",
     sinceDays: q.get("days") ? Number(q.get("days")) : undefined,
     onlyNew: q.get("new") === "1",
     onlyChanged: q.get("changed") === "1",

@@ -77,6 +77,7 @@ export default function LeadDeskPanel() {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [minScore, setMinScore] = useState(0);
   const [days, setDays] = useState(7);
+  const [sort, setSort] = useState<"date" | "score">("date");
   const [collecting, setCollecting] = useState(false);
   const [status, setStatus] = useState("");
   const [open, setOpen] = useState<string | null>(null);
@@ -91,11 +92,12 @@ export default function LeadDeskPanel() {
     if (filter === "development") params.set("development", "1");
     if (filter === "uncovered") params.set("uncovered", "1");
     if (minScore > 0) params.set("minScore", String(minScore));
+    params.set("sort", sort);
     try {
       const r = await fetch(`/api/admin/leads/queue?${params}`, { cache: "no-store" });
       if (r.ok) setData(await r.json());
     } catch { /* keep last good queue */ }
-  }, [filter, minScore, days]);
+  }, [filter, minScore, days, sort]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -316,6 +318,9 @@ export default function LeadDeskPanel() {
         ))}
         <select value={minScore} onChange={e => setMinScore(Number(e.target.value))} style={{ fontFamily: FONT, fontSize: "0.8rem", padding: "0.35rem 0.5rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", color: TEXT_DARK }}>
           <option value={0}>Any score</option><option value={4}>Score 4+</option><option value={8}>Score 8+</option><option value={12}>Score 12+</option>
+        </select>
+        <select value={sort} onChange={e => setSort(e.target.value as "date" | "score")} style={{ fontFamily: FONT, fontSize: "0.8rem", padding: "0.35rem 0.5rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", color: TEXT_DARK }}>
+          <option value="date">Newest filed</option><option value="score">Highest score</option>
         </select>
         <select value={days} onChange={e => setDays(Number(e.target.value))} style={{ fontFamily: FONT, fontSize: "0.8rem", padding: "0.35rem 0.5rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", color: TEXT_DARK }}>
           <option value={1}>Today</option><option value={3}>3 days</option><option value={7}>7 days</option><option value={30}>30 days</option><option value={90}>90 days</option><option value={180}>6 months</option>

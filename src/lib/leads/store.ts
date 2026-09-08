@@ -356,7 +356,7 @@ export function collectState() {
 
 // ---------- queue ----------
 
-export type QueueFilter = { sinceDays?: number; onlyNew?: boolean; onlyChanged?: boolean; restaurants?: boolean; development?: boolean; uncovered?: boolean; minScore?: number; source?: SourceId };
+export type QueueFilter = { sinceDays?: number; onlyNew?: boolean; onlyChanged?: boolean; restaurants?: boolean; development?: boolean; uncovered?: boolean; minScore?: number; source?: SourceId; sort?: "score" | "date" };
 
 const RESTAURANT_RE = /restaurant|cafe|café|coffee|\bbar\b|brewery|taproom|pizza|grill|kitchen|hood|grease|ansul|drive.?thr|assembly|food/i;
 const DEVELOPMENT_RE = /new construction|addition|demolition|mixed.?use|multifamily|multi-family|apartments|hotel|tower|warehouse/i;
@@ -465,7 +465,14 @@ export function getQueue(f: QueueFilter = {}) {
     if (f.source && !permits.some(p => p.source === f.source)) continue;
     leads.push(lead);
   }
-  leads.sort((a, b) => b.topScore - a.topScore || b.firstSeen.localeCompare(a.firstSeen));
+  // Default sort: newest city (filed/issued) date first, score as tiebreak —
+  // the queue reads as "what just happened", not "what we ingested when".
+  // sort=score flips to score-first with city date as tiebreak.
+  if (f.sort === "score") {
+    leads.sort((a, b) => b.topScore - a.topScore || String(b.newestSourceDate).localeCompare(String(a.newestSourceDate)));
+  } else {
+    leads.sort((a, b) => String(b.newestSourceDate).localeCompare(String(a.newestSourceDate)) || b.topScore - a.topScore);
+  }
   // Attach stored parcel context (owner, DBA, values, last sale) to each lead.
   const keys = leads.slice(0, 200).map(l => l.clusterKey);
   const ctxMap = getContexts(keys);
