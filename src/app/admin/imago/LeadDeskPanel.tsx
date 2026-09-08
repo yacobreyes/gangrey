@@ -107,7 +107,7 @@ function leadTitle(lead: Lead): string {
 
 // The permit description is often "WORK TYPE - Project Name - long text".
 // Find the segment that reads like a name: short, not a work-type phrase.
-const WORK_WORDS = /early start|\bpp\b|remodel|renovat|interior|alteration|tenant|new construction|demolition|commercial|residential|buildout|build-out|install|replace|repair|permit|^["“]/i;
+const WORK_WORDS = /early start|\bpp\b|remodel|renovat|interior|alteration|tenant|new construction|demolition|commercial|residential|buildout|build-out|install|replace|repair|permit|design exception|formal decision|rezoning|variance|vacating|special use|land use|hearing|city case|^["“]/i;
 function projectName(lead: Lead): string {
   const desc = lead.permits.map(p => p.description).find(Boolean) ?? "";
   for (const seg of desc.split(" - ").map(x => x.trim())) {

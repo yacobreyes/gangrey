@@ -285,11 +285,15 @@ function normTampaEnt(r: Raw): Norm | null {
   const id = s(r.RECORDID);
   if (!id) return null;
   const kind = s(r.MAPDOT);
-  const hearing = [s(r.TENTATIVEHEARING), s(r.TENTATIVETIME)].filter(Boolean).join(" ");
+  const hearing = [s(r.TENTATIVEHEARING), s(r.TENTATIVETIME)].filter(v => v && !/^n\/?a$/i.test(v)).join(" ");
+  // RECORDALIAS is usually just the case type again ("Design Exception 1");
+  // keep it only when it says something the type does not.
+  const alias = s(r.RECORDALIAS);
+  const aliasUseful = alias && !new RegExp(alias.replace(/[^a-z ]/gi, "").split(" ")[0] || "^$", "i").test(kind);
   return {
     uid: `tampaent:${id}`, permit_no: id,
     record_type: kind ? `${kind} (city case)` : "City entitlement case", type2: kind,
-    description: [s(r.RECORDALIAS), kind, hearing ? `Tentative hearing ${hearing}` : ""].filter(Boolean).join(" - "),
+    description: [aliasUseful ? alias : "", kind, hearing ? `Tentative hearing ${hearing}` : "hearing not yet scheduled"].filter(Boolean).join(" - "),
     address: [s(r.ADDRESS), s(r.UNIT)].filter(Boolean).join(" "), jurisdiction: "Tampa (case)",
     parcel: "", status: s(r.APPSTATUS), occupancy: kind.toLowerCase(), stop_work: 0,
     valuation: null, sq_ft: null, units: null,
