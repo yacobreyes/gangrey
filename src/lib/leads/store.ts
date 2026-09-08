@@ -71,6 +71,11 @@ export function leadsDb(): Database.Database {
       diff_json TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
+    CREATE TABLE IF NOT EXISTS coverage (
+      cluster_key TEXT PRIMARY KEY,
+      checked_at TEXT NOT NULL,
+      results_json TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS contexts (
       cluster_key TEXT PRIMARY KEY,      -- joins onto the lead's cluster
       owner TEXT DEFAULT '',
@@ -351,7 +356,7 @@ export function collectState() {
 
 // ---------- queue ----------
 
-export type QueueFilter = { sinceDays?: number; onlyNew?: boolean; onlyChanged?: boolean; restaurants?: boolean; development?: boolean; minScore?: number; source?: SourceId };
+export type QueueFilter = { sinceDays?: number; onlyNew?: boolean; onlyChanged?: boolean; restaurants?: boolean; development?: boolean; uncovered?: boolean; minScore?: number; source?: SourceId };
 
 const RESTAURANT_RE = /restaurant|cafe|café|coffee|\bbar\b|brewery|taproom|pizza|grill|kitchen|hood|grease|ansul|drive.?thr|assembly|food/i;
 const DEVELOPMENT_RE = /new construction|addition|demolition|mixed.?use|multifamily|multi-family|apartments|hotel|tower|warehouse/i;
@@ -439,6 +444,7 @@ export function getQueue(f: QueueFilter = {}) {
       reasons: reasons.sort((a, b) => b[0] - a[0]).slice(0, 8),
       context: null as null | { owner: string; dba: string; justValue: number | null; saleAmt: number | null; saleDate: string; yearBuilt: number | null },
       contextChecked: false,
+      coverage: null as null | { checked: boolean; hits: number; latest: null | { title: string; source: string; date: string; link: string } },
       permits: sorted.slice(0, 12).map(p => ({
         uid: String(p.uid), permitNo: String(p.permit_no), source: String(p.source),
         recordType: String(p.record_type || p.type2 || ""), description: String(p.description ?? "").slice(0, 220),
@@ -476,12 +482,23 @@ export function getQueue(f: QueueFilter = {}) {
       };
     }
   }
+  // Coverage state: checked or not, and who wrote it if anyone did.
+  const covStmt = db.prepare(`SELECT checked_at, results_json FROM coverage WHERE cluster_key = ?`);
+  for (const l of leads.slice(0, 200)) {
+    const c = covStmt.get(l.clusterKey) as { checked_at: string; results_json: string } | undefined;
+    if (c) {
+      let hits: { title?: string; source?: string; date?: string; link?: string }[] = [];
+      try { hits = JSON.parse(c.results_json); } catch {}
+      l.coverage = { checked: true, hits: hits.length, latest: hits[0] ? { title: String(hits[0].title ?? ""), source: String(hits[0].source ?? ""), date: String(hits[0].date ?? ""), link: String(hits[0].link ?? "") } : null };
+    }
+  }
+  const filtered = f.uncovered ? leads.filter(l => !l.coverage || l.coverage.hits === 0) : leads;
   return {
-    leads: leads.slice(0, 200),
-    total: leads.length,
+    leads: filtered.slice(0, 200),
+    total: filtered.length,
     bands: {
-      high: leads.filter(l => l.topScore >= cfg.highPriorityMin).length,
-      watch: leads.filter(l => l.topScore >= cfg.watchMin && l.topScore < cfg.highPriorityMin).length,
+      high: filtered.filter(l => l.topScore >= cfg.highPriorityMin).length,
+      watch: filtered.filter(l => l.topScore >= cfg.watchMin && l.topScore < cfg.highPriorityMin).length,
     },
   };
 }

@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
   if (!(await isAuthed())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const q = req.nextUrl.searchParams;
   const data = getQueue({
+    uncovered: q.get("uncovered") === "1",
     sinceDays: q.get("days") ? Number(q.get("days")) : undefined,
     onlyNew: q.get("new") === "1",
     onlyChanged: q.get("changed") === "1",

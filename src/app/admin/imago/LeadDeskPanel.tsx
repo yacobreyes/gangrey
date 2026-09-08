@@ -39,6 +39,7 @@ type Lead = {
   isNew: boolean; isChanged: boolean; completed: boolean; stale: boolean; newestSourceDate: string;
   reasons: [number, string][]; permits: LeadPermit[];
   context: LeadContext | null; contextChecked: boolean;
+  coverage: null | { checked: boolean; hits: number; latest: null | { title: string; source: string; date: string; link: string } };
 };
 type QueueResponse = {
   leads: Lead[]; total: number; bands: { high: number; watch: number };
@@ -48,7 +49,7 @@ type QueueResponse = {
 const money = (n: number | null) => n == null ? "" : "$" + Math.round(n).toLocaleString("en-US");
 const day = (iso: string) => iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
 
-type FilterKey = "all" | "new" | "changed" | "restaurants" | "development";
+type FilterKey = "all" | "new" | "changed" | "restaurants" | "development" | "uncovered";
 
 export default function LeadDeskPanel() {
   const [data, setData] = useState<QueueResponse | null>(null);
@@ -67,6 +68,7 @@ export default function LeadDeskPanel() {
     if (filter === "changed") params.set("changed", "1");
     if (filter === "restaurants") params.set("restaurants", "1");
     if (filter === "development") params.set("development", "1");
+    if (filter === "uncovered") params.set("uncovered", "1");
     if (minScore > 0) params.set("minScore", String(minScore));
     try {
       const r = await fetch(`/api/admin/leads/queue?${params}`, { cache: "no-store" });
@@ -159,6 +161,26 @@ export default function LeadDeskPanel() {
     load();
   }, [collecting, load]);
 
+  const [bulkChecking, setBulkChecking] = useState(false);
+  // Bulk pass: check every visible lead that has no stored coverage yet, one
+  // at a time (the news endpoint is rate-limited), then reload so the badges
+  // and the Uncovered filter reflect it.
+  async function checkAllCoverage() {
+    if (!data || bulkChecking) return;
+    setBulkChecking(true);
+    const targets = data.leads.filter(l => !l.coverage?.checked);
+    let done = 0;
+    for (const lead of targets) {
+      setStatus(`Checking coverage… ${done}/${targets.length}`);
+      await checkCoverage(lead);
+      done++;
+      await new Promise(r => setTimeout(r, 900)); // stay polite with the news endpoint
+    }
+    setStatus(targets.length ? `Coverage checked for ${done} leads. Use the Uncovered filter.` : "All visible leads already checked.");
+    setBulkChecking(false);
+    load();
+  }
+
   // "Has this been covered?" — query news search for the lead's address and
   // strongest signals, server-side, cached 24h per cluster.
   async function checkCoverage(lead: Lead) {
@@ -235,7 +257,7 @@ export default function LeadDeskPanel() {
     }
   }, [data, collect]);
 
-  const chips: [FilterKey, string][] = [["all", "All"], ["new", "New"], ["changed", "Changed"], ["restaurants", "Restaurants"], ["development", "Development"]];
+  const chips: [FilterKey, string][] = [["all", "All"], ["new", "New"], ["changed", "Changed"], ["restaurants", "Restaurants"], ["development", "Development"], ["uncovered", "Uncovered"]];
 
   return (
     <div style={{ fontFamily: FONT, maxWidth: 880 }}>
@@ -253,9 +275,9 @@ export default function LeadDeskPanel() {
             style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, padding: "0.55rem 1rem", borderRadius: 8, border: "none", background: CRIMSON, color: "white", cursor: collecting ? "default" : "pointer", opacity: collecting ? 0.6 : 1 }}>
             {collecting ? "Collecting…" : "Collect now"}
           </button>
-          <button onClick={() => collect(180)} disabled={collecting} title="Reaches back 6 months in both feeds (a few minutes; safe to repeat, duplicates are absorbed)"
-            style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, padding: "0.55rem 1rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", color: TEXT_DARK, cursor: collecting ? "default" : "pointer" }}>
-            Backfill 6 months
+          <button onClick={checkAllCoverage} disabled={collecting || bulkChecking} title="Checks news coverage for every visible unchecked lead, then use the Uncovered filter"
+            style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, padding: "0.55rem 1rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", color: TEXT_DARK, cursor: bulkChecking ? "default" : "pointer" }}>
+            {bulkChecking ? "Checking coverage…" : "Check coverage"}
           </button>
         </div>
       </div>
@@ -304,6 +326,8 @@ export default function LeadDeskPanel() {
                       {lead.isNew && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: CRIMSON }}>NEW</span>}
                       {!lead.isNew && lead.isChanged && !lead.completed && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#b8860b" }}>CHANGED</span>}
                       {lead.completed && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#6e6e73" }}>DONE</span>}
+                      {lead.coverage?.checked && lead.coverage.hits > 0 && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#b8860b" }}>COVERED</span>}
+                      {lead.coverage?.checked && lead.coverage.hits === 0 && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#1a7f37" }}>CLEAR</span>}
                       {!lead.completed && lead.stale && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#6e6e73" }}>OLD PERMIT</span>}
                     </span>
                     <span style={{ display: "block", fontSize: "0.8rem", color: TEXT_MUTED, marginTop: 2 }}>
@@ -318,6 +342,11 @@ export default function LeadDeskPanel() {
                           lead.context.saleAmt ? `Last sale ${money(lead.context.saleAmt)}${lead.context.saleDate ? ` (${lead.context.saleDate.slice(0, 4)})` : ""}` : "",
                           lead.context.yearBuilt ? `Built ${lead.context.yearBuilt}` : "",
                         ].filter(Boolean).join("  ·  ")}
+                      </span>
+                    )}
+                    {lead.coverage?.latest && lead.coverage.hits > 0 && (
+                      <span style={{ display: "block", fontSize: "0.78rem", color: "#8a6d00", marginTop: 4 }}>
+                        Covered: {lead.coverage.latest.source || "news"}{lead.coverage.latest.date ? ` (${lead.coverage.latest.date})` : ""} - {lead.coverage.latest.title.slice(0, 90)}
                       </span>
                     )}
                     {lead.reasons.length > 0 && (
