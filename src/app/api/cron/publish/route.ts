@@ -3,6 +3,7 @@ import { timingSafeEqual } from "crypto";
 import { sqliteAllPostsAdminLight, sqliteDocsByType, sqliteMutate } from "@/lib/storage/sqlite";
 import { deliverNewsletter } from "@/app/admin/newsletterActions";
 import { notify } from "@/lib/push";
+import { maybeCollectLeadsOnServer } from "@/lib/leads/serverCollect";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,5 +70,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  return NextResponse.json(await runSqlite());
+  const result = await runSqlite();
+  // Lead Desk: the county feeds live on Esri's cloud, which this box can
+  // reach, so they collect themselves here about once a day. Never lets a
+  // feed problem fail the publish pass.
+  let leads: string[] = [];
+  try { leads = await maybeCollectLeadsOnServer(); } catch (e) { leads = [`leads: ${String(e)}`]; }
+  return NextResponse.json({ ...result, ...(leads.length ? { leads } : {}) });
 }
