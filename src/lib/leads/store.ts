@@ -210,39 +210,51 @@ function normHcfl(r: Raw): Norm | null {
 
 // ---------- scoring ----------
 
-function scoreRecord(n: Norm): { score: number; reasons: [number, string][] } {
+function scoreRecord(n: Norm, isCo = false): { score: number; reasons: [number, string][] } {
   const cfg = leadsConfig();
   const reasons: [number, string][] = [];
   const hay = `${n.record_type} ${n.type2} ${n.description} ${n.occupancy}`.toLowerCase();
-  const commercial = /commercial/.test(hay);
+  const commercial = /commercial|mercantile|assembly|business|institutional|mixed.?use/.test(hay);
+  const residential = /residential|single.?family|\bsfr\b/.test(hay) && !commercial;
 
   if (n.stop_work) reasons.push([6, "stop work order"]);
   if (commercial) {
+    // Work type: what kind of commercial activity this is.
     if (/new construction/.test(hay)) reasons.push([5, "commercial new construction"]);
-    else if (/alteration|renovation|remodel/.test(hay)) reasons.push([4, "commercial alteration"]);
-    else if (/demolition/.test(hay)) reasons.push([4, "commercial demolition"]);
-    else reasons.push([1, "commercial"]);
-  }
-  // A certificate of occupancy on a commercial record = about to open.
-  if (commercial && /(^|\W)co(\W|$)|certificate of occupancy/.test(`${n.uid.toLowerCase()} ${hay}`) && /hcfl:/.test(n.uid) && n.uid.includes("|CO|")) {
-    reasons.push([4, "certificate of occupancy"]);
+    else if (/alteration|renovation|remodel|buildout|build.?out/.test(hay)) reasons.push([4, "commercial alteration"]);
+    else if (/demolition|\bdemo\b/.test(hay)) reasons.push([4, "commercial demolition"]);
+    else if (/addition/.test(hay)) reasons.push([4, "commercial addition"]);
+    // Trade permits: individually small, but they stack in a cluster and a
+    // fire+mechanical+plumbing trio is the classic restaurant buildout shape.
+    if (/fire/.test(hay)) reasons.push([2, "fire trade permit"]);
+    if (/mechanical|\bhvac\b/.test(hay)) reasons.push([2, "mechanical trade permit"]);
+    if (/plumbing/.test(hay)) reasons.push([2, "plumbing trade permit"]);
+    if (/\bsite\b/.test(hay)) reasons.push([2, "site trade permit"]);
+    if (reasons.length === (n.stop_work ? 1 : 0)) reasons.push([1, "commercial"]);
+    // A CO on a commercial record: the business is about to open.
+    if (isCo) reasons.push([4, "certificate of occupancy"]);
   }
   for (const list of [cfg.keywordSignals, cfg.brandSignals]) {
     for (const [pattern, points, label] of list) {
-      try { if (new RegExp(pattern, "i").test(hay)) reasons.push([points, label]); } catch { /* bad pattern */ }
+      try { if (new RegExp(pattern, "i").test(hay)) reasons.push([points, label]); } catch { /* bad config pattern */ }
     }
   }
-  if (n.valuation != null) {
-    const t = cfg.valuationTiers.find(t => n.valuation! >= t.min);
-    if (t) reasons.push([t.points, t.label]);
-  } else if (n.sq_ft != null) {
-    const t = cfg.sqftTiers.find(t => n.sq_ft! >= t.min);
-    if (t) reasons.push([t.points, t.label]);
+  // Scale tiers describe project size; they only mean news on commercial work
+  // (a big single-family house is not a lead).
+  if (!residential) {
+    if (n.valuation != null) {
+      const t = cfg.valuationTiers.find(t => n.valuation! >= t.min);
+      if (t) reasons.push([t.points, t.label]);
+    } else if (n.sq_ft != null) {
+      const t = cfg.sqftTiers.find(t => n.sq_ft! >= t.min);
+      if (t) reasons.push([t.points, t.label]);
+    }
   }
-  return { score: reasons.reduce((sum, [p]) => sum + p, 0), reasons };
+  let score = reasons.reduce((sum, [p]) => sum + p, 0);
+  // Plain residential noise never outranks commercial leads.
+  if (residential && score > 3 && !reasons.some(([, l]) => l === "stop work order")) score = 3;
+  return { score, reasons };
 }
-
-// ---------- ingest ----------
 
 const TRACKED = ["record_type", "description", "address", "status", "occupancy", "stop_work", "valuation", "sq_ft", "units", "issued_date", "source_updated", "link"] as const;
 
@@ -278,7 +290,8 @@ export function ingestRecords(source: SourceId, records: Raw[]): IngestSummary {
     for (const raw of records) {
       const n = norm(raw);
       if (!n) { skipped++; continue; }
-      const { score, reasons } = scoreRecord(n);
+      const isCo = source === "hcfl" && String(raw.CATEGORY ?? "").trim().toUpperCase() === "CO";
+      const { score, reasons } = scoreRecord(n, isCo);
       const cluster_key = n.parcel ? `parcel:${n.parcel}` : n.address ? `addr:${normalizeAddress(n.address)}` : n.uid;
       const row = { ...n, source, raw_json: JSON.stringify(raw), cluster_key, score, score_reasons: JSON.stringify(reasons), now };
       const existing = getStmt.get(n.uid) as Record<string, unknown> | undefined;
@@ -292,6 +305,11 @@ export function ingestRecords(source: SourceId, records: Raw[]): IngestSummary {
       if (Object.keys(diff).length) {
         const merged: Record<string, unknown> = { ...row };
         for (const f of TRACKED) if (merged[f] === "" || merged[f] === null) merged[f] = existing[f] ?? merged[f];
+        // Re-score on the merged values, so a blank description in a later
+        // export doesn't strip the restaurant signals it scored on before.
+        const s2 = scoreRecord(merged as unknown as Norm, isCo);
+        merged.score = s2.score;
+        merged.score_reasons = JSON.stringify(s2.reasons);
         updStmt.run(merged);
         verStmt.run(n.uid, now, JSON.stringify(diff));
         changed++;
