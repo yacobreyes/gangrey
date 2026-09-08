@@ -36,7 +36,7 @@ type LeadContext = { owner: string; dba: string; justValue: number | null; saleA
 type Lead = {
   clusterKey: string; address: string; jurisdiction: string; parcel: string;
   firstSeen: string; permitCount: number; topScore: number;
-  isNew: boolean; isChanged: boolean; completed: boolean; stale: boolean; newestSourceDate: string;
+  isNew: boolean; isChanged: boolean; completed: boolean; stale: boolean; newestSourceDate: string; latestActivity: string;
   reasons: [number, string][]; permits: LeadPermit[];
   context: LeadContext | null; contextChecked: boolean;
   coverage: null | { checked: boolean; hits: number; latest: null | { title: string; source: string; date: string; link: string } };
@@ -370,7 +370,7 @@ export default function LeadDeskPanel() {
           <option value={0}>Any score</option><option value={4}>Score 4+</option><option value={8}>Score 8+</option><option value={12}>Score 12+</option>
         </select>
         <select value={sort} onChange={e => setSort(e.target.value as "date" | "score")} style={dial}>
-          <option value="date">Newest filed first</option><option value="score">Highest score first</option>
+          <option value="date">Latest city activity first</option><option value="score">Highest score first</option>
         </select>
         <label style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: FONT, fontSize: "0.8rem", color: TEXT_MUTED, cursor: "pointer" }}>
           <input type="checkbox" checked={showDone} onChange={e => setShowDone(e.target.checked)} /> Show finished
@@ -403,7 +403,7 @@ export default function LeadDeskPanel() {
                       {!lead.completed && lead.stale && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#6e6e73" }}>OLD PERMIT</span>}
                     </span>
                     <span style={{ display: "block", fontSize: "0.8rem", color: TEXT_MUTED, marginTop: 2 }}>
-                      {lead.jurisdiction}{lead.jurisdiction ? " · " : ""}{lead.permitCount} permit{lead.permitCount === 1 ? "" : "s"}{lead.newestSourceDate ? ` · city date ${day(lead.newestSourceDate)}` : ""} · collected {day(lead.firstSeen)}{topVal > 0 ? ` · ${money(topVal)}` : ""}
+                      {lead.jurisdiction}{lead.jurisdiction ? " · " : ""}{lead.permitCount} permit{lead.permitCount === 1 ? "" : "s"}{lead.latestActivity ? ` · city activity ${day(lead.latestActivity)}` : ""}{lead.newestSourceDate && lead.newestSourceDate !== lead.latestActivity ? ` (filed ${day(lead.newestSourceDate)})` : ""} · collected {day(lead.firstSeen)}{topVal > 0 ? ` · ${money(topVal)}` : ""}
                     </span>
                     {lead.context && (
                       <span style={{ display: "block", fontSize: "0.78rem", color: "#3a5a40", marginTop: 4 }}>

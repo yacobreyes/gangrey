@@ -427,6 +427,11 @@ export function getQueue(f: QueueFilter = {}) {
     // The city's own newest date on this project (filed or issued).
     const sourceDates = permits.flatMap(p => [String(p.issued_date ?? ""), String(p.created_date ?? "")].filter(Boolean)).sort();
     const newestSourceDate = sourceDates.slice(-1)[0] ?? "";
+    // Latest city ACTIVITY: Tampa's feed has no issued date (CREATEDDATE is the
+    // application date, months before issuance), so its LASTUPDATE stamp is
+    // the only sign a permit just moved. Sort/display on this; keep the
+    // stricter filed/issued date for the NEW test.
+    const latestActivity = [...sourceDates, ...permits.map(p => String(p.source_updated ?? "")).filter(Boolean)].sort().slice(-1)[0] ?? "";
     const freshCutoff = new Date(Date.now() - cfg.newRequiresSourceWithinDays * 86400_000).toISOString().slice(0, 10);
     const staleCutoff = new Date(Date.now() - cfg.staleAfterDays * 86400_000).toISOString().slice(0, 10);
     const DONE_RE = /complete|finaled|closed|expired|withdrawn|void/i;
@@ -457,7 +462,7 @@ export function getQueue(f: QueueFilter = {}) {
       // A project with several permits is realer than one with one, so the
       // cluster earns up to +3 beyond its strongest permit.
       topScore: Number(top.score ?? 0) + Math.min(3, permits.length - 1),
-      isNew, isChanged, completed, stale, newestSourceDate,
+      isNew, isChanged, completed, stale, newestSourceDate, latestActivity,
       reasons: reasons.sort((a, b) => b[0] - a[0]).slice(0, 8),
       context: null as null | { owner: string; dba: string; justValue: number | null; saleAmt: number | null; saleDate: string; yearBuilt: number | null },
       contextChecked: false,
@@ -492,9 +497,9 @@ export function getQueue(f: QueueFilter = {}) {
   // the queue reads as "what just happened", not "what we ingested when".
   // sort=score flips to score-first with city date as tiebreak.
   if (f.sort === "score") {
-    leads.sort((a, b) => b.topScore - a.topScore || String(b.newestSourceDate).localeCompare(String(a.newestSourceDate)));
+    leads.sort((a, b) => b.topScore - a.topScore || String(b.latestActivity).localeCompare(String(a.latestActivity)));
   } else {
-    leads.sort((a, b) => String(b.newestSourceDate).localeCompare(String(a.newestSourceDate)) || b.topScore - a.topScore);
+    leads.sort((a, b) => String(b.latestActivity).localeCompare(String(a.latestActivity)) || b.topScore - a.topScore);
   }
   // Attach stored parcel context (owner, DBA, values, last sale) to each lead.
   const keys = leads.slice(0, 200).map(l => l.clusterKey);
