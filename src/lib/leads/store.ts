@@ -274,15 +274,19 @@ function scoreRecord(n: Norm, isCo = false): { score: number; reasons: [number, 
   let score = reasons.reduce((sum, [p]) => sum + p, 0);
   // Plain residential noise never outranks commercial leads.
   if (residential && score > 3 && !reasons.some(([, l]) => l === "stop work order")) score = 3;
-  // A remodel of an EXISTING business is not a new business coming. New-tenant
-  // permits say buildout / tenant improvement / change of use / shell / vacant;
-  // remodels say remodel / renovation / refresh / existing. Cap the latter
-  // unless something newsy is present.
-  const remodelOfExisting = /remodel|renovat|refresh|re-?imag|existing (restaurant|tenant|business|space|store)|interior (update|upgrade)/.test(hay)
-    && !/build.?out|tenant improvement|change of (use|occupancy)|\bshell\b|white box|vacant|first generation|new (restaurant|tenant|business|store|location)/.test(hay);
-  if (remodelOfExisting && !reasons.some(([, l]) => l === "stop work order" || l === "commercial new construction") && score > 3) {
+  // Remodels are ambiguous: new restaurants usually ARRIVE as remodels of a
+  // second-generation space, so a bare "interior remodel" is not a reason to
+  // cap. Cap only when the text says the EXISTING OPERATOR is doing it
+  // ("existing restaurant" not followed by space/suite/unit, "refresh",
+  // "re-image", "for existing tenant"). "Existing restaurant space for X" is
+  // a new tenant. A named business on a remodel gets flagged, never buried.
+  const sameOperator = /existing (restaurant|tenant|business|store|operator|location)(?! (space|suite|unit|shell|building|footprint))|for (the )?existing (tenant|restaurant|business)|\brefresh\b|re-?imag|reface|update (finishes|fixtures)/.test(hay);
+  const newTenantCue = /build.?out|tenant improvement|change of (use|occupancy)|\bshell\b|white box|vacant|first generation|second generation|new (restaurant|tenant|business|store|location)|existing \w+ space|for (a |the )?new/.test(hay);
+  if (sameOperator && !newTenantCue && !reasons.some(([, l]) => l === "stop work order" || l === "commercial new construction") && score > 3) {
     score = 3;
-    reasons.push([0, "remodel of an existing business (score capped)"]);
+    reasons.push([0, "remodel by the existing business (score capped)"]);
+  } else if (/remodel|renovat/.test(hay) && n.description.includes(" - ")) {
+    reasons.push([0, "named business on a remodel: new tenant or existing? verify"]);
   }
   // Maintenance work (repairs, re-pipes, water heaters...) is never a lead.
   const maintenance = cfg.maintenanceSignals.some(p => { try { return new RegExp(p, "i").test(hay); } catch { return false; } });

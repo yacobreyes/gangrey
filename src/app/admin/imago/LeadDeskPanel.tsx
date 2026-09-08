@@ -101,11 +101,20 @@ function projectName(lead: Lead): string {
   return "";
 }
 
+// "The Violet Stone Pizzeria" -> "Violet Stone": headlines shorten names, so
+// search and match on the distinctive core, not the full string.
+function nameCore(name: string): string {
+  return name.replace(/^(the|a|an)\s+/i, "")
+    .replace(/\b(pizzeria|pizza|restaurant|cafe|coffee|bar|grill|kitchen|bakery|brewery|taproom|llc|inc|co|company|group|hospitality)\b\.?/gi, "")
+    .replace(/[^A-Za-z0-9' ]/g, " ").replace(/\s+/g, " ").trim()
+    .split(" ").slice(0, 3).join(" ");
+}
+
 // One plain-English line: what, who, where, when, and what we know around it.
 function plainSummary(lead: Lead): string {
   const labels = lead.reasons.map(r => r[1]);
   const name = projectName(lead) || (lead.reasons.map(r => r[1]).find(l => /^[A-Z]/.test(l) && l !== "Ansul system") ?? "");
-  const remodel = labels.some(l => l.startsWith("remodel of an existing"));
+  const remodel = labels.some(l => l.startsWith("remodel by the existing"));
   const food = labels.some(l => /restaurant|cafe|coffee|bar|brewery|pizza|grill|kitchen|drive-through|hood|grease|Ansul/i.test(l));
   const bigDev = labels.some(l => /large development|major project|new construction|> \d/.test(l));
   const kind = remodel ? "an existing business remodeling" : labels.includes("commercial new construction") ? "new construction"
@@ -276,10 +285,17 @@ export default function LeadDeskPanel() {
     const brand = lead.reasons.map(r => r[1]).find(l => /^[A-Z]/.test(l) && l !== "Ansul system");
     const street = lead.address.replace(/^[0-9-]+\s*/, "").split(" ").slice(0, 3).join(" ");
     const ownerWord = (lead.context?.owner ?? "").split(/\s+/).find(w => w.length > 3 && !/^(THE|LLC|INC|CORP|CORPORATION|COMPANY|TRUST|FAMILY|GROUP|HOLDINGS|PROPERTIES|DEVELOPMENT)$/i.test(w)) ?? "";
-    const nameClauses = [brand, projectName(lead), ownerWord].filter(Boolean).map(n => `("${n}" "${street}")`);
+    // A distinctive business name stands on its own ("Violet Stone" Tampa);
+    // generic owner words need the street to disambiguate.
+    const core = nameCore(projectName(lead));
+    const nameClauses = [
+      ...(brand ? [`"${brand}"`] : []),
+      ...(core.length >= 5 ? [`"${core}"`] : []),
+      ...(ownerWord ? [`("${ownerWord}" "${street}")`] : []),
+    ];
     const query = [...nameClauses, `"${lead.address}"`].join(" OR ") + " Tampa";
     try {
-      const pn = projectName(lead);
+      const pn = nameCore(projectName(lead));
       const terms = [brand ?? "", pn, ownerWord, lead.address.split(" ").slice(0, 3).join(" ")].filter(t => t && t.length >= 4);
       const r = await fetch("/api/admin/leads/coverage", {
         method: "POST", headers: { "content-type": "application/json" },

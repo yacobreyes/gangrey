@@ -110,8 +110,20 @@ describe("lead desk pipeline", () => {
     const remodel = getQueue({}).leads.find(l => l.address === "1050 Water St")!;
     const buildout = getQueue({}).leads.find(l => l.address === "77 New Tenant Way")!;
     expect(remodel.topScore).toBeLessThanOrEqual(3);
-    expect(remodel.reasons.map(r => r[1])).toContain("remodel of an existing business (score capped)");
+    expect(remodel.reasons.map(r => r[1])).toContain("remodel by the existing business (score capped)");
     expect(buildout.topScore).toBeGreaterThanOrEqual(10);
+  });
+
+  it("a new tenant arriving as a remodel of existing space is NOT capped", () => {
+    ingestRecords("tampa", [tampaRow({
+      RECORD_ID: "BDE-26-0526302", ADDRESS: "3644 W Kennedy Blvd",
+      PROJECTNAME2: "EARLY START: PP:Interior remodel",
+      PROJECTDESCRIPTION: "The Violet Stone Pizzeria - Early start for interior, non-structural work only. Remodel existing restaurant space for new pizzeria with bar",
+    })]);
+    const lead = getQueue({}).leads.find(l => l.address === "3644 W Kennedy Blvd")!;
+    expect(lead.topScore).toBeGreaterThanOrEqual(8);
+    expect(lead.reasons.map(r => r[1])).not.toContain("remodel by the existing business (score capped)");
+    expect(getQueue({ restaurants: true }).leads.some(l => l.address === "3644 W Kennedy Blvd")).toBe(true);
   });
 
   it("identical batches are refused by hash", () => {
