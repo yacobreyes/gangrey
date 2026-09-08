@@ -68,7 +68,20 @@ function scoopAngle(lead: Lead): string {
   }
   return "Coverage is current. Your edge is the context on this card: owner, sale price, and the permit paper trail.";
 }
-const day = (iso: string) => iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+const day = (iso: string) => iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+
+// The card's headline: name the thing. Brand labels from scoring are
+// capitalized; the description's first segment is often the project name
+// ("Dutch Bros Coffee - NEW CONSTRUCTION FOR...").
+function leadTitle(lead: Lead): string {
+  const brand = lead.reasons.map(r => r[1]).find(l => /^[A-Z]/.test(l) && !/^(Ansul)/.test(l));
+  if (brand) return brand;
+  if (lead.context?.dba) return lead.context.dba;
+  const desc = lead.permits.map(p => p.description).find(Boolean) ?? "";
+  const first = desc.split(" - ")[0].trim();
+  if (first && first.length <= 48 && !/^(new construction|demolition|interior|tenant|commercial|residential)/i.test(first)) return first;
+  return lead.permits[0]?.recordType || "Project";
+}
 
 type FilterKey = "all" | "new" | "changed" | "restaurants" | "development" | "uncovered";
 
@@ -348,7 +361,8 @@ export default function LeadDeskPanel() {
                   <span style={{ flexShrink: 0, minWidth: 38, textAlign: "center", fontWeight: 800, fontSize: "1rem", color: "white", background: lead.topScore >= 8 ? CRIMSON : lead.topScore >= 4 ? "#b8860b" : "#9a9a9e", borderRadius: 8, padding: "0.35rem 0.4rem" }}>{lead.topScore}</span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: "block", fontWeight: 700, fontSize: "0.95rem", color: TEXT_DARK }}>
-                      {lead.address || lead.clusterKey}
+                      {leadTitle(lead)}
+                      <span style={{ fontWeight: 500, color: TEXT_MUTED }}> · {lead.address || lead.clusterKey}</span>
                       {lead.isNew && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: CRIMSON }}>NEW</span>}
                       {!lead.isNew && lead.isChanged && !lead.completed && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#b8860b" }}>CHANGED</span>}
                       {lead.completed && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#6e6e73" }}>DONE</span>}
@@ -407,30 +421,7 @@ export default function LeadDeskPanel() {
                     <div style={{ display: "flex", gap: 14, marginTop: 8, fontSize: "0.8rem", alignItems: "center", flexWrap: "wrap" }}>
                       {lead.address && <a href={`https://www.google.com/maps/search/${encodeURIComponent(lead.address + " " + (lead.jurisdiction || "Tampa FL"))}`} target="_blank" rel="noopener noreferrer" style={{ color: TEXT_MUTED }}>Map ↗</a>}
                       {lead.parcel && <span style={{ color: TEXT_MUTED }}>Parcel {lead.parcel}</span>}
-                      <button onClick={() => checkCoverage(lead)} disabled={coverage[lead.clusterKey]?.loading}
-                        style={{ fontFamily: FONT, fontSize: "0.78rem", fontWeight: 700, padding: "0.25rem 0.7rem", borderRadius: 12, border: `1px solid ${BORDER}`, background: "white", color: TEXT_DARK, cursor: "pointer" }}>
-                        {coverage[lead.clusterKey]?.loading ? "Checking…" : "Check coverage"}
-                      </button>
                     </div>
-                    {coverage[lead.clusterKey] && !coverage[lead.clusterKey].loading && (
-                      <div style={{ marginTop: 8, fontSize: "0.8rem" }}>
-                        {coverage[lead.clusterKey].error ? (
-                          <span style={{ color: TEXT_MUTED }}>Coverage check failed: {coverage[lead.clusterKey].error}</span>
-                        ) : (coverage[lead.clusterKey].hits ?? []).length === 0 ? (
-                          <span style={{ color: "#1a7f37", fontWeight: 700 }}>No coverage found. Likely yours.</span>
-                        ) : (
-                          <div>
-                            <span style={{ color: CRIMSON, fontWeight: 700 }}>Possibly covered:</span>
-                            {(coverage[lead.clusterKey].hits ?? []).map((h, i) => (
-                              <div key={i} style={{ marginTop: 3 }}>
-                                <a href={h.link} target="_blank" rel="noopener noreferrer" style={{ color: TEXT_DARK }}>{h.title}</a>
-                                <span style={{ color: TEXT_MUTED }}> {h.source ? `- ${h.source}` : ""}{h.date ? ` (${h.date})` : ""}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
