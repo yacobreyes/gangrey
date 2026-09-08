@@ -130,7 +130,7 @@ describe("lead desk pipeline", () => {
     const r = ingestRecords("hcdev", [{
       objectid: 5, globalid: "{ABC-123}", RecordNum: "SIT-26-0042", ProjectName: "Brandon Crossing Hotel",
       ApplicationType: "Site Development", ProjectType: "Hotel", ApplicationGroup: "Commercial",
-      Address: "1200 W Brandon Blvd", City: "Brandon", ParentFolio: "0738450000", ReviewStatus: "In Review",
+      Address: "1200 W Brandon Blvd", City: "Brandon", Zip: "33624", ParentFolio: "0738450000", ReviewStatus: "In Review",
       SubmissionDate: Date.now() - 3 * 86400_000, ApplicationStatusDate: Date.now() - 86400_000, EditDate: Date.now() - 86400_000,
       FootageProposedBldg: 88000, TotalResUnits: null, description: "New 6-story 140 room select-service hotel",
       ContactFirst: "Jane", ContactLast: "Doe", ContactPhone: "8135551212", ContactEmail: "jane@example.com",
@@ -150,7 +150,7 @@ describe("lead desk pipeline", () => {
     ingestRecords("hcdev", [{
       objectid: 34492, globalid: "d244db35", RecordNum: "HC-STRCON-26-0000161", ProjectName: "Thonotosassa Rd FWH Phase 2",
       ApplicationType: "Straight-to-Construction", ProjectType: "Residential", ResidentialType: "Mobile Home",
-      Address: null, RoadPrefix: null, RoadName: "Thonotosassa", RoadType: "Rd", City: "Dover", ParentFolio: "081364.0500", folio: "0813640500",
+      Address: null, RoadPrefix: null, RoadName: "Thonotosassa", RoadType: "Rd", City: "Dover", Zip: "33549", ParentFolio: "081364.0500", folio: "0813640500",
       ReviewStatus: null, status: null, dbstatus: "In Progress", SubmissionDate: Date.now() - 2 * 86400_000, ApplicationStatusDate: Date.now() - 2 * 86400_000,
       EditDate: Date.now() - 86400_000, ContactFirst: "Christopher", ContactLast: "McNeal", ContactPhone: null, ContactPhone3: "8139681081",
       ContactEmail: "permitting@example.com", description: "6 FWH units with associated access & utility infrastructure.", hillsgovhub: "https://example/x",
@@ -199,6 +199,17 @@ describe("lead desk pipeline", () => {
     // The cap leaves the whole cluster (one permit) at 3 or below.
     expect(lead.topScore).toBeLessThanOrEqual(3);
     expect(lead.reasons.map(r => r[1]).some(l => /already licensed here/.test(l))).toBe(true);
+  });
+
+  it("county records outside the coverage ZIPs are dropped at ingest", () => {
+    const r = ingestRecords("hcfl", [
+      hcflRow({ OBJECTID: 501, PERMIT__: "COM-RIVERVIEW-1", ADDRESS: "1 Big Bend Rd", CITY_1: "Riverview 33578", PARCEL: "111111.0000" }),
+      hcflRow({ OBJECTID: 502, PERMIT__: "COM-LUTZ-1", ADDRESS: "2 Dale Mabry Hwy", CITY_1: "Lutz 33549", PARCEL: "222222.0000" }),
+    ]);
+    expect(r.inserted).toBe(1);
+    expect(r.skipped).toBe(1);
+    expect(getQueue({ minScore: 0 }).leads.some(l => l.address === "1 Big Bend Rd")).toBe(false);
+    expect(getQueue({ minScore: 0 }).leads.some(l => l.address === "2 Dale Mabry Hwy")).toBe(true);
   });
 
   it("identical batches are refused by hash", () => {

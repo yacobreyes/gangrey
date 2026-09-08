@@ -110,6 +110,9 @@ type LeadsConfig = {
   newRequiresSourceWithinDays: number;
   staleAfterDays: number;
   maintenanceSignals: string[];
+  // County feeds cover the whole county; keep only these ZIPs (the coverage
+  // area's unincorporated communities). Empty list = no scoping.
+  countyZipAllowlist: string[];
 };
 
 const DEFAULT_CONFIG: LeadsConfig = {
@@ -155,6 +158,14 @@ const DEFAULT_CONFIG: LeadsConfig = {
     "change.?out", "like.?for.?like", "water damage", "\\bfence\\b", "\\bshed\\b",
     "window replacement", "siding", "pool (heater|pump|resurfac)", "\\bhvac replacement\\b",
     "sewer line", "gas line repair", "leak",
+  ],
+  countyZipAllowlist: [
+    "33548", "33549", "33558", "33559",          // Lutz
+    "33618", "33624", "33614",                   // Northdale / Greater Carrollwood
+    "33625", "33626",                            // Citrus Park
+    "33615", "33634", "33635",                   // Town 'N' Country
+    "33612", "33613",                            // University Area
+    "33617", "33637",                            // Temple Terrace
   ],
 };
 
@@ -369,6 +380,16 @@ function knownBusinessAt(db: Database.Database, address: string, hay: string): s
   return "";
 }
 
+// ZIP of a county record, from wherever the feed puts it: the county permit
+// feed folds it into CITY_1 ("Tampa 33624"); the plans feed has Zip.
+function countyZip(raw: Raw): string {
+  for (const v of [raw.Zip, raw.PERMIT_ZIP, raw.CITY_1, raw.City, raw.ADDRESS, raw.Address]) {
+    const m = String(v ?? "").match(/\b(33\d{3})\b/);
+    if (m) return m[1];
+  }
+  return "";
+}
+
 // ---------- scoring ----------
 
 function scoreRecord(n: Norm, isCo = false, existingName = ""): { score: number; reasons: [number, string][] } {
@@ -505,6 +526,7 @@ export function ingestRecords(source: SourceId, records: Raw[]): IngestSummary {
   fs.writeFileSync(path.join(dir, `${hash.slice(0, 12)}-${source}.json`), buf);
 
   const norm = source === "tampa" ? normTampa : source === "hcdev" ? normHcdev : source === "tampaent" ? normTampaEnt : source === "tampaab" ? normTampaAb : normHcfl;
+  const zipAllow = (source === "hcfl" || source === "hcdev") ? leadsConfig().countyZipAllowlist : [];
   let inserted = 0, changed = 0, unchanged = 0, skipped = 0;
 
   const getStmt = db.prepare(`SELECT * FROM permits WHERE uid = ?`);
@@ -517,6 +539,11 @@ export function ingestRecords(source: SourceId, records: Raw[]): IngestSummary {
 
   db.transaction(() => {
     for (const raw of records) {
+      // Coverage-area scoping for the county feeds.
+      if (zipAllow.length) {
+        const z = countyZip(raw);
+        if (!z || !zipAllow.includes(z)) { skipped++; continue; }
+      }
       const n = norm(raw);
       if (!n) { skipped++; continue; }
       const isCo = source === "hcfl" && String(raw.CATEGORY ?? "").trim().toUpperCase() === "CO";
