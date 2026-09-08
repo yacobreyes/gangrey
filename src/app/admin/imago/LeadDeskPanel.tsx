@@ -89,11 +89,14 @@ function leadTitle(lead: Lead): string {
   return lead.permits[0]?.recordType || "Project";
 }
 
-type FilterKey = "all" | "new" | "changed" | "restaurants" | "development" | "uncovered";
+type Kind = "all" | "restaurants" | "development";
 
 export default function LeadDeskPanel() {
   const [data, setData] = useState<QueueResponse | null>(null);
-  const [filter, setFilter] = useState<FilterKey>("all");
+  const [kind, setKind] = useState<Kind>("all");
+  const [onlyNew, setOnlyNew] = useState(true);
+  const [onlyChanged, setOnlyChanged] = useState(false);
+  const [onlyUncovered, setOnlyUncovered] = useState(false);
   const [minScore, setMinScore] = useState(4);
   const [days, setDays] = useState(7);
   const [sort, setSort] = useState<"date" | "score">("date");
@@ -107,11 +110,11 @@ export default function LeadDeskPanel() {
 
   const load = useCallback(async () => {
     const params = new URLSearchParams({ days: String(days) });
-    if (filter === "new") params.set("new", "1");
-    if (filter === "changed") params.set("changed", "1");
-    if (filter === "restaurants") params.set("restaurants", "1");
-    if (filter === "development") params.set("development", "1");
-    if (filter === "uncovered") params.set("uncovered", "1");
+    if (kind === "restaurants") params.set("restaurants", "1");
+    if (kind === "development") params.set("development", "1");
+    if (onlyNew) params.set("new", "1");
+    if (onlyChanged) params.set("changed", "1");
+    if (onlyUncovered) params.set("uncovered", "1");
     if (minScore > 0) params.set("minScore", String(minScore));
     params.set("sort", sort);
     if (area) params.set("source", area);
@@ -120,7 +123,7 @@ export default function LeadDeskPanel() {
       const r = await fetch(`/api/admin/leads/queue?${params}`, { cache: "no-store" });
       if (r.ok) setData(await r.json());
     } catch { /* keep last good queue */ }
-  }, [filter, minScore, days, sort, area, showDone]);
+  }, [kind, onlyNew, onlyChanged, onlyUncovered, minScore, days, sort, area, showDone]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -312,7 +315,12 @@ export default function LeadDeskPanel() {
     }
   }, [data, collect]);
 
-  const chips: [FilterKey, string][] = [["all", "All"], ["new", "New"], ["changed", "Changed"], ["restaurants", "Restaurants"], ["development", "Development"], ["uncovered", "Uncovered"]];
+  const chip = (active: boolean) => ({
+    fontFamily: FONT, fontSize: "0.8rem", fontWeight: 600 as const, padding: "0.35rem 0.8rem", borderRadius: 16, cursor: "pointer",
+    border: `1px solid ${active ? CRIMSON : BORDER}`, background: active ? CRIMSON : "white", color: active ? "white" : TEXT_DARK,
+  });
+  const dial = { fontFamily: FONT, fontSize: "0.8rem", padding: "0.35rem 0.5rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", color: TEXT_DARK };
+  const kinds: [Kind, string][] = [["all", "Everything"], ["restaurants", "Restaurants"], ["development", "Development"]];
 
   return (
     <div style={{ fontFamily: FONT, maxWidth: 880 }}>
@@ -325,45 +333,48 @@ export default function LeadDeskPanel() {
               : "First collection pulls the last 30 days from both public permit feeds."}
           </p>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={() => collect()} disabled={collecting}
-            style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, padding: "0.55rem 1rem", borderRadius: 8, border: "none", background: CRIMSON, color: "white", cursor: collecting ? "default" : "pointer", opacity: collecting ? 0.6 : 1 }}>
-            {collecting ? "Collecting…" : "Collect now"}
-          </button>
-        </div>
+        <button onClick={() => collect()} disabled={collecting}
+          style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, padding: "0.55rem 1rem", borderRadius: 8, border: "none", background: CRIMSON, color: "white", cursor: collecting ? "default" : "pointer", opacity: collecting ? 0.6 : 1 }}>
+          {collecting ? "Collecting…" : "Collect now"}
+        </button>
       </div>
 
       {status && (
         <p style={{ fontSize: "0.85rem", color: TEXT_DARK, background: "#f4f2ee", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "0.6rem 0.9rem", margin: "0 0 1rem" }}>{status}</p>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: "1rem" }}>
-        {chips.map(([key, label]) => (
-          <button key={key} onClick={() => setFilter(key)}
-            style={{ fontFamily: FONT, fontSize: "0.8rem", fontWeight: 600, padding: "0.35rem 0.8rem", borderRadius: 16, cursor: "pointer", border: `1px solid ${filter === key ? CRIMSON : BORDER}`, background: filter === key ? CRIMSON : "white", color: filter === key ? "white" : TEXT_DARK }}>
-            {label}
-          </button>
+      {/* Row 1: the question. Kind is one choice; the "only" toggles stack. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+        {kinds.map(([key, label]) => (
+          <button key={key} onClick={() => setKind(key)} style={chip(kind === key)}>{label}</button>
         ))}
-        <select value={minScore} onChange={e => setMinScore(Number(e.target.value))} style={{ fontFamily: FONT, fontSize: "0.8rem", padding: "0.35rem 0.5rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", color: TEXT_DARK }}>
-          <option value={0}>Any score</option><option value={4}>Score 4+</option><option value={8}>Score 8+</option><option value={12}>Score 12+</option>
-        </select>
-        <select value={area} onChange={e => setArea(e.target.value as "" | SourceId)} style={{ fontFamily: FONT, fontSize: "0.8rem", padding: "0.35rem 0.5rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", color: TEXT_DARK }}>
-          <option value="">Both areas</option><option value="tampa">City of Tampa</option><option value="hcfl">Hillsborough County</option>
-        </select>
-        <select value={sort} onChange={e => setSort(e.target.value as "date" | "score")} style={{ fontFamily: FONT, fontSize: "0.8rem", padding: "0.35rem 0.5rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", color: TEXT_DARK }}>
-          <option value="date">Newest filed</option><option value="score">Highest score</option>
-        </select>
-        <select value={days} onChange={e => setDays(Number(e.target.value))} style={{ fontFamily: FONT, fontSize: "0.8rem", padding: "0.35rem 0.5rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", color: TEXT_DARK }}>
-          <option value={1}>Today</option><option value={3}>3 days</option><option value={7}>7 days</option><option value={30}>30 days</option><option value={90}>90 days</option><option value={180}>6 months</option>
-        </select>
-        <label style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: FONT, fontSize: "0.8rem", color: TEXT_MUTED, cursor: "pointer" }}>
-          <input type="checkbox" checked={showDone} onChange={e => setShowDone(e.target.checked)} /> Show finished
-        </label>
+        <span style={{ width: 1, height: 22, background: BORDER, margin: "0 4px" }} />
+        <button onClick={() => setOnlyNew(v => !v)} style={chip(onlyNew)} title="Only projects the city dated within 90 days that are new to this desk">New</button>
+        <button onClick={() => setOnlyChanged(v => !v)} style={chip(onlyChanged)} title="Only projects where a permit moved in the window (issued, CO, stop work...)">Changed</button>
+        <button onClick={() => setOnlyUncovered(v => !v)} style={chip(onlyUncovered)} title="Hide anything the news search found coverage for">Uncovered</button>
         {data && (
           <span style={{ fontSize: "0.8rem", color: TEXT_MUTED, marginLeft: "auto" }}>
             {data.total.toLocaleString()} projects · <strong style={{ color: CRIMSON }}>{data.bands.high} high priority</strong> · {data.bands.watch} watch
           </span>
         )}
+      </div>
+      {/* Row 2: the dials. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: "1rem" }}>
+        <select value={days} onChange={e => setDays(Number(e.target.value))} style={dial}>
+          <option value={1}>Today</option><option value={3}>Last 3 days</option><option value={7}>Last 7 days</option><option value={30}>Last 30 days</option><option value={90}>Last 90 days</option><option value={180}>Last 6 months</option>
+        </select>
+        <select value={area} onChange={e => setArea(e.target.value as "" | SourceId)} style={dial}>
+          <option value="">Tampa + County</option><option value="tampa">City of Tampa</option><option value="hcfl">Hillsborough County</option>
+        </select>
+        <select value={minScore} onChange={e => setMinScore(Number(e.target.value))} style={dial}>
+          <option value={0}>Any score</option><option value={4}>Score 4+</option><option value={8}>Score 8+</option><option value={12}>Score 12+</option>
+        </select>
+        <select value={sort} onChange={e => setSort(e.target.value as "date" | "score")} style={dial}>
+          <option value="date">Newest filed first</option><option value="score">Highest score first</option>
+        </select>
+        <label style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: FONT, fontSize: "0.8rem", color: TEXT_MUTED, cursor: "pointer" }}>
+          <input type="checkbox" checked={showDone} onChange={e => setShowDone(e.target.checked)} /> Show finished
+        </label>
       </div>
 
       {!data ? (
