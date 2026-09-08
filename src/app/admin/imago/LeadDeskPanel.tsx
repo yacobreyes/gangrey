@@ -57,6 +57,7 @@ export default function LeadDeskPanel() {
   const [collecting, setCollecting] = useState(false);
   const [status, setStatus] = useState("");
   const [open, setOpen] = useState<string | null>(null);
+  const [coverage, setCoverage] = useState<Record<string, { loading?: boolean; hits?: { title: string; link: string; source: string; date: string }[]; error?: string }>>({});
   const collectedOnce = useRef(false);
 
   const load = useCallback(async () => {
@@ -156,6 +157,25 @@ export default function LeadDeskPanel() {
     setCollecting(false);
     load();
   }, [collecting, load]);
+
+  // "Has this been covered?" — query news search for the lead's address and
+  // strongest signals, server-side, cached 24h per cluster.
+  async function checkCoverage(lead: Lead) {
+    setCoverage(c => ({ ...c, [lead.clusterKey]: { loading: true } }));
+    const brand = lead.reasons.map(r => r[1]).find(l => /^[A-Z]/.test(l)); // brand labels are capitalized
+    const query = `"${lead.address}" OR ("${(brand || lead.permits[0]?.recordType || "development")}" "${lead.address.split(" ").slice(0, 3).join(" ")}") Tampa`;
+    try {
+      const r = await fetch("/api/admin/leads/coverage", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ clusterKey: lead.clusterKey, query }),
+      });
+      const d = await r.json();
+      if (d.error) setCoverage(c => ({ ...c, [lead.clusterKey]: { error: d.error } }));
+      else setCoverage(c => ({ ...c, [lead.clusterKey]: { hits: d.hits } }));
+    } catch (e) {
+      setCoverage(c => ({ ...c, [lead.clusterKey]: { error: String(e) } }));
+    }
+  }
 
   // Enrich visible leads with parcel context from the Property Appraiser's
   // public HCPA_Parcels_All layer (owner, DBA, values, last sale). County
@@ -321,10 +341,33 @@ export default function LeadDeskPanel() {
                         {p.whatChanged && <span style={{ flexBasis: "100%", color: "#8a6d00", fontSize: "0.78rem", paddingTop: 2 }}>Changed: {p.whatChanged}</span>}
                       </div>
                     ))}
-                    <div style={{ display: "flex", gap: 14, marginTop: 8, fontSize: "0.8rem" }}>
+                    <div style={{ display: "flex", gap: 14, marginTop: 8, fontSize: "0.8rem", alignItems: "center", flexWrap: "wrap" }}>
                       {lead.address && <a href={`https://www.google.com/maps/search/${encodeURIComponent(lead.address + " " + (lead.jurisdiction || "Tampa FL"))}`} target="_blank" rel="noopener noreferrer" style={{ color: TEXT_MUTED }}>Map ↗</a>}
                       {lead.parcel && <span style={{ color: TEXT_MUTED }}>Parcel {lead.parcel}</span>}
+                      <button onClick={() => checkCoverage(lead)} disabled={coverage[lead.clusterKey]?.loading}
+                        style={{ fontFamily: FONT, fontSize: "0.78rem", fontWeight: 700, padding: "0.25rem 0.7rem", borderRadius: 12, border: `1px solid ${BORDER}`, background: "white", color: TEXT_DARK, cursor: "pointer" }}>
+                        {coverage[lead.clusterKey]?.loading ? "Checking…" : "Check coverage"}
+                      </button>
                     </div>
+                    {coverage[lead.clusterKey] && !coverage[lead.clusterKey].loading && (
+                      <div style={{ marginTop: 8, fontSize: "0.8rem" }}>
+                        {coverage[lead.clusterKey].error ? (
+                          <span style={{ color: TEXT_MUTED }}>Coverage check failed: {coverage[lead.clusterKey].error}</span>
+                        ) : (coverage[lead.clusterKey].hits ?? []).length === 0 ? (
+                          <span style={{ color: "#1a7f37", fontWeight: 700 }}>No coverage found. Likely yours.</span>
+                        ) : (
+                          <div>
+                            <span style={{ color: CRIMSON, fontWeight: 700 }}>Possibly covered:</span>
+                            {(coverage[lead.clusterKey].hits ?? []).map((h, i) => (
+                              <div key={i} style={{ marginTop: 3 }}>
+                                <a href={h.link} target="_blank" rel="noopener noreferrer" style={{ color: TEXT_DARK }}>{h.title}</a>
+                                <span style={{ color: TEXT_MUTED }}> {h.source ? `- ${h.source}` : ""}{h.date ? ` (${h.date})` : ""}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
