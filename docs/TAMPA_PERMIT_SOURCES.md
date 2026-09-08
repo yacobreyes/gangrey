@@ -9,10 +9,11 @@ the field names below are real.
 - The Nuremberg VPS (Hetzner, 188.245.38.32) gets HTTP 403 from
   arcgis.tampagov.net, www.tampa.gov and www.civicdata.com (US-gov WAFs block
   non-US datacenter IPs). Confirmed by direct curl from the box.
-- services.arcgis.com (Esri cloud, hosts the Hillsborough feed) — VPS
-  reachability NOT YET TESTED. One curl decides whether server-side
-  automation is possible from the existing box:
-      curl -s -o /dev/null -w "%{http_code}\n" "https://services.arcgis.com/apTfC6SUmnNfnxuF/arcgis/rest/services/AccelaDashBoard_MapService20211019/FeatureServer?f=json"
+- services.arcgis.com (Esri cloud, hosts both county feeds) — VPS
+  reachability VERIFIED: HTTP 200 from the box (Sept 2026). The county
+  permits and county plans feeds therefore collect server-side daily via the
+  publish cron (src/lib/leads/serverCollect.ts); the three Tampa feeds stay
+  browser-collected.
 - A US residential browser reaches everything.
 - Rule: no evading IP blocks (no proxies/VPNs/disguised traffic). Blocked
   hosts are collected from an allowed location (e.g. the reporter's browser)
