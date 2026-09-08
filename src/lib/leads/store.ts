@@ -324,7 +324,8 @@ function normTampaAb(r: Raw): Norm | null {
     s(r.REVOKE_DT) ? `LICENSE REVOKED ${epochToDay(r.REVOKE_DT)}` : "",
     s(r.ADMIN_LT_FEE) ? `late fee: ${s(r.LT_FEE_REASON) || s(r.ADMIN_LT_FEE)}` : "",
   ].filter(Boolean).join("; ");
-  const hours = [s(r.HRS_FRIDAY) ? `Fri ${s(r.HRS_FRIDAY)}` : "", s(r.HRS_SATURDAY) ? `Sat ${s(r.HRS_SATURDAY)}` : ""].filter(Boolean).join(", ");
+  const hr = (v: unknown) => { const t = s(v); return t && !/per city code/i.test(t) ? t : ""; };
+  const hours = [hr(r.HRS_FRIDAY) ? `Fri ${hr(r.HRS_FRIDAY)}` : "", hr(r.HRS_SATURDAY) ? `Sat ${hr(r.HRS_SATURDAY)}` : ""].filter(Boolean).join(", ");
   const desc = [
     name, [cls, cond].filter(Boolean).join(" / "), s(r.ABSALETYPE),
     s(r.SEAT_COUNT) ? `${s(r.SEAT_COUNT)} seats` : "", s(r.SWC_AB).toLowerCase() === "yes" ? "sidewalk cafe" : "",
@@ -339,7 +340,11 @@ function normTampaAb(r: Raw): Norm | null {
     occupancy: `alcohol ${cls} ${cond}`.toLowerCase(), stop_work: 0,
     valuation: null, sq_ft: num(r.AB_SLS_AREA_TTL_SF), units: num(r.SEAT_COUNT),
     neighborhood: "", council: "", cra: "",
-    issued_date: epochToDay(r.ORD_LTR_DT) || epochToDay(r.PLACARD_DT), created_date: epochToDay(r.CREATEDATE),
+    // Live rows: LASTUPDATE is touched on decade-old permits by clerical
+    // edits, and CREATEDATE is the GIS row's birth, not the permit's. The
+    // ordinance letter / placard dates are the permit's real timeline.
+    issued_date: epochToDay(r.ORD_LTR_DT) || epochToDay(r.PLACARD_DT),
+    created_date: epochToDay(r.ORD_LTR_DT) || epochToDay(r.PLACARD_DT) || epochToDay(r.CREATEDATE),
     source_updated: epochToDay(r.HISTORY_ACT_DT) || epochToDay(r.LASTUPDATE),
     link: "", contact: [s(r.BUS_OWNER_NAME), s(r.BUS_PHONE) || s(r.BUS_OWN_PHONE), s(r.BUS_OWN_EMAIL)].filter(Boolean).join(" · "),
   };
@@ -360,12 +365,12 @@ function scoreRecord(n: Norm, isCo = false): { score: number; reasons: [number, 
     if (/suspended|revoked/i.test(n.description)) reasons.push([7, "alcohol license suspended or revoked"]);
     if (/name change|owner change/i.test(n.status)) reasons.push([5, "new operator at an alcohol-licensed spot"]);
     else if (/dry/i.test(n.status)) reasons.push([3, "stopped selling alcohol (closed?)"]);
-    else if (/nightclub/.test(t)) reasons.push([6, "new nightclub alcohol permit"]);
-    else if (/bar\/lounge|bar|lounge/.test(t)) reasons.push([6, "new bar alcohol permit"]);
-    else if (/distillery|brewery/.test(t)) reasons.push([6, "new distillery/brewery permit"]);
-    else if (/restaurant/.test(t)) reasons.push([5, "new restaurant alcohol permit"]);
-    else if (/hotel|large venue/.test(t)) reasons.push([5, "new venue alcohol permit"]);
-    else if (/small venue|special restaurant/.test(t)) reasons.push([4, "new venue alcohol permit"]);
+    else if (/nightclub/.test(t)) reasons.push([6, "nightclub alcohol permit"]);
+    else if (/bar\/lounge|bar|lounge/.test(t)) reasons.push([6, "bar alcohol permit"]);
+    else if (/distillery|brewery/.test(t)) reasons.push([6, "distillery/brewery alcohol permit"]);
+    else if (/restaurant/.test(t)) reasons.push([5, "restaurant alcohol permit"]);
+    else if (/hotel|large venue/.test(t)) reasons.push([5, "venue alcohol permit"]);
+    else if (/small venue|special restaurant/.test(t)) reasons.push([4, "venue alcohol permit"]);
     else if (/package sales|convenience|gasoline|shopper/.test(t)) reasons.push([1, "package sales permit"]);
     else reasons.push([3, "alcohol permit"]);
     if (n.units != null && n.units >= 150) reasons.push([2, `${Math.round(n.units)} seats`]);

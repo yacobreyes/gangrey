@@ -140,9 +140,9 @@ function plainSummary(lead: Lead): string {
   const food = labels.some(l => /restaurant|cafe|coffee|bar|brewery|pizza|grill|kitchen|drive-through|hood|grease|Ansul/i.test(l));
   const bigDev = labels.some(l => /large development|major project|new construction|> \d/.test(l));
   const planLabel = labels.find(l => l.endsWith("plan filed"));
-  const abLabel = labels.find(l => /alcohol|nightclub|distillery|venue alcohol|operator at an alcohol/.test(l));
+  const abLabel = labels.find(l => /alcohol permit|operator at an alcohol|stopped selling|suspended/.test(l));
   const caseLabel = labels.find(l => /case|rezoning filed|vacating|land use case/.test(l));
-  const kind = abLabel ? abLabel.replace(/^new /, "a new ") : caseLabel ? `a city ${caseLabel.replace(/ filed$/, "")}` : planLabel ? `a ${planLabel.replace(" plan filed", "")} development plan filed with the county` : remodel ? "an existing business remodeling" : labels.includes("commercial new construction") ? "new construction"
+  const kind = abLabel ? (labels.includes("in review now") || lead.isNew ? `a newly permitted ${abLabel.replace(" alcohol permit", "")} (alcohol license)` : `an existing ${abLabel.replace(" alcohol permit", "")} with alcohol-permit activity`) : caseLabel ? `a city ${caseLabel.replace(/ filed$/, "")}` : planLabel ? `a ${planLabel.replace(" plan filed", "")} development plan filed with the county` : remodel ? "an existing business remodeling" : labels.includes("commercial new construction") ? "new construction"
     : labels.includes("commercial demolition") ? "a demolition" : food ? (labels.includes("tenant buildout") ? "a restaurant buildout" : "restaurant-related work")
     : bigDev ? "a large development" : labels.includes("commercial alteration") ? "a commercial renovation" : "permit activity";
   const who = name ? `${name}: ` : "";

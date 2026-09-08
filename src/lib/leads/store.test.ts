@@ -175,7 +175,7 @@ describe("lead desk pipeline", () => {
     }]);
     const club = getQueue({ source: "tampaab" }).leads.find(l => l.address === "1600 E 7th Ave")!;
     expect(club).toBeTruthy();
-    expect(club.reasons.map(r => r[1])).toContain("new nightclub alcohol permit");
+    expect(club.reasons.map(r => r[1])).toContain("nightclub alcohol permit");
     expect(club.permits[0].contact).toContain("Maria Lopez");
     expect(club.permits[0].description.startsWith("Sunset Social Club")).toBe(true);
     expect(getQueue({ restaurants: true, source: "tampaab" }).leads.some(l => l.address === "1600 E 7th Ave")).toBe(true);
