@@ -207,25 +207,28 @@ export default function LeadDeskPanel() {
     load();
   }, [collecting, load]);
 
-  const [bulkChecking, setBulkChecking] = useState(false);
-  // Bulk pass: check every visible lead that has no stored coverage yet, one
-  // at a time (the news endpoint is rate-limited), then reload so the badges
-  // and the Uncovered filter reflect it.
-  async function checkAllCoverage() {
-    if (!data || bulkChecking) return;
-    setBulkChecking(true);
-    const targets = data.leads.filter(l => !l.coverage?.checked);
-    let done = 0;
-    for (const lead of targets) {
-      setStatus(`Checking coverage… ${done}/${targets.length}`);
-      await checkCoverage(lead);
-      done++;
-      await new Promise(r => setTimeout(r, 900)); // stay polite with the news endpoint
-    }
-    setStatus(targets.length ? `Coverage checked for ${done} leads. Use the Uncovered filter.` : "All visible leads already checked.");
-    setBulkChecking(false);
-    load();
-  }
+  // Coverage checks itself: after each queue load, quietly check leads that
+  // have no stored verdict yet (a few at a time, politely paced; the server
+  // caches results 24h, so this converges fast and stays cheap). Badges and
+  // the Covered line appear as verdicts land; no button to remember.
+  const bulkChecking = useRef(false);
+  useEffect(() => {
+    if (!data || bulkChecking.current || collecting) return;
+    const targets = data.leads.filter(l => !l.coverage?.checked).slice(0, 12);
+    if (!targets.length) return;
+    bulkChecking.current = true;
+    (async () => {
+      for (let i = 0; i < targets.length; i++) {
+        setStatus(`Checking coverage… ${i + 1}/${targets.length}`);
+        await checkCoverage(targets[i]);
+        await new Promise(r => setTimeout(r, 900)); // polite pacing
+      }
+      setStatus("");
+      bulkChecking.current = false;
+      load();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, collecting]);
 
   // "Has this been covered?" — query news search for the lead's address and
   // strongest signals, server-side, cached 24h per cluster.
@@ -326,10 +329,6 @@ export default function LeadDeskPanel() {
           <button onClick={() => collect()} disabled={collecting}
             style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, padding: "0.55rem 1rem", borderRadius: 8, border: "none", background: CRIMSON, color: "white", cursor: collecting ? "default" : "pointer", opacity: collecting ? 0.6 : 1 }}>
             {collecting ? "Collecting…" : "Collect now"}
-          </button>
-          <button onClick={checkAllCoverage} disabled={collecting || bulkChecking} title="Checks news coverage for every visible unchecked lead, then use the Uncovered filter"
-            style={{ fontFamily: FONT, fontSize: "0.85rem", fontWeight: 700, padding: "0.55rem 1rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", color: TEXT_DARK, cursor: bulkChecking ? "default" : "pointer" }}>
-            {bulkChecking ? "Checking coverage…" : "Check coverage"}
           </button>
         </div>
       </div>
