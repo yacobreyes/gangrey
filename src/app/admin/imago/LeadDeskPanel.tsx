@@ -47,6 +47,27 @@ type QueueResponse = {
 };
 
 const money = (n: number | null) => n == null ? "" : "$" + Math.round(n).toLocaleString("en-US");
+
+// For a covered lead: what has happened on the permits SINCE the story ran —
+// that gap is where the scoop still lives.
+function scoopAngle(lead: Lead): string {
+  const covDate = lead.coverage?.latest?.date ?? "";
+  if (!covDate) return "Coverage date unknown. Compare their story against the permit timeline below.";
+  const after = (d?: string | null) => !!d && d.slice(0, 10) > covDate;
+  const stop = lead.permits.find(p => p.stopWork && (after(p.changedAt) || after(p.firstSeenAt)));
+  if (stop) return `Stop work order landed AFTER that story (${stop.permitNo}). The trouble is unreported.`;
+  const co = lead.permits.find(p => p.uid.includes("|CO|") && after(p.changedAt ?? p.firstSeenAt));
+  if (co) return "Certificate of occupancy came AFTER that story. The opening is unreported.";
+  const changed = lead.permits.filter(p => after(p.changedAt)).length;
+  const newer = lead.permits.filter(p => after(p.firstSeenAt)).length;
+  if (lead.newestSourceDate > covDate || changed || newer) {
+    const parts: string[] = [];
+    if (newer) parts.push(`${newer} permit${newer === 1 ? "" : "s"} filed since`);
+    if (changed) parts.push(`${changed} status change${changed === 1 ? "" : "s"} since`);
+    return `Coverage predates the latest permit activity (${parts.join(", ") || "newer city dates"}). The progress since ${covDate.slice(0, 10)} is unreported - and you hold the owner and valuation.`;
+  }
+  return "Coverage is current. Your edge is the context on this card: owner, sale price, and the permit paper trail.";
+}
 const day = (iso: string) => iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
 
 type FilterKey = "all" | "new" | "changed" | "restaurants" | "development" | "uncovered";
@@ -347,6 +368,11 @@ export default function LeadDeskPanel() {
                     {lead.coverage?.latest && lead.coverage.hits > 0 && (
                       <span style={{ display: "block", fontSize: "0.78rem", color: "#8a6d00", marginTop: 4 }}>
                         Covered: {lead.coverage.latest.source || "news"}{lead.coverage.latest.date ? ` (${lead.coverage.latest.date})` : ""} - {lead.coverage.latest.title.slice(0, 90)}
+                      </span>
+                    )}
+                    {lead.coverage && lead.coverage.hits > 0 && (
+                      <span style={{ display: "block", fontSize: "0.78rem", fontWeight: 600, color: "#1a5276", marginTop: 2 }}>
+                        Scoop: {scoopAngle(lead)}
                       </span>
                     )}
                     {lead.reasons.length > 0 && (
