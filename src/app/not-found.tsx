@@ -22,8 +22,8 @@ export default function NotFound() {
           <Link href="/" style={{ fontFamily: "var(--font-subhead)", fontSize: 12, fontWeight: 800, letterSpacing: ".14em", textTransform: "uppercase", color: "#ffffff", background: "#490000", padding: "10px 18px", textDecoration: "none" }}>
             Front page
           </Link>
-          <Link href="/archive" style={{ fontFamily: "var(--font-subhead)", fontSize: 12, fontWeight: 800, letterSpacing: ".14em", textTransform: "uppercase", color: "#490000", border: "1px solid #490000", padding: "9px 18px", textDecoration: "none" }}>
-            Browse the archive
+          <Link href="/latest" style={{ fontFamily: "var(--font-subhead)", fontSize: 12, fontWeight: 800, letterSpacing: ".14em", textTransform: "uppercase", color: "#490000", border: "1px solid #490000", padding: "9px 18px", textDecoration: "none" }}>
+            The latest
           </Link>
         </div>
       </main>

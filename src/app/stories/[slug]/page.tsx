@@ -20,7 +20,6 @@ import { isCurrentVisitorActiveMember } from "@/lib/currentMember";
 
 function sectionLabel(section: string) {
   if (section === "Micro-Memoir") return "Micro-Memoir";
-  if (section === "Archive") return "Archive";
   return section;
 }
 
@@ -86,17 +85,6 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
     const { sqliteRedirectTarget } = await import("@/lib/storage/sqlite");
     const target = sqliteRedirectTarget(slug);
     if (target && target !== slug) permanentRedirect(`/stories/${target}`);
-    // Import-era archive slugs that no longer resolve: gangrey-p<id> from the
-    // first import, and gangrey-<n> ordinals that existed in an earlier
-    // import but were dropped by the rebuild (a live ordinal was renamed by
-    // the headline re-slug and is caught by the redirect lookup above, so
-    // only dead ones reach this line). Google still remembers both kinds;
-    // send them to the archive permanently instead of dead-ending.
-    // Two shapes: gangrey-p<anything> (first import appended either a numeric
-    // id OR a slugified headline after the p) and bare gangrey-<digits>
-    // ordinals from the rebuild-era numbering. Anchored so a renamed headline
-    // slug that merely starts with "gangrey-" is never swallowed.
-    if (/^gangrey-p/.test(slug) || /^gangrey-\d+$/.test(slug)) permanentRedirect("/archive");
     notFound();
   }
   // A scheduled story is hidden from listings until its time — but getPost
@@ -169,8 +157,7 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
     <div className="story-page">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* Breadcrumb trail: Home → section listing → this story. Replaces the
-          raw URL under results with a readable path. Archive stories point at
-          /archive; current sections at their listing rewrite. */}
+          raw URL under results with a readable path. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
@@ -178,9 +165,8 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
           { "@type": "ListItem", position: 1, name: "The Sunland Tribune", item: siteUrl },
           {
             "@type": "ListItem", position: 2,
-            name: post.section === "Archive" ? "Archive" : (post.section || "Latest"),
-            item: post.section === "Archive" ? `${siteUrl}/archive`
-              : post.section === "Micro-Memoir" ? `${siteUrl}/micro-memoirs`
+            name: post.section || "Latest",
+            item: post.section === "Micro-Memoir" ? `${siteUrl}/micro-memoirs`
               : post.section === "Narratives" ? `${siteUrl}/narratives`
               : post.section === "Essays" ? `${siteUrl}/essays`
               : `${siteUrl}/latest`,
@@ -198,8 +184,7 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
             internal links that keep /narratives, /essays and /micro-memoirs
             from being orphans now that they left the footer. */}
         <a className="story-label" href={
-          post.section === "Archive" ? "/archive"
-          : post.section === "Narratives" ? "/narratives"
+          post.section === "Narratives" ? "/narratives"
           : post.section === "Essays" ? "/essays"
           : post.section === "Micro-Memoir" ? "/micro-memoirs"
           : "/latest"}>{sectionLabel(post.section)}</a>

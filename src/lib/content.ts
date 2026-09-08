@@ -102,30 +102,6 @@ export async function getAllPostsAdmin(withSearch = false, excludeArchive = fals
   return posts.map(p => straightenPost({ ...p, searchText: text[p.slug] ?? "" }));
 }
 
-// Archive pieces only, for the dashboard's Archive panel.
-export async function getArchivePostsAdmin(): Promise<Post[]> {
-  return sqliteAllPostsAdminLight(false).filter(p => p.section === "Archive").map(straightenPost);
-}
-
-// Public archive listing. The old /archive page pulled full portable-text
-// bodies for every published post via getAllPosts() — thousands of docs — which
-// blew past Sanity's response limits and left the page empty. Here we fetch
-// ONLY archive posts and only their plain text (pt::text), then wrap it in a
-// single synthetic block so the GangreyArchive component (which reads
-// body[].children[].text for search/excerpt/reading-time) works unchanged.
-export async function getArchivePosts(): Promise<Post[]> {
-  // Plain text wrapped in one synthetic block, so the archive page's
-  // search/excerpt/reading-time logic works without parsing thousands of full
-  // portable-text bodies. Scoped to the Archive section (was querying every
-  // published post site-wide) and capped per-post, since list views only ever
-  // show a short excerpt.
-  const text = sqliteBodyTextBySlug(true, "Archive", 200);
-  return sqliteAllPublishedPostsLight().filter(p => p.section === "Archive").map(p => straightenPost({
-    ...p,
-    body: [{ _type: "block", style: "normal", children: [{ _type: "span", text: text[p.slug] ?? "" }] }] as Post["body"],
-  }));
-}
-
 // Newsletter list for the dashboard, server-rendered so drafts appear on first
 // paint instead of popping in after a client fetch. Mirrors the shape returned
 // by /api/newsletter (which the client uses for live refreshes).

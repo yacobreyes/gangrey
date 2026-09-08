@@ -5,8 +5,8 @@ import { listAllUsers } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
-type Panel = "dashboard" | "media" | "comments" | "about" | "subscribers" | "users" | "analytics" | "submissions" | "archive" | "members" | "more" | "calendar";
-const VALID_PANELS: Panel[] = ["dashboard", "media", "comments", "about", "subscribers", "users", "analytics", "submissions", "archive", "members", "more", "calendar"];
+type Panel = "dashboard" | "media" | "comments" | "about" | "subscribers" | "users" | "analytics" | "submissions" | "members" | "more" | "calendar";
+const VALID_PANELS: Panel[] = ["dashboard", "media", "comments", "about", "subscribers", "users", "analytics", "submissions", "members", "more", "calendar"];
 
 export default async function AdminFlatplanPanelPage({ params }: { params: Promise<{ panel: string }> }) {
   const { panel } = await params;

@@ -2,10 +2,7 @@ import { MetadataRoute } from "next";
 import { getPostsLight, getAllIssues } from "@/lib/content";
 
 // Sitemap: the map Google crawls to discover and prioritize pages. Includes
-// the public landing pages (previously missing — only the homepage and stories
-// were listed), every published story, and every issue. Fresh, free stories
-// carry a higher priority than the members-only archive so a young domain's
-// crawl budget favors current work over 3,000+ gated back-catalog URLs.
+// the public landing pages, every published story, and every issue.
 export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -21,7 +18,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticEntries: MetadataRoute.Sitemap = [
     { url: siteUrl, lastModified: new Date(), changeFrequency: "daily", priority: 1 },
     { url: `${siteUrl}/latest`, lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
-    { url: `${siteUrl}/archive`, changeFrequency: "weekly", priority: 0.6 },
     { url: `${siteUrl}/narratives`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${siteUrl}/essays`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${siteUrl}/micro-memoirs`, changeFrequency: "weekly", priority: 0.7 },
@@ -33,17 +29,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/store`, changeFrequency: "monthly", priority: 0.4 },
   ];
 
-  const storyEntries: MetadataRoute.Sitemap = posts.map(p => {
-    const isArchive = p.section === "Archive";
-    return {
-      url: `${siteUrl}/stories/${p.slug}`,
-      lastModified: p._updatedAt ?? p.date,
-      // The recovered archive is members-only and huge; keep it in the map but
-      // at a lower priority than current, free stories.
-      changeFrequency: isArchive ? ("yearly" as const) : ("monthly" as const),
-      priority: isArchive ? 0.4 : 0.8,
-    };
-  });
+  const storyEntries: MetadataRoute.Sitemap = posts.map(p => ({
+    url: `${siteUrl}/stories/${p.slug}`,
+    lastModified: p._updatedAt ?? p.date,
+    changeFrequency: "monthly" as const,
+    priority: 0.8,
+  }));
 
   const issueEntries: MetadataRoute.Sitemap = issues
     .filter(i => i.slug)
@@ -53,20 +44,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly" as const,
       priority: 0.7,
     }));
-
-  // One entry per archive year (/archive/2011) — the crawlable pages that give
-  // the deep archive its internal links. Derived from the posts themselves so
-  // the list can never drift from what actually renders.
-  const years = [...new Set(
-    posts.filter(p => p.section === "Archive" && p.date)
-      .map(p => new Date(p.date).getUTCFullYear())
-      .filter(y => Number.isFinite(y) && y > 1990)
-  )].sort((a, b) => b - a);
-  const yearEntries: MetadataRoute.Sitemap = years.map(y => ({
-    url: `${siteUrl}/archive/${y}`,
-    changeFrequency: "yearly" as const,
-    priority: 0.5,
-  }));
 
   // Author pages: one per Imago writer with a published story.
   let authorEntries: MetadataRoute.Sitemap = [];
@@ -79,5 +56,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
   } catch { /* empty store at build time */ }
 
-  return [...staticEntries, ...yearEntries, ...storyEntries, ...issueEntries, ...authorEntries];
+  return [...staticEntries, ...storyEntries, ...issueEntries, ...authorEntries];
 }

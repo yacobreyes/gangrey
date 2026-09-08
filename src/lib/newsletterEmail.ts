@@ -325,7 +325,7 @@ function renderNewsletterSheet(opts: NlOpts, includeMasthead: boolean, web = fal
   const memberCallout = `<div style="background:${GROUND};padding:0 16px 16px;">
     <div style="background:${GROUND};border:1px solid ${RULE};padding:28px 34px;text-align:center;">
       <p style="font-family:${SERIF};font-size:20px;line-height:1.3;color:#ffffff;margin:0 0 10px;">Keep reading with a membership</p>
-      <p style="font-family:${SERIF};font-size:14px;line-height:1.5;color:${RULE};margin:0 auto 20px;max-width:380px;">Join to read every story in full, unlock the archive, and support narrative nonfiction.</p>
+      <p style="font-family:${SERIF};font-size:14px;line-height:1.5;color:${RULE};margin:0 auto 20px;max-width:380px;">Join to read every story in full and support narrative nonfiction.</p>
       <a href="${SITE_URL}/subscribe" target="_blank" rel="noopener" style="display:inline-block;background:${CRIMSON};color:#ffffff;text-decoration:none;padding:12px 26px;font-family:${FONT};font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;">Become a Member</a>
     </div>
   </div>`;

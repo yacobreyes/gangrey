@@ -22,14 +22,14 @@ const PAID_TIERS: { key: SubscriptionItem; name: string; price: string; per: str
     name: "Monthly Member",
     price: "$8",
     per: "/mo",
-    desc: "Get three issues a year, full access to the archive while subscribed, and discounted tickets to workshops with guest editors and contributors.",
+    desc: "Get three issues a year, full access to every story while subscribed, and discounted tickets to workshops with guest editors and contributors.",
   },
   {
     key: "annual",
     name: "Annual Member",
     price: "$48",
     per: "/yr",
-    desc: "Get three issues a year, full access to the archive, a limited-edition bookmark, and discounted tickets to workshops with guest editors and contributors.",
+    desc: "Get three issues a year, full access to every story, a limited-edition bookmark, and discounted tickets to workshops with guest editors and contributors.",
   },
   {
     key: "founding",

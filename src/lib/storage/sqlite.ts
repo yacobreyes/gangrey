@@ -163,14 +163,22 @@ function migrate(d: any) {
     d.prepare(`UPDATE analytics_events SET byline='Michael Kruse' WHERE byline IN ('kruse','Kruse')`).run();
   } catch { /* best-effort */ }
 
-  // Data fix: the archive rebuild left every recovered story with an opaque
-  // ordinal slug (gangrey-5852). Rewrite them to headline slugs (articles
-  // dropped), which read better in results and carry the story's keywords in
-  // the URL. Each rename leaves a 301 behind via slug_redirects and moves the
-  // slug-keyed data (analytics, counters, comments), so old links and
-  // rankings survive. Idempotent: once renamed, nothing matches the ordinal
-  // pattern and this is a no-op count(*) at boot.
-  try { reslugArchiveOrdinals(d); } catch { /* best-effort */ }
+  // The imported Gangrey archive is retired for good: delete every Archive
+  // post plus its search rows, redirects and slug-keyed versions. Idempotent —
+  // after the first boot nothing matches and these are no-op deletes.
+  try {
+    const slugs = (d.prepare(`SELECT slug FROM posts WHERE section = 'Archive'`).all() as { slug: string }[]).map(r => r.slug);
+    if (slugs.length) {
+      const tx = d.transaction(() => {
+        d.prepare(`DELETE FROM posts_fts WHERE slug IN (SELECT slug FROM posts WHERE section = 'Archive')`).run();
+        d.prepare(`DELETE FROM post_versions WHERE post_id IN (SELECT id FROM posts WHERE section = 'Archive')`).run();
+        d.prepare(`DELETE FROM posts WHERE section = 'Archive'`).run();
+        const del = d.prepare(`DELETE FROM slug_redirects WHERE from_slug = ? OR to_slug = ?`);
+        for (const s of slugs) del.run(s, s);
+      });
+      tx();
+    }
+  } catch { /* best-effort */ }
 
   // Full-text search index over every post (headline/subheadline/byline/section
   // + flattened body). Standalone FTS5 table kept in sync on write; backfilled
@@ -470,7 +478,9 @@ const LIGHT_COLS = `id, slug, section, headline, subheadline, byline, date, stat
   pinned_hero, pinned_top, archive_free, stage, assignee`;
 
 export function sqliteAllPublishedPostsLight(): Post[] {
-  const rows = db().prepare(`SELECT ${LIGHT_COLS} FROM posts WHERE ${PUBLIC_WHERE} ORDER BY date DESC, COALESCE(sort_order, 0) ASC`).all();
+  // The imported Archive section is retired from the public site (the rows
+  // stay in the database as the saved copy) — exclude it from every list.
+  const rows = db().prepare(`SELECT ${LIGHT_COLS} FROM posts WHERE ${PUBLIC_WHERE} AND section != 'Archive' ORDER BY date DESC, COALESCE(sort_order, 0) ASC`).all();
   return rows.map((r: PostRow) => rowToPost({ ...r, body: "[]" }));
 }
 

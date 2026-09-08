@@ -19,8 +19,8 @@ export default function CommentSection({ slug }: { slug: string }) {
 
   useEffect(() => {
     try {
-      const n = localStorage.getItem("efemera_commenter_name"); if (n) setName(n);
-      const em = localStorage.getItem("efemera_commenter_email"); if (em) setEmail(em);
+      const n = localStorage.getItem("sunland_commenter_name"); if (n) setName(n);
+      const em = localStorage.getItem("sunland_commenter_email"); if (em) setEmail(em);
     } catch {}
     fetch(`/api/comments?slug=${encodeURIComponent(slug)}`)
       .then(r => r.json())
@@ -50,8 +50,8 @@ export default function CommentSection({ slug }: { slug: string }) {
       });
       if (res.ok) {
         try {
-          localStorage.setItem("efemera_commenter_name", name.trim());
-          localStorage.setItem("efemera_commenter_email", email.trim());
+          localStorage.setItem("sunland_commenter_name", name.trim());
+          localStorage.setItem("sunland_commenter_email", email.trim());
         } catch {}
         setText("");
         setSubmitted(true);

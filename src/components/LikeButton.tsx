@@ -8,7 +8,7 @@ export default function LikeButton({ slug }: { slug: string }) {
   const pending = useRef(false);
 
   useEffect(() => {
-    setLiked(localStorage.getItem(`efemera_liked_${slug}`) === "1");
+    setLiked(localStorage.getItem(`sunland_liked_${slug}`) === "1");
     fetch(`/api/likes?slug=${encodeURIComponent(slug)}`)
       .then(r => r.json())
       .then(d => { if (d.count !== undefined) setCount(d.count); })
@@ -22,7 +22,7 @@ export default function LikeButton({ slug }: { slug: string }) {
     const delta = newLiked ? 1 : -1;
     setLiked(newLiked);
     setCount(c => c + delta);
-    localStorage.setItem(`efemera_liked_${slug}`, newLiked ? "1" : "0");
+    localStorage.setItem(`sunland_liked_${slug}`, newLiked ? "1" : "0");
     try {
       const res = await fetch("/api/likes", {
         method: "POST",

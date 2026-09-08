@@ -41,7 +41,6 @@ export default function StoryNav() {
           </div>
         )}
       </div>
-      <Link href="/archive" style={linkStyle}>Archive</Link>
     </nav>
   );
 }

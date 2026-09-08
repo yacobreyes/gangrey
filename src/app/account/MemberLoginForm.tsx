@@ -48,7 +48,7 @@ export default function MemberLoginForm() {
     <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 380 }}>
       {notice === "members_only" && (
         <p style={{ ...note, color: "#392a22" }}>
-          That Google account is not a member yet. <a href="/subscribe" style={{ color: "#490000", fontWeight: 700 }}>Subscribe</a> to unlock the archive and member stories.
+          That Google account is not a member yet. <a href="/subscribe" style={{ color: "#490000", fontWeight: 700 }}>Subscribe</a> to unlock member stories.
         </p>
       )}
       {notice === "google_error" && (
