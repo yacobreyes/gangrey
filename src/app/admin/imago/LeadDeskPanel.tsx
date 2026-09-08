@@ -122,7 +122,7 @@ function plainSummary(lead: Lead): string {
     : bigDev ? "a large development" : labels.includes("commercial alteration") ? "a commercial renovation" : "permit activity";
   const who = name ? `${name}: ` : "";
   const status = lead.permits[0]?.status ? ` (${lead.permits[0].status.toLowerCase()})` : "";
-  const when = lead.latestActivity ? ` City activity ${day(lead.latestActivity)}.` : "";
+  const when = lead.newestSourceDate ? ` Filed ${day(lead.newestSourceDate)}.` : "";
   const money = lead.permits.find(p => p.valuation)?.valuation;
   const val = money ? ` Valued at $${Math.round(money).toLocaleString("en-US")}.` : "";
   const own = lead.context?.owner ? ` Property owned by ${lead.context.owner}${lead.context.saleAmt ? `, bought ${lead.context.saleDate ? day(lead.context.saleDate) : ""} for $${Math.round(lead.context.saleAmt).toLocaleString("en-US")}` : ""}.` : "";
@@ -421,7 +421,7 @@ export default function LeadDeskPanel() {
           <option value={0}>Any score</option><option value={4}>Score 4+</option><option value={8}>Score 8+</option><option value={12}>Score 12+</option>
         </select>
         <select value={sort} onChange={e => setSort(e.target.value as "date" | "score")} style={dial}>
-          <option value="date">Latest city activity first</option><option value="score">Highest score first</option>
+          <option value="date">Newest filed first</option><option value="score">Highest score first</option>
         </select>
         <label style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: FONT, fontSize: "0.8rem", color: TEXT_MUTED, cursor: "pointer" }}>
           <input type="checkbox" checked={showDone} onChange={e => setShowDone(e.target.checked)} /> Show finished
@@ -454,7 +454,7 @@ export default function LeadDeskPanel() {
                       {!lead.completed && lead.stale && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#6e6e73" }}>OLD PERMIT</span>}
                     </span>
                     <span style={{ display: "block", fontSize: "0.8rem", color: TEXT_MUTED, marginTop: 2 }}>
-                      {lead.jurisdiction}{lead.jurisdiction ? " · " : ""}{lead.permitCount} permit{lead.permitCount === 1 ? "" : "s"}{lead.latestActivity ? ` · city activity ${day(lead.latestActivity)}` : ""}{lead.newestSourceDate && lead.newestSourceDate !== lead.latestActivity ? ` (filed ${day(lead.newestSourceDate)})` : ""} · collected {day(lead.firstSeen)}{topVal > 0 ? ` · ${money(topVal)}` : ""}
+                      {lead.jurisdiction}{lead.jurisdiction ? " · " : ""}{lead.permitCount} permit{lead.permitCount === 1 ? "" : "s"}{lead.newestSourceDate ? ` · filed ${day(lead.newestSourceDate)}` : ""}{lead.latestActivity && lead.latestActivity !== lead.newestSourceDate ? ` (updated ${day(lead.latestActivity)})` : ""} · collected {day(lead.firstSeen)}{topVal > 0 ? ` · ${money(topVal)}` : ""}
                     </span>
                     <span style={{ display: "block", fontSize: "0.82rem", color: TEXT_DARK, marginTop: 5, lineHeight: 1.4 }}>
                       {plainSummary(lead)}

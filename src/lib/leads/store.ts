@@ -510,10 +510,13 @@ export function getQueue(f: QueueFilter = {}) {
   // Default sort: newest city (filed/issued) date first, score as tiebreak —
   // the queue reads as "what just happened", not "what we ingested when".
   // sort=score flips to score-first with city date as tiebreak.
+  // Default order: newest FILED first (the application/issued date the city
+  // recorded), score as tiebreak. The feed's own update stamp is shown but
+  // does not drive the order — new plans are the story, not paperwork touches.
   if (f.sort === "score") {
-    leads.sort((a, b) => b.topScore - a.topScore || String(b.latestActivity).localeCompare(String(a.latestActivity)));
+    leads.sort((a, b) => b.topScore - a.topScore || String(b.newestSourceDate).localeCompare(String(a.newestSourceDate)));
   } else {
-    leads.sort((a, b) => String(b.latestActivity).localeCompare(String(a.latestActivity)) || b.topScore - a.topScore);
+    leads.sort((a, b) => String(b.newestSourceDate).localeCompare(String(a.newestSourceDate)) || b.topScore - a.topScore);
   }
   // Attach stored parcel context (owner, DBA, values, last sale) to each lead.
   const keys = leads.slice(0, 200).map(l => l.clusterKey);
