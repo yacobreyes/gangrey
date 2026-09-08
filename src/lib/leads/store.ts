@@ -373,7 +373,7 @@ export function collectState() {
 
 // ---------- queue ----------
 
-export type QueueFilter = { sinceDays?: number; onlyNew?: boolean; onlyChanged?: boolean; restaurants?: boolean; development?: boolean; uncovered?: boolean; minScore?: number; source?: SourceId; sort?: "score" | "date" };
+export type QueueFilter = { sinceDays?: number; onlyNew?: boolean; onlyChanged?: boolean; restaurants?: boolean; development?: boolean; uncovered?: boolean; includeDone?: boolean; minScore?: number; source?: SourceId; sort?: "score" | "date" };
 
 const RESTAURANT_RE = /restaurant|cafe|café|coffee|\bbar\b|brewery|taproom|pizza|grill|kitchen|hood|grease|ansul|drive.?thr|assembly|food/i;
 const DEVELOPMENT_RE = /new construction|addition|demolition|mixed.?use|multifamily|multi-family|apartments|hotel|tower|warehouse/i;
@@ -471,6 +471,9 @@ export function getQueue(f: QueueFilter = {}) {
         whatChanged: p.changed_at && String(p.changed_at) >= since ? describeChange(String(p.uid)) : "",
       })),
     };
+    // Finished projects are history, not leads — out of the queue unless
+    // explicitly asked for.
+    if (completed && !f.includeDone) continue;
     if (f.onlyNew && !lead.isNew) continue;
     if (f.onlyChanged && !lead.isChanged) continue;
     if (f.minScore != null && lead.topScore < f.minScore) continue;

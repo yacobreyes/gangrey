@@ -98,6 +98,7 @@ export default function LeadDeskPanel() {
   const [days, setDays] = useState(7);
   const [sort, setSort] = useState<"date" | "score">("date");
   const [area, setArea] = useState<"" | SourceId>("");
+  const [showDone, setShowDone] = useState(false);
   const [collecting, setCollecting] = useState(false);
   const [status, setStatus] = useState("");
   const [open, setOpen] = useState<string | null>(null);
@@ -114,11 +115,12 @@ export default function LeadDeskPanel() {
     if (minScore > 0) params.set("minScore", String(minScore));
     params.set("sort", sort);
     if (area) params.set("source", area);
+    if (showDone) params.set("done", "1");
     try {
       const r = await fetch(`/api/admin/leads/queue?${params}`, { cache: "no-store" });
       if (r.ok) setData(await r.json());
     } catch { /* keep last good queue */ }
-  }, [filter, minScore, days, sort, area]);
+  }, [filter, minScore, days, sort, area, showDone]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -229,8 +231,14 @@ export default function LeadDeskPanel() {
   // strongest signals, server-side, cached 24h per cluster.
   async function checkCoverage(lead: Lead) {
     setCoverage(c => ({ ...c, [lead.clusterKey]: { loading: true } }));
-    const brand = lead.reasons.map(r => r[1]).find(l => /^[A-Z]/.test(l)); // brand labels are capitalized
-    const query = `"${lead.address}" OR ("${(brand || lead.permits[0]?.recordType || "development")}" "${lead.address.split(" ").slice(0, 3).join(" ")}") Tampa`;
+    // News stories name the project ("Drury Plaza Hotel"), not the address —
+    // search the name-ish tokens (brand, owner's distinctive word) plus the
+    // street, with the bare address as a fallback clause.
+    const brand = lead.reasons.map(r => r[1]).find(l => /^[A-Z]/.test(l) && l !== "Ansul system");
+    const street = lead.address.replace(/^[0-9-]+\s*/, "").split(" ").slice(0, 3).join(" ");
+    const ownerWord = (lead.context?.owner ?? "").split(/\s+/).find(w => w.length > 3 && !/^(THE|LLC|INC|CORP|CORPORATION|COMPANY|TRUST|FAMILY|GROUP|HOLDINGS|PROPERTIES|DEVELOPMENT)$/i.test(w)) ?? "";
+    const nameClauses = [brand, ownerWord].filter(Boolean).map(n => `("${n}" "${street}")`);
+    const query = [...nameClauses, `"${lead.address}"`].join(" OR ") + " Tampa";
     try {
       const r = await fetch("/api/admin/leads/coverage", {
         method: "POST", headers: { "content-type": "application/json" },
@@ -349,6 +357,9 @@ export default function LeadDeskPanel() {
         <select value={days} onChange={e => setDays(Number(e.target.value))} style={{ fontFamily: FONT, fontSize: "0.8rem", padding: "0.35rem 0.5rem", borderRadius: 8, border: `1px solid ${BORDER}`, background: "white", color: TEXT_DARK }}>
           <option value={1}>Today</option><option value={3}>3 days</option><option value={7}>7 days</option><option value={30}>30 days</option><option value={90}>90 days</option><option value={180}>6 months</option>
         </select>
+        <label style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: FONT, fontSize: "0.8rem", color: TEXT_MUTED, cursor: "pointer" }}>
+          <input type="checkbox" checked={showDone} onChange={e => setShowDone(e.target.checked)} /> Show finished
+        </label>
         {data && (
           <span style={{ fontSize: "0.8rem", color: TEXT_MUTED, marginLeft: "auto" }}>
             {data.total.toLocaleString()} projects · <strong style={{ color: CRIMSON }}>{data.bands.high} high priority</strong> · {data.bands.watch} watch
