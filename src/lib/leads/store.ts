@@ -10,7 +10,7 @@ import path from "path";
 // and serves the ranked queue. Schemas are the VERIFIED ones in
 // docs/TAMPA_PERMIT_SOURCES.md — no guessed field names.
 
-export type SourceId = "tampa" | "hcfl" | "hcdev";
+export type SourceId = "tampa" | "hcfl" | "hcdev" | "tampaent";
 
 const DATA_DIR = () => process.env.DATA_DIR || path.join(process.cwd(), "data");
 
@@ -250,23 +250,52 @@ const HCDEV_TYPES: Record<string, string> = {
 function normHcdev(r: Raw): Norm | null {
   const id = s(r.RecordNum) || s(r.globalid);
   if (!id) return null;
-  const ptype = HCDEV_TYPES[s(r.ProjectType)] ?? s(r.ProjectType);
+  // Live rows: ProjectType is sometimes a plain "Residential"/"Commercial"
+  // outside the coded list; the sub-type fields say what kind.
+  const ptype = [
+    (HCDEV_TYPES[s(r.ProjectType)] ?? s(r.ProjectType)).toLowerCase(),
+    s(r.CommercialType), s(r.ResidentialType), s(r.IndustrialType), s(r.OtherType), s(r.MajorUse),
+  ].filter(Boolean).join(" / ").toLowerCase();
   const name = s(r.ProjectName) || s(r.ICPName);
-  const contact = [[s(r.ContactFirst), s(r.ContactLast)].filter(Boolean).join(" "), s(r.ContactPhone), s(r.ContactEmail)].filter(Boolean).join(" · ");
+  // ReviewStatus is often null on live rows; dbstatus carries the working state.
+  const status = s(r.ReviewStatus) || s(r.status) || s(r.dbstatus);
+  const phone = s(r.ContactPhone) || s(r.ContactPhone2) || s(r.ContactPhone3);
+  const contact = [[s(r.ContactFirst), s(r.ContactLast)].filter(Boolean).join(" "), phone, s(r.ContactEmail)].filter(Boolean).join(" · ");
   return {
     uid: `hcdev:${id}`, permit_no: s(r.RecordNum) || "plan",
     record_type: [s(r.ApplicationType), ptype ? `${ptype} plan` : ""].filter(Boolean).join(" - "),
     type2: s(r.ApplicationGroup),
     description: [name, s(r.description), s(r.Comments)].filter(Boolean).join(" - "),
-    address: [s(r.Address) || [s(r.RoadPrefix), s(r.RoadName), s(r.RoadType)].filter(Boolean).join(" ")].filter(Boolean).join(" "),
+    address: s(r.Address) || s(r.RoadFullName) || [s(r.RoadPrefix), s(r.RoadName), s(r.RoadType), s(r.RoadSuffix)].filter(Boolean).join(" "),
     jurisdiction: s(r.City) ? `${s(r.City)} (plan)` : "Hillsborough (plan)",
-    parcel: s(r.ParentFolio) || s(r.folio), status: s(r.ReviewStatus) || s(r.status),
+    parcel: s(r.ParentFolio) || s(r.folio), status,
     occupancy: ptype, stop_work: 0,
     valuation: null, sq_ft: num(r.FootageProposedBldg) ?? num(r.FootageTotal), units: num(r.TotalResUnits) ?? num(r.LotsTotal),
     neighborhood: "", council: "", cra: "",
     issued_date: epochToDay(r.ReviewApprovalDate), created_date: epochToDay(r.SubmissionDate),
     source_updated: epochToDay(r.ApplicationStatusDate) || epochToDay(r.EditDate),
     link: s(r.hillsgovhub), contact, is_plan: true,
+  };
+}
+
+// City of Tampa Planning/ActiveEntitlementLocations layer 0 (verified):
+// rezonings, special-use cases (including alcoholic beverage sales),
+// variances, vacatings — application-stage, with tentative hearing dates.
+function normTampaEnt(r: Raw): Norm | null {
+  const id = s(r.RECORDID);
+  if (!id) return null;
+  const kind = s(r.MAPDOT);
+  const hearing = [s(r.TENTATIVEHEARING), s(r.TENTATIVETIME)].filter(Boolean).join(" ");
+  return {
+    uid: `tampaent:${id}`, permit_no: id,
+    record_type: kind ? `${kind} (city case)` : "City entitlement case", type2: kind,
+    description: [s(r.RECORDALIAS), kind, hearing ? `Tentative hearing ${hearing}` : ""].filter(Boolean).join(" - "),
+    address: [s(r.ADDRESS), s(r.UNIT)].filter(Boolean).join(" "), jurisdiction: "Tampa (case)",
+    parcel: "", status: s(r.APPSTATUS), occupancy: kind.toLowerCase(), stop_work: 0,
+    valuation: null, sq_ft: null, units: null,
+    neighborhood: s(r.NEIGHBORHOOD), council: s(r.COUNCILDISTRICT), cra: s(r.CRA),
+    issued_date: "", created_date: epochToDay(r.CREATEDDATE), source_updated: epochToDay(r.LASTUPDATE),
+    link: s(r.URL), contact: "", is_plan: true,
   };
 }
 
@@ -283,12 +312,20 @@ function scoreRecord(n: Norm, isCo = false): { score: number; reasons: [number, 
   if (n.is_plan) {
     // Development review applications: the coded use type is authoritative.
     const t = n.occupancy;
-    if (/hotel/.test(t)) reasons.push([7, "hotel plan filed"]);
+    if (/alcoholic beverage/.test(t)) reasons.push([6, "alcohol sales case: new bar or restaurant"]);
+    else if (/rezoning/.test(t)) reasons.push([4, "rezoning filed"]);
+    else if (/vacating/.test(t)) reasons.push([3, "street vacating: site assembly"]);
+    else if (/general land use/.test(t)) reasons.push([3, "land use case filed"]);
+    else if (/special use/.test(t)) reasons.push([3, "special use case filed"]);
+    else if (/variance|design exception|formal decision/.test(t)) reasons.push([1, `${t} filed`]);
+    else if (/hotel/.test(t)) reasons.push([7, "hotel plan filed"]);
     else if (/retail\/restaurant/.test(t)) reasons.push([6, "retail/restaurant plan filed"]);
     else if (/mixed use/.test(t)) reasons.push([5, "mixed-use plan filed"]);
     else if (/multifamily|condo/.test(t)) reasons.push([4, "multifamily plan filed"]);
     else if (/commercial|industrial|warehouse|medical|professional|automotive|financial|senior|recreational/.test(t)) reasons.push([3, `${t} plan filed`]);
-    else if (/single-family|mobile homes/.test(t)) reasons.push([1, `${t} plan filed`]);
+    else if (/restaurant|bar\b|brewery|food/.test(t)) reasons.push([6, "restaurant-type plan filed"]);
+    else if (/single-family|mobile home|^residential/.test(t)) reasons.push([1, "residential plan filed"]);
+    else if (/^commercial/.test(t)) reasons.push([3, "commercial plan filed"]);
     if (n.units != null && n.units >= 200) reasons.push([3, `${Math.round(n.units)} units`]);
     else if (n.units != null && n.units >= 50) reasons.push([2, `${Math.round(n.units)} units`]);
     if (/in review|resubmit/i.test(n.status)) reasons.push([1, "in review now"]);
@@ -372,7 +409,7 @@ export function ingestRecords(source: SourceId, records: Raw[]): IngestSummary {
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, `${hash.slice(0, 12)}-${source}.json`), buf);
 
-  const norm = source === "tampa" ? normTampa : source === "hcdev" ? normHcdev : normHcfl;
+  const norm = source === "tampa" ? normTampa : source === "hcdev" ? normHcdev : source === "tampaent" ? normTampaEnt : normHcfl;
   let inserted = 0, changed = 0, unchanged = 0, skipped = 0;
 
   const getStmt = db.prepare(`SELECT * FROM permits WHERE uid = ?`);
@@ -408,7 +445,7 @@ export function ingestRecords(source: SourceId, records: Raw[]): IngestSummary {
         for (const f of TRACKED) if (merged[f] === "" || merged[f] === null) merged[f] = existing[f] ?? merged[f];
         // Re-score on the merged values, so a blank description in a later
         // export doesn't strip the restaurant signals it scored on before.
-        const s2 = scoreRecord({ ...(merged as unknown as Norm), is_plan: source === "hcdev" }, isCo);
+        const s2 = scoreRecord({ ...(merged as unknown as Norm), is_plan: source === "hcdev" || source === "tampaent" }, isCo);
         merged.score = s2.score;
         merged.score_reasons = JSON.stringify(s2.reasons);
         updStmt.run(merged);
@@ -441,6 +478,7 @@ export function collectState() {
     tampa: { lastCollect: get("last_collect_tampa"), since: sinceFor("last_collect_tampa") },
     hcfl: { lastCollect: get("last_collect_hcfl"), since: sinceFor("last_collect_hcfl") },
     hcdev: { lastCollect: get("last_collect_hcdev"), since: sinceFor("last_collect_hcdev") },
+    tampaent: { lastCollect: get("last_collect_tampaent"), since: sinceFor("last_collect_tampaent") },
   };
 }
 
@@ -545,7 +583,7 @@ export function getQueue(f: QueueFilter = {}) {
         recordType: String(p.record_type || p.type2 || ""), description: String(p.description ?? "").slice(0, 220),
         status: String(p.status ?? ""), valuation: (p.valuation as number | null) ?? null,
         stopWork: Number(p.stop_work ?? 0) === 1, link: String(p.link ?? ""),
-        contact: String(p.contact ?? ""), isPlan: String(p.source) === "hcdev",
+        contact: String(p.contact ?? ""), isPlan: String(p.source) === "hcdev" || String(p.source) === "tampaent",
         firstSeenAt: String(p.first_seen_at), changedAt: p.changed_at ? String(p.changed_at) : null,
         whatChanged: p.changed_at && String(p.changed_at) >= since ? describeChange(String(p.uid)) : "",
       })),

@@ -26,6 +26,13 @@ const FEEDS = {
   },
   // Development review applications as SUBMITTED (site plans, subdivisions):
   // the county's "new plans filed" feed, months ahead of any permit.
+  // City rezonings, special-use (incl. alcohol sales), variances, vacatings:
+  // application-stage with tentative hearing dates.
+  tampaent: {
+    label: "City cases filed",
+    layer: "https://arcgis.tampagov.net/arcgis/rest/services/Planning/ActiveEntitlementLocations/FeatureServer/0",
+    dateField: "LASTUPDATE",
+  },
   hcdev: {
     label: "County plans filed",
     layer: "https://services.arcgis.com/apTfC6SUmnNfnxuF/ArcGIS/rest/services/Site-Subdivision_DevReview_View/FeatureServer/0",
@@ -126,7 +133,8 @@ function plainSummary(lead: Lead): string {
   const food = labels.some(l => /restaurant|cafe|coffee|bar|brewery|pizza|grill|kitchen|drive-through|hood|grease|Ansul/i.test(l));
   const bigDev = labels.some(l => /large development|major project|new construction|> \d/.test(l));
   const planLabel = labels.find(l => l.endsWith("plan filed"));
-  const kind = planLabel ? `a ${planLabel.replace(" plan filed", "")} development plan filed with the county` : remodel ? "an existing business remodeling" : labels.includes("commercial new construction") ? "new construction"
+  const caseLabel = labels.find(l => /case|rezoning filed|vacating|land use case/.test(l));
+  const kind = caseLabel ? `a city ${caseLabel.replace(/ filed$/, "")}` : planLabel ? `a ${planLabel.replace(" plan filed", "")} development plan filed with the county` : remodel ? "an existing business remodeling" : labels.includes("commercial new construction") ? "new construction"
     : labels.includes("commercial demolition") ? "a demolition" : food ? (labels.includes("tenant buildout") ? "a restaurant buildout" : "restaurant-related work")
     : bigDev ? "a large development" : labels.includes("commercial alteration") ? "a commercial renovation" : "permit activity";
   const who = name ? `${name}: ` : "";
@@ -251,7 +259,7 @@ export default function LeadDeskPanel() {
     try {
       const state: Record<SourceId, { since: string }> = await (await fetch("/api/admin/leads/state", { cache: "no-store" })).json();
       const backfillSince = backfillDays ? new Date(Date.now() - backfillDays * 86400_000).toISOString().slice(0, 10) : null;
-      for (const id of ["hcdev", "hcfl", "tampa"] as SourceId[]) {
+      for (const id of ["tampaent", "hcdev", "hcfl", "tampa"] as SourceId[]) {
         try { results.push(await collectFeed(id, backfillSince ?? state[id].since)); }
         catch (e) { results.push(`${FEEDS[id].label}: failed (${e instanceof Error ? e.message : e})`); }
       }
@@ -389,7 +397,7 @@ export default function LeadDeskPanel() {
           <h1 className="admin-h1">Lead Desk</h1>
           <p className="admin-sub">
             {data?.state?.hcfl?.lastCollect || data?.state?.tampa?.lastCollect
-              ? `Collected: Tampa ${data.state.tampa.lastCollect ? day(data.state.tampa.lastCollect) : "never"} · County ${data.state.hcfl.lastCollect ? day(data.state.hcfl.lastCollect) : "never"} · County plans ${data.state.hcdev?.lastCollect ? day(data.state.hcdev.lastCollect) : "never"}`
+              ? `Collected: Tampa ${data.state.tampa.lastCollect ? day(data.state.tampa.lastCollect) : "never"} · County ${data.state.hcfl.lastCollect ? day(data.state.hcfl.lastCollect) : "never"} · County plans ${data.state.hcdev?.lastCollect ? day(data.state.hcdev.lastCollect) : "never"} · City cases ${data.state.tampaent?.lastCollect ? day(data.state.tampaent.lastCollect) : "never"}`
               : "First collection pulls the last 30 days from both public permit feeds."}
           </p>
         </div>
@@ -424,7 +432,7 @@ export default function LeadDeskPanel() {
           <option value={1}>Today</option><option value={3}>Last 3 days</option><option value={7}>Last 7 days</option><option value={30}>Last 30 days</option><option value={90}>Last 90 days</option><option value={180}>Last 6 months</option>
         </select>
         <select value={area} onChange={e => setArea(e.target.value as "" | SourceId)} style={dial}>
-          <option value="">All sources</option><option value="hcdev">County plans filed</option><option value="hcfl">County permits</option><option value="tampa">City of Tampa permits</option>
+          <option value="">All sources</option><option value="tampaent">City cases filed</option><option value="hcdev">County plans filed</option><option value="hcfl">County permits</option><option value="tampa">City of Tampa permits</option>
         </select>
         <select value={minScore} onChange={e => setMinScore(Number(e.target.value))} style={dial}>
           <option value={0}>Any score</option><option value={4}>Score 4+</option><option value={8}>Score 8+</option><option value={12}>Score 12+</option>

@@ -146,6 +146,22 @@ describe("lead desk pipeline", () => {
     expect(lead.permits[0].isPlan).toBe(true);
   });
 
+  it("live county plan rows: dbstatus, road parts and phone fallbacks are honored", () => {
+    ingestRecords("hcdev", [{
+      objectid: 34492, globalid: "d244db35", RecordNum: "HC-STRCON-26-0000161", ProjectName: "Thonotosassa Rd FWH Phase 2",
+      ApplicationType: "Straight-to-Construction", ProjectType: "Residential", ResidentialType: "Mobile Home",
+      Address: null, RoadPrefix: null, RoadName: "Thonotosassa", RoadType: "Rd", City: "Dover", ParentFolio: "081364.0500", folio: "0813640500",
+      ReviewStatus: null, status: null, dbstatus: "In Progress", SubmissionDate: Date.now() - 2 * 86400_000, ApplicationStatusDate: Date.now() - 2 * 86400_000,
+      EditDate: Date.now() - 86400_000, ContactFirst: "Christopher", ContactLast: "McNeal", ContactPhone: null, ContactPhone3: "8139681081",
+      ContactEmail: "permitting@example.com", description: "6 FWH units with associated access & utility infrastructure.", hillsgovhub: "https://example/x",
+    }]);
+    const lead = getQueue({ source: "hcdev", minScore: 0 }).leads.find(l => l.address === "Thonotosassa Rd")!;
+    expect(lead).toBeTruthy();
+    expect(lead.permits[0].status).toBe("In Progress");
+    expect(lead.permits[0].contact).toContain("8139681081");
+    expect(lead.topScore).toBeLessThanOrEqual(3); // residential plan: low
+  });
+
   it("identical batches are refused by hash", () => {
     const rows = [tampaRow({ RECORD_ID: "BDE-26-0700000" })];
     ingestRecords("tampa", rows);

@@ -179,3 +179,22 @@ CRACommercialInitiative, LiveLocalAct, PermitsAll, PlanningViewer,
 SingleFamilyPermits, TampaCRAInitiatives, TreePermits. Next to verify:
 ActiveEntitlementLocations (city plans filed) and AlcoholBeverage (alcohol
 permit applications precede new bars/restaurants).
+
+Live-row caveats for Source 6 (from Sept 2026 samples): ReviewStatus is often
+null and dbstatus ("In Progress", "Awaiting Client") carries the working
+state; ProjectType can be a plain "Residential"/"Commercial" outside the
+coded list, with ResidentialType/CommercialType giving the kind; Address is
+often null with the street in RoadPrefix/RoadName/RoadType; ContactPhone is
+often null with the number in ContactPhone2/3. SubmissionDate is current.
+
+## Source 7 — City of Tampa Planning/ActiveEntitlementLocations (VERIFIED; "city cases")
+
+Base: https://arcgis.tampagov.net/arcgis/rest/services/Planning/ActiveEntitlementLocations/FeatureServer/0
+Point layer, dates in America/New_York. Fields: RECORDID (Accela case
+number), ADDRESS/UNIT, APPSTATUS, TENTATIVEHEARING + TENTATIVETIME (strings),
+RECORDALIAS, MAPDOT (case type: Rezoning, Special Use Cases, Special Use
+Cases - Alcoholic Beverage Sales, Variances, Vacating, Design Exceptions,
+General Land Use, Formal Decision), CRA, NEIGHBORHOOD, COUNCILDISTRICT,
+CREATEDDATE, LASTUPDATE, URL (Accela link). No free-text description.
+Ingested as source "tampaent"; alcohol-sales cases score as new bar/
+restaurant signals; hearing dates go into the description.
