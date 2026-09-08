@@ -62,7 +62,7 @@ describe("lead desk pipeline", () => {
   it("changes are versioned and blanks never clobber", () => {
     const s = ingestRecords("tampa", [tampaRow({ PROJECTSTATUS: "Complete", PROJECTDESCRIPTION: "", PROJECTNAME2: "", LASTUPDATE: 1788652800000 })]);
     expect(s.changed).toBe(1);
-    const q = getQueue({ onlyChanged: true });
+    const q = getQueue({ onlyChanged: true, includeDone: true });
     const p = q.leads[0].permits.find(x => x.permitNo === "BDE-26-0500001")!;
     expect(p.status).toBe("Complete");
     expect(p.description).toContain("Tenant buildout"); // blank did not clobber
@@ -80,11 +80,13 @@ describe("lead desk pipeline", () => {
       STATUS_1: "Complete", DESCRIPTION: "New 8 story 210 room hotel",
       ISSUED_DATE: Date.now() - 500 * 86400_000, COMBINED_DATE: Date.now() - 500 * 86400_000,
     })]);
-    const lead = getQueue({}).leads.find(l => l.address === "9999 Drury Ln")!;
+    const lead = getQueue({ includeDone: true }).leads.find(l => l.address === "9999 Drury Ln")!;
     expect(lead).toBeTruthy();
     expect(lead.isNew).toBe(false);
     expect(lead.completed).toBe(true);
     expect(lead.stale).toBe(true);
+    // and by default a finished project is not in the queue at all
+    expect(getQueue({}).leads.some(l => l.address === "9999 Drury Ln")).toBe(false);
     expect(getQueue({ onlyNew: true }).leads.some(l => l.address === "9999 Drury Ln")).toBe(false);
   });
 
