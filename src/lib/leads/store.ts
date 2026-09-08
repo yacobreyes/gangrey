@@ -274,6 +274,16 @@ function scoreRecord(n: Norm, isCo = false): { score: number; reasons: [number, 
   let score = reasons.reduce((sum, [p]) => sum + p, 0);
   // Plain residential noise never outranks commercial leads.
   if (residential && score > 3 && !reasons.some(([, l]) => l === "stop work order")) score = 3;
+  // A remodel of an EXISTING business is not a new business coming. New-tenant
+  // permits say buildout / tenant improvement / change of use / shell / vacant;
+  // remodels say remodel / renovation / refresh / existing. Cap the latter
+  // unless something newsy is present.
+  const remodelOfExisting = /remodel|renovat|refresh|re-?imag|existing (restaurant|tenant|business|space|store)|interior (update|upgrade)/.test(hay)
+    && !/build.?out|tenant improvement|change of (use|occupancy)|\bshell\b|white box|vacant|first generation|new (restaurant|tenant|business|store|location)/.test(hay);
+  if (remodelOfExisting && !reasons.some(([, l]) => l === "stop work order" || l === "commercial new construction") && score > 3) {
+    score = 3;
+    reasons.push([0, "remodel of an existing business (score capped)"]);
+  }
   // Maintenance work (repairs, re-pipes, water heaters...) is never a lead.
   const maintenance = cfg.maintenanceSignals.some(p => { try { return new RegExp(p, "i").test(hay); } catch { return false; } });
   const newsyAnyway = reasons.some(([, l]) => l === "stop work order" || l === "commercial new construction")

@@ -80,12 +80,14 @@ const day = (iso: string) => iso ? new Date(iso).toLocaleDateString("en-US", { m
 // capitalized; the description's first segment is often the project name
 // ("Dutch Bros Coffee - NEW CONSTRUCTION FOR...").
 function leadTitle(lead: Lead): string {
+  // The permit's own project name is what the work IS; the parcel's DBA is
+  // only where it is (a hotel's DBA on a ground-floor tenant's remodel).
   const brand = lead.reasons.map(r => r[1]).find(l => /^[A-Z]/.test(l) && !/^(Ansul)/.test(l));
   if (brand) return brand;
-  if (lead.context?.dba) return lead.context.dba;
   const desc = lead.permits.map(p => p.description).find(Boolean) ?? "";
   const first = desc.split(" - ")[0].trim();
-  if (first && first.length <= 48 && !/^(new construction|demolition|interior|tenant|commercial|residential)/i.test(first)) return first;
+  if (first && first.length <= 48 && !/^(new construction|demolition|interior|tenant|commercial|residential|remodel|renovation)/i.test(first)) return first;
+  if (lead.context?.dba) return `Work at ${lead.context.dba}`;
   return lead.permits[0]?.recordType || "Project";
 }
 
@@ -409,7 +411,7 @@ export default function LeadDeskPanel() {
                       <span style={{ display: "block", fontSize: "0.78rem", color: "#3a5a40", marginTop: 4 }}>
                         {[
                           lead.context.owner ? `Owner: ${lead.context.owner}` : "",
-                          lead.context.dba ? `DBA: ${lead.context.dba}` : "",
+                          lead.context.dba ? `Property: ${lead.context.dba}` : "",
                           lead.context.justValue ? `Appraised ${money(lead.context.justValue)}` : "",
                           lead.context.saleAmt ? `Last sale ${money(lead.context.saleAmt)}${lead.context.saleDate ? ` (${lead.context.saleDate.slice(0, 4)})` : ""}` : "",
                           lead.context.yearBuilt ? `Built ${lead.context.yearBuilt}` : "",

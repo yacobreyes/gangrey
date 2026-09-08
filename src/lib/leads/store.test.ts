@@ -102,6 +102,18 @@ describe("lead desk pipeline", () => {
     expect(getQueue({ restaurants: true }).leads.some(l => l.address === "12 Leak Ln")).toBe(false);
   });
 
+  it("a remodel of an existing restaurant is capped; a new tenant buildout is not", () => {
+    ingestRecords("tampa", [
+      tampaRow({ RECORD_ID: "BDE-26-0800001", ADDRESS: "1050 Water St", PROJECTNAME2: "Wagamama", PROJECTDESCRIPTION: "Interior remodel of existing restaurant, bar refresh, new finishes" }),
+      tampaRow({ RECORD_ID: "BDE-26-0800002", ADDRESS: "77 New Tenant Way", PROJECTNAME2: "Suite 100", PROJECTDESCRIPTION: "Tenant buildout for new restaurant with bar, hood and Ansul in vacant shell" }),
+    ]);
+    const remodel = getQueue({}).leads.find(l => l.address === "1050 Water St")!;
+    const buildout = getQueue({}).leads.find(l => l.address === "77 New Tenant Way")!;
+    expect(remodel.topScore).toBeLessThanOrEqual(3);
+    expect(remodel.reasons.map(r => r[1])).toContain("remodel of an existing business (score capped)");
+    expect(buildout.topScore).toBeGreaterThanOrEqual(10);
+  });
+
   it("identical batches are refused by hash", () => {
     const rows = [tampaRow({ RECORD_ID: "BDE-26-0700000" })];
     ingestRecords("tampa", rows);
