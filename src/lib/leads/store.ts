@@ -438,7 +438,9 @@ function scoreRecord(n: Norm, isCo = false, existingName = ""): { score: number;
     // An old, active, unchanged license is a registry entry (used to recognize
     // existing businesses), not a lead in itself.
     const licensed = n.created_date || n.issued_date;
-    const longStanding = licensed && Date.parse(licensed) < Date.now() - 180 * 86400_000;
+    // No permit date at all means unknown age: treat as long-standing, since
+    // every genuinely new license carries an ordinance or placard date.
+    const longStanding = !licensed || Date.parse(licensed) < Date.now() - 180 * 86400_000;
     if (longStanding && /^active$/i.test(n.status) && !/suspended|revoked/i.test(n.description)) {
       return { score: 1, reasons: [[0, "long-standing license (registry entry)"]] };
     }
@@ -708,7 +710,7 @@ export function getQueue(f: QueueFilter = {}) {
     // backfill) is activity, not news of something coming.
     const isNew = permits.some(p => String(p.first_seen_at) >= since)
       && !completed && !stale
-      && (!newestSourceDate || newestSourceDate >= freshCutoff);
+      && !!newestSourceDate && newestSourceDate >= freshCutoff;
     const isChanged = permits.some(p => p.changed_at && String(p.changed_at) >= since);
     const reasons: [number, string][] = [];
     const seen = new Set<string>();

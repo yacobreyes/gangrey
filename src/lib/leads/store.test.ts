@@ -212,6 +212,18 @@ describe("lead desk pipeline", () => {
     expect(getQueue({ minScore: 0 }).leads.some(l => l.address === "2 Dale Mabry Hwy")).toBe(true);
   });
 
+  it("an undated old alcohol license is a registry entry, never NEW", () => {
+    ingestRecords("tampaab", [{
+      OBJECTID: 77, APP_NUM: "V09-0012", BUS_NAME: "Ichiban Sushi", AB_CLASS_PREFIX: "Restaurant (COP-Only)",
+      HISTORY_ACTION: "Active", PERMIT_ADDR: "5 Old Sushi Ln", ORD_LTR_DT: null, PLACARD_DT: null, CREATEDATE: null,
+      LASTUPDATE: Date.now() - 86400_000,
+    }]);
+    const lead = getQueue({ minScore: 0, source: "tampaab" }).leads.find(l => l.address === "5 Old Sushi Ln")!;
+    expect(lead).toBeTruthy();
+    expect(lead.isNew).toBe(false);
+    expect(lead.topScore).toBeLessThanOrEqual(1);
+  });
+
   it("identical batches are refused by hash", () => {
     const rows = [tampaRow({ RECORD_ID: "BDE-26-0700000" })];
     ingestRecords("tampa", rows);
