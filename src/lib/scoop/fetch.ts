@@ -8,10 +8,17 @@ import { importReport, type ImportSummary } from "./import";
 // never breaks the fetcher.
 type CkanResource = { id?: string; url?: string; format?: string; last_modified?: string; name?: string };
 
+// CivicData sits behind a WAF that 403s the default Node fetch UA. Identify
+// ourselves like a normal client (and honestly, with a contact URL).
+const FETCH_HEADERS = {
+  "user-agent": "Mozilla/5.0 (compatible; SunlandScoop/1.0; +https://www.gangrey.org)",
+  accept: "application/json, text/csv, */*",
+} as const;
+
 export async function fetchLatestReport(): Promise<ImportSummary & { resourceUrl?: string }> {
   const cfg = scoopConfig();
   const metaUrl = `${cfg.ckanBase}/api/3/action/package_show?id=${encodeURIComponent(cfg.ckanDatasetId)}`;
-  const metaRes = await fetch(metaUrl, { headers: { accept: "application/json" }, cache: "no-store" });
+  const metaRes = await fetch(metaUrl, { headers: FETCH_HEADERS, cache: "no-store" });
   if (!metaRes.ok) throw new Error(`CKAN package_show failed: HTTP ${metaRes.status}`);
   const meta = await metaRes.json() as { success?: boolean; result?: { resources?: CkanResource[] } };
   const resources = meta.result?.resources ?? [];
@@ -20,7 +27,7 @@ export async function fetchLatestReport(): Promise<ImportSummary & { resourceUrl
     .sort((a, b) => (b.last_modified ?? "").localeCompare(a.last_modified ?? ""))[0];
   if (!csv?.url) throw new Error("No CSV resource found on the dataset");
 
-  const fileRes = await fetch(csv.url, { cache: "no-store" });
+  const fileRes = await fetch(csv.url, { headers: FETCH_HEADERS, cache: "no-store" });
   if (!fileRes.ok) throw new Error(`Report download failed: HTTP ${fileRes.status}`);
   const buf = Buffer.from(await fileRes.arrayBuffer());
   const filename = (csv.name || csv.url.split("/").pop() || "tampa-permits.csv").slice(0, 120);
