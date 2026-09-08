@@ -72,24 +72,61 @@ export default function LeadDeskPanel() {
 
   useEffect(() => { load(); }, [load]);
 
+  // One page of an ArcGIS layer query. Throws with the layer's own error text.
+  async function queryPage(layer: string, where: string, orderBy: string, offset: number) {
+    const url = `${layer}/query?where=${encodeURIComponent(where)}&outFields=*&returnGeometry=false&orderByFields=${encodeURIComponent(orderBy)}&resultOffset=${offset}&resultRecordCount=2000&f=json`;
+    const data = await (await fetch(url)).json();
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error.details || data.error));
+    return data as { features?: { attributes?: Record<string, unknown> }[]; exceededTransferLimit?: boolean };
+  }
+
   // Pull one feed's records changed since `since` (paged), post to the server.
+  // Primary strategy: a server-side DATE filter. If the layer rejects that
+  // clause, fall back to scanning newest-first without a filter and stop once
+  // rows are older than `since` (client-side cutoff).
   async function collectFeed(id: SourceId, since: string): Promise<string> {
     const feed = FEEDS[id];
-    const where = encodeURIComponent(`${feed.dateField} >= DATE '${since}'`);
     const records: Record<string, unknown>[] = [];
-    for (let offset = 0, page = 0; page < 100; page++) {
-      setStatus(`${feed.label}: fetching since ${since}… ${records.length.toLocaleString()} records`);
-      const url = `${feed.layer}/query?where=${where}&outFields=*&returnGeometry=false&orderByFields=OBJECTID%20ASC&resultOffset=${offset}&resultRecordCount=2000&f=json`;
-      const data = await (await fetch(url)).json();
-      if (data.error) throw new Error(data.error.message || "feed query error");
-      const feats: { attributes?: Record<string, unknown> }[] = data.features ?? [];
-      for (const f of feats) if (f.attributes) records.push(f.attributes);
-      if (feats.length < 2000 && !data.exceededTransferLimit) break;
-      if (feats.length === 0) break;
-      offset += feats.length;
-      if (records.length >= 48_000) break; // stay under the server's batch cap
+    const sinceMs = Date.parse(since + "T00:00:00Z");
+    try {
+      for (let offset = 0, page = 0; page < 100; page++) {
+        setStatus(`${feed.label}: fetching since ${since}… ${records.length.toLocaleString()} records`);
+        const data = await queryPage(feed.layer, `${feed.dateField} >= DATE '${since}'`, "OBJECTID ASC", offset);
+        const feats = data.features ?? [];
+        for (const f of feats) if (f.attributes) records.push(f.attributes);
+        if (feats.length < 2000 && !data.exceededTransferLimit) break;
+        if (feats.length === 0) break;
+        offset += feats.length;
+        if (records.length >= 48_000) break; // stay under the server's batch cap
+      }
+    } catch (primaryErr) {
+      // Fallback: newest-first scan, cut off client-side at `since`.
+      setStatus(`${feed.label}: date filter rejected (${primaryErr instanceof Error ? primaryErr.message : primaryErr}); scanning newest-first…`);
+      records.length = 0;
+      for (let offset = 0, page = 0; page < 30; page++) {
+        const data = await queryPage(feed.layer, "1=1", `${feed.dateField} DESC`, offset);
+        const feats = data.features ?? [];
+        let reachedOld = false;
+        for (const f of feats) {
+          const a = f.attributes;
+          if (!a) continue;
+          const ts = Number(a[feed.dateField]);
+          if (Number.isFinite(ts) && ts > 1e11 && ts < sinceMs) { reachedOld = true; break; }
+          records.push(a);
+        }
+        setStatus(`${feed.label}: scanning newest-first… ${records.length.toLocaleString()} records`);
+        if (reachedOld || feats.length === 0 || records.length >= 48_000) break;
+        offset += feats.length;
+      }
     }
-    if (!records.length) return `${feed.label}: nothing new`;
+    if (!records.length) {
+      // Still tell the server we checked, so "last collected" stays honest.
+      await fetch("/api/admin/leads/ingest", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ source: id, records: [] }),
+      }).catch(() => {});
+      return `${feed.label}: nothing new`;
+    }
     setStatus(`${feed.label}: importing ${records.length.toLocaleString()} records…`);
     const r = await fetch("/api/admin/leads/ingest", {
       method: "POST", headers: { "content-type": "application/json" },

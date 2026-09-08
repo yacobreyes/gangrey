@@ -16,7 +16,14 @@ export async function POST(req: NextRequest) {
     const source = body.source as SourceId;
     if (source !== "tampa" && source !== "hcfl") return NextResponse.json({ error: "Bad source" }, { status: 400 });
     const records = Array.isArray(body.records) ? body.records as Record<string, unknown>[] : [];
-    if (!records.length) return NextResponse.json({ error: "No records" }, { status: 400 });
+    // An empty batch is a successful check that found nothing new — record
+    // the collection time so the panel shows when the feed was last checked.
+    if (!records.length) {
+      const { leadsDb } = await import("@/lib/leads/store");
+      leadsDb().prepare(`INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`)
+        .run(`last_collect_${source}`, new Date().toISOString());
+      return NextResponse.json({ alreadyIngested: false, rowCount: 0, inserted: 0, changed: 0, unchanged: 0, skipped: 0 });
+    }
     if (records.length > 50_000) return NextResponse.json({ error: "Batch too large" }, { status: 400 });
     return NextResponse.json(ingestRecords(source, records));
   } catch (e) {
