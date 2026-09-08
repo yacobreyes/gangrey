@@ -30,7 +30,7 @@ type SourceId = keyof typeof FEEDS;
 type LeadPermit = {
   uid: string; permitNo: string; source: string; recordType: string; description: string;
   status: string; valuation: number | null; stopWork: boolean; link: string;
-  firstSeenAt: string; changedAt: string | null;
+  firstSeenAt: string; changedAt: string | null; whatChanged?: string;
 };
 type Lead = {
   clusterKey: string; address: string; jurisdiction: string; parcel: string;
@@ -251,7 +251,7 @@ export default function LeadDeskPanel() {
                 {isOpen && (
                   <div style={{ borderTop: `1px solid ${BORDER}`, padding: "0.5rem 1rem 0.85rem" }}>
                     {lead.permits.map(p => (
-                      <div key={p.uid} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "0.45rem 0", borderBottom: "1px solid #f1efeb", fontSize: "0.82rem" }}>
+                      <div key={p.uid} style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "baseline", padding: "0.45rem 0", borderBottom: "1px solid #f1efeb", fontSize: "0.82rem" }}>
                         {p.link
                           ? <a href={p.link} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 700, color: CRIMSON, flexShrink: 0, textDecoration: "none" }}>{p.permitNo} ↗</a>
                           : <span style={{ fontWeight: 700, color: TEXT_DARK, flexShrink: 0 }}>{p.permitNo}</span>}
@@ -261,6 +261,7 @@ export default function LeadDeskPanel() {
                         </span>
                         <span style={{ flexShrink: 0, color: TEXT_MUTED }}>{p.status}</span>
                         {p.valuation != null && <span style={{ flexShrink: 0, color: TEXT_DARK }}>{money(p.valuation)}</span>}
+                        {p.whatChanged && <span style={{ flexBasis: "100%", color: "#8a6d00", fontSize: "0.78rem", paddingTop: 2 }}>Changed: {p.whatChanged}</span>}
                       </div>
                     ))}
                     <div style={{ display: "flex", gap: 14, marginTop: 8, fontSize: "0.8rem" }}>

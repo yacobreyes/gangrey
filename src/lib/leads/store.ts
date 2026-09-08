@@ -333,6 +333,33 @@ export function getQueue(f: QueueFilter = {}) {
     (clusters.get(k) ?? clusters.set(k, []).get(k)!).push(r);
   }
   const cfg = leadsConfig();
+
+  // Human-readable "what changed" for permits changed in the window, from the
+  // newest version diff. "Status: In Review -> Issued" is the story signal;
+  // a bare CHANGED tag tells a reporter nothing.
+  const FIELD_LABELS: Record<string, string> = {
+    status: "Status", description: "Description", valuation: "Valuation",
+    stop_work: "Stop work", record_type: "Type", address: "Address",
+    occupancy: "Occupancy", sq_ft: "Sq ft", units: "Units", issued_date: "Issued date", link: "Link",
+  };
+  const fmtVal = (f: string, v: unknown) => {
+    if (v === null || v === "" || v === undefined) return "(blank)";
+    if (f === "valuation") return "$" + Math.round(Number(v)).toLocaleString("en-US");
+    if (f === "stop_work") return Number(v) === 1 ? "YES" : "no";
+    return String(v).length > 60 ? String(v).slice(0, 60) + "…" : String(v);
+  };
+  const latestDiffStmt = db.prepare(`SELECT diff_json FROM permit_versions WHERE uid = ? ORDER BY id DESC LIMIT 1`);
+  const describeChange = (uid: string): string => {
+    const row = latestDiffStmt.get(uid) as { diff_json?: string } | undefined;
+    if (!row?.diff_json) return "";
+    try {
+      const diff = JSON.parse(row.diff_json) as Record<string, { from: unknown; to: unknown }>;
+      return Object.entries(diff)
+        .filter(([f]) => f !== "source_updated" && f !== "link")
+        .map(([f, d]) => `${FIELD_LABELS[f] ?? f}: ${fmtVal(f, d.from)} -> ${fmtVal(f, d.to)}`)
+        .slice(0, 3).join(" · ");
+    } catch { return ""; }
+  };
   const leads = [];
   for (const [clusterKey, permits] of clusters) {
     const sorted = [...permits].sort((a, b) => Number(b.score) - Number(a.score));
@@ -363,6 +390,7 @@ export function getQueue(f: QueueFilter = {}) {
         status: String(p.status ?? ""), valuation: (p.valuation as number | null) ?? null,
         stopWork: Number(p.stop_work ?? 0) === 1, link: String(p.link ?? ""),
         firstSeenAt: String(p.first_seen_at), changedAt: p.changed_at ? String(p.changed_at) : null,
+        whatChanged: p.changed_at && String(p.changed_at) >= since ? describeChange(String(p.uid)) : "",
       })),
     };
     if (f.onlyNew && !lead.isNew) continue;
