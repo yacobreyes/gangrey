@@ -34,14 +34,14 @@ export default function MagFooter() {
         }
         .mag-footer-illo {
           display: block;
-          width: clamp(260px, 36vw, 420px);
+          width: clamp(190px, 24vw, 290px);
           height: auto;
           margin: 0 auto 6px;
         }
         @media (max-width: 900px) {
           .mag-footer { padding: 32px 20px 26px; }
           .mag-footer-links { gap: 24px; }
-          .mag-footer-illo { width: min(80vw, 300px); }
+          .mag-footer-illo { width: min(58vw, 215px); }
         }
       `}</style>
       {/* eslint-disable-next-line @next/next/no-img-element */}

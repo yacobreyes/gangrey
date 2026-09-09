@@ -242,7 +242,7 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
         )}
         <div className="mag-volno">
           <span>Vol. I &middot; No. 1</span>
-          <span className="tag">Prolonging the Slow Death of Newspapers</span>
+          <span className="tag">Tampa needs a Trib.</span>
           <span>Est. 2026</span>
         </div>
       </div>
