@@ -1,4 +1,6 @@
-import { collectState, ingestRecords, leadsDb, type SourceId } from "./store";
+import { collectState, getBrief, ingestRecords, leadsDb, type SourceId } from "./store";
+import { readUnread, readerAvailable } from "./reader";
+import { notify } from "@/lib/push";
 
 // Server-side collection for the feeds the VPS can reach. Verified: the box
 // gets HTTP 200 from services.arcgis.com (Esri cloud), which hosts both
@@ -78,5 +80,37 @@ export async function maybeCollectLeadsOnServer(): Promise<string[]> {
     try { out.push(await collectFeedOnServer(id, state[id].since)); }
     catch (e) { out.push(`${id}: failed (${e instanceof Error ? e.message : e})`); }
   }
+  // The reader works through whatever is unread, a batch per cron pass, so
+  // verdicts are in place before the morning brief.
+  if (readerAvailable()) {
+    try {
+      const r = await readUnread(40);
+      if (r.read || r.error) out.push(`reader: ${r.read} read${r.error ? ` (${r.error})` : ""}`);
+    } catch (e) { out.push(`reader: failed (${e instanceof Error ? e.message : e})`); }
+  }
+  const brief = maybeSendDailyBrief();
+  if (brief) out.push(brief);
   return out;
+}
+
+// Push the day's brief once, on the first cron pass at or after 7am Eastern.
+const BRIEF_HOUR_ET = 7;
+export function maybeSendDailyBrief(now = new Date()): string | null {
+  const et = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+  if (et.getHours() < BRIEF_HOUR_ET) return null;
+  const today = `${et.getFullYear()}-${String(et.getMonth() + 1).padStart(2, "0")}-${String(et.getDate()).padStart(2, "0")}`;
+  const db = leadsDb();
+  const sent = (db.prepare(`SELECT value FROM meta WHERE key = 'brief_sent'`).get() as { value?: string } | undefined)?.value;
+  if (sent === today) return null;
+  db.prepare(`INSERT INTO meta (key, value) VALUES ('brief_sent', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value`).run(today);
+  const brief = getBrief();
+  if (!brief.items.length) return "brief: nothing new today";
+  const top = brief.items.slice(0, 3).map(i => i.title).join(" / ");
+  notify({
+    title: `Lead Desk brief: ${brief.items.length} new lead${brief.items.length === 1 ? "" : "s"}`,
+    body: top,
+    url: "/admin/imago/leads",
+    tag: "leads-brief",
+  });
+  return `brief: sent (${brief.items.length})`;
 }

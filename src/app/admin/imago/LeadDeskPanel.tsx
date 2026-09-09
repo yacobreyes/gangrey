@@ -55,9 +55,12 @@ type LeadPermit = {
   firstSeenAt: string; changedAt: string | null; whatChanged?: string;
 };
 type LeadContext = { owner: string; dba: string; justValue: number | null; saleAmt: number | null; saleDate: string; yearBuilt: number | null };
+type AiVerdict = { verdict: string; name: string; kind: string; newsworthy: number; headline: string; why: string };
+type TriageState = "pursue" | "ignore" | "done";
 type Lead = {
   clusterKey: string; address: string; jurisdiction: string; parcel: string;
-  firstSeen: string; permitCount: number; topScore: number;
+  firstSeen: string; permitCount: number; topScore: number; ruleScore?: number;
+  ai: AiVerdict | null; triage: null | { state: TriageState; note: string; updatedAt: string };
   isNew: boolean; isChanged: boolean; completed: boolean; stale: boolean; newestSourceDate: string; latestActivity: string;
   reasons: [number, string][]; permits: LeadPermit[];
   context: LeadContext | null; contextChecked: boolean;
@@ -67,6 +70,8 @@ type QueueResponse = {
   leads: Lead[]; total: number; bands: { high: number; watch: number };
   state: Record<SourceId, { lastCollect: string | null; since: string }>;
 };
+type BriefItem = { clusterKey: string; title: string; line: string; score: number; address: string; jurisdiction: string; filed: string; covered: boolean; kind: string };
+type Brief = { date: string; items: BriefItem[]; considered: number };
 
 const money = (n: number | null) => n == null ? "" : "$" + Math.round(n).toLocaleString("en-US");
 
@@ -102,6 +107,8 @@ const day = (iso: string) => iso ? new Date(iso).toLocaleDateString("en-US", { m
 // capitalized; the description's first segment is often the project name
 // ("Dutch Bros Coffee - NEW CONSTRUCTION FOR...").
 function leadTitle(lead: Lead): string {
+  // The reader's name for the thing beats every heuristic below.
+  if (lead.ai?.name) return lead.ai.name;
   // The permit's own project name is what the work IS; the parcel's DBA is
   // only where it is (a hotel's DBA on a ground-floor tenant's remodel).
   const brand = lead.reasons.map(r => r[1]).find(l => /^[A-Z]/.test(l) && !/^(Ansul)/.test(l));
@@ -134,6 +141,13 @@ function nameCore(name: string): string {
 
 // One plain-English line: what, who, where, when, and what we know around it.
 function plainSummary(lead: Lead): string {
+  // When the reader has read this one, its headline and reason are the
+  // summary. The rule-built sentence below is the fallback.
+  if (lead.ai?.headline) {
+    const stop = lead.permits.some(p => p.stopWork) ? " A STOP WORK ORDER is on this permit." : "";
+    const cov = lead.coverage?.checked ? (lead.coverage.hits > 0 ? " Some coverage exists (see below)." : " No coverage found.") : "";
+    return `${lead.ai.headline.replace(/[.]?$/, ".")} ${lead.ai.why}${stop}${cov}`.trim();
+  }
   const labels = lead.reasons.map(r => r[1]);
   const name = projectName(lead) || (lead.reasons.map(r => r[1]).find(l => /^[A-Z]/.test(l) && l !== "Ansul system") ?? "");
   const remodel = labels.some(l => l.startsWith("remodel by the existing"));
@@ -172,10 +186,14 @@ export default function LeadDeskPanel() {
   const [sort, setSort] = useState<"date" | "score">("date");
   const [area, setArea] = useState<"" | SourceId>("");
   const [showDone, setShowDone] = useState(false);
+  const [pursuing, setPursuing] = useState(false);
   const [search, setSearch] = useState("");
   const [collecting, setCollecting] = useState(false);
   const [status, setStatus] = useState("");
   const [open, setOpen] = useState<string | null>(null);
+  const [brief, setBrief] = useState<Brief | null>(null);
+  const [briefOpen, setBriefOpen] = useState(true);
+  const [readerOn, setReaderOn] = useState<boolean | null>(null);
   const [coverage, setCoverage] = useState<Record<string, { loading?: boolean; hits?: { title: string; link: string; source: string; date: string }[]; error?: string }>>({});
   const collectedOnce = useRef(false);
 
@@ -190,14 +208,51 @@ export default function LeadDeskPanel() {
     params.set("sort", sort);
     if (area) params.set("source", area);
     if (showDone) params.set("done", "1");
+    if (pursuing) params.set("triage", "pursue");
     if (search.trim()) params.set("q", search.trim());
     try {
       const r = await fetch(`/api/admin/leads/queue?${params}`, { cache: "no-store" });
       if (r.ok) setData(await r.json());
     } catch { /* keep last good queue */ }
-  }, [kind, onlyNew, onlyChanged, onlyUncovered, minScore, days, sort, area, showDone, search]);
+    try {
+      const b = await fetch("/api/admin/leads/brief", { cache: "no-store" });
+      if (b.ok) setBrief(await b.json());
+    } catch { /* brief is optional */ }
+  }, [kind, onlyNew, onlyChanged, onlyUncovered, minScore, days, sort, area, showDone, pursuing, search]);
 
   useEffect(() => { load(); }, [load]);
+
+  // The reader: after the queue loads, read whatever is still unread (the
+  // server only reads records once). Reloads when verdicts land so titles,
+  // summaries and scores update in place.
+  const reading = useRef(false);
+  useEffect(() => {
+    if (!data || reading.current || collecting || readerOn === false) return;
+    const unread = data.leads.some(l => !l.ai && !l.completed);
+    if (!unread && readerOn !== null) return;
+    reading.current = true;
+    (async () => {
+      try {
+        const r = await fetch("/api/admin/leads/read?limit=40", { method: "POST" });
+        const d = await r.json() as { read?: number; available?: boolean; error?: string };
+        setReaderOn(!!d.available);
+        if (d.error) setStatus(`Reader: ${d.error}`);
+        if (d.read) load();
+      } catch { /* try again next load */ }
+      reading.current = false;
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, collecting]);
+
+  // Pursue / ignore / done. Optimistic: the card updates now, the queue
+  // reloads after.
+  async function triage(lead: Lead, state: TriageState | "clear") {
+    setData(d => d ? { ...d, leads: d.leads.map(l => l.clusterKey === lead.clusterKey ? { ...l, triage: state === "clear" ? null : { state, note: "", updatedAt: new Date().toISOString() } } : l) } : d);
+    try {
+      await fetch("/api/admin/leads/triage", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ clusterKey: lead.clusterKey, state }) });
+    } catch { /* reload will show the truth */ }
+    load();
+  }
 
   // One page of an ArcGIS layer query. Throws with the layer's own error text.
   async function queryPage(layer: string, where: string, orderBy: string, offset: number) {
@@ -424,6 +479,33 @@ export default function LeadDeskPanel() {
         <p style={{ fontSize: "0.85rem", color: TEXT_DARK, background: "#f4f2ee", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "0.6rem 0.9rem", margin: "0 0 1rem" }}>{status}</p>
       )}
 
+      {/* Today's brief: the short list, before any filter. */}
+      {brief && (
+        <div style={{ border: `1px solid ${CRIMSON}`, borderRadius: 10, background: "#fdf8f8", padding: "0.75rem 1rem", marginBottom: "1rem" }}>
+          <button onClick={() => setBriefOpen(v => !v)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: FONT }}>
+            <span style={{ fontWeight: 800, fontSize: "0.95rem", color: CRIMSON }}>Today's brief · {day(brief.date)}</span>
+            <span style={{ fontSize: "0.8rem", color: TEXT_MUTED }}>
+              {brief.items.length ? `${brief.items.length} to look at` : "nothing new"}{readerOn === false ? " · reader off (no API key)" : ""} {briefOpen ? "▾" : "▸"}
+            </span>
+          </button>
+          {briefOpen && brief.items.length > 0 && (
+            <ol style={{ margin: "0.6rem 0 0", paddingLeft: "1.3rem", display: "flex", flexDirection: "column", gap: 6 }}>
+              {brief.items.map(item => (
+                <li key={item.clusterKey} style={{ fontSize: "0.85rem", color: TEXT_DARK, lineHeight: 1.4 }}>
+                  <a href="#" onClick={e => { e.preventDefault(); setSearch(item.address); setOpen(item.clusterKey); }} style={{ fontWeight: 700, color: TEXT_DARK, textDecoration: "none" }}>{item.title}</a>
+                  {item.covered && <span style={{ marginLeft: 6, fontSize: "0.66rem", fontWeight: 800, letterSpacing: ".06em", color: "#b8860b" }}>COVERED</span>}
+                  <span style={{ color: TEXT_MUTED }}> · {item.address}{item.jurisdiction ? `, ${item.jurisdiction}` : ""}{item.filed ? ` · filed ${day(item.filed)}` : ""}</span>
+                  <span style={{ display: "block", color: TEXT_MUTED, fontSize: "0.8rem" }}>{item.line}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+          {briefOpen && brief.items.length === 0 && (
+            <p style={{ margin: "0.5rem 0 0", fontSize: "0.82rem", color: TEXT_MUTED }}>Nothing new and unhandled in the last 3 days scored 4 or higher.</p>
+          )}
+        </div>
+      )}
+
       {/* Search: everything ever collected, no filters. */}
       <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search everything collected: a business, an address, a permit number"
         style={{ fontFamily: FONT, fontSize: "0.88rem", padding: "0.55rem 0.8rem", border: `1px solid ${BORDER}`, borderRadius: 8, width: "100%", boxSizing: "border-box", marginBottom: 10, background: "white", color: TEXT_DARK }} />
@@ -436,6 +518,7 @@ export default function LeadDeskPanel() {
         <button onClick={() => setOnlyNew(v => !v)} style={chip(onlyNew)} title="Only projects the city dated within 90 days that are new to this desk">New</button>
         <button onClick={() => setOnlyChanged(v => !v)} style={chip(onlyChanged)} title="Only projects where a permit moved in the window (issued, CO, stop work...)">Changed</button>
         <button onClick={() => setOnlyUncovered(v => !v)} style={chip(onlyUncovered)} title="Hide anything the news search found coverage for">Uncovered</button>
+        <button onClick={() => setPursuing(v => !v)} style={chip(pursuing)} title="Only the leads you marked Pursue, from any time">Pursuing</button>
         {data && (
           <span style={{ fontSize: "0.8rem", color: TEXT_MUTED, marginLeft: "auto" }}>
             {data.total.toLocaleString()} projects · <strong style={{ color: CRIMSON }}>{data.bands.high} high priority</strong> · {data.bands.watch} watch
@@ -457,7 +540,7 @@ export default function LeadDeskPanel() {
           <option value="date">Newest filed first</option><option value="score">Highest score first</option>
         </select>
         <label style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: FONT, fontSize: "0.8rem", color: TEXT_MUTED, cursor: "pointer" }}>
-          <input type="checkbox" checked={showDone} onChange={e => setShowDone(e.target.checked)} /> Show finished
+          <input type="checkbox" checked={showDone} onChange={e => setShowDone(e.target.checked)} /> Show finished and ignored
         </label>
       </div>
 
@@ -483,6 +566,10 @@ export default function LeadDeskPanel() {
                       {!lead.isNew && lead.isChanged && !lead.completed && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#b8860b" }}>CHANGED</span>}
                       {lead.permits.some(p => p.isPlan) && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#1a5276" }}>PLAN FILED</span>}
                       {lead.completed && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#6e6e73" }}>DONE</span>}
+                      {lead.triage?.state === "pursue" && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#1a7f37" }}>PURSUING</span>}
+                      {lead.triage?.state === "ignore" && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#6e6e73" }}>IGNORED</span>}
+                      {lead.triage?.state === "done" && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#6e6e73" }}>WRITTEN</span>}
+                      {lead.ai && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: lead.ai.verdict === "new_business" || lead.ai.verdict === "development" ? "#1a5276" : "#9a9a9e" }}>{lead.ai.verdict.replace(/_/g, " ").toUpperCase()}</span>}
                       {lead.coverage?.checked && lead.coverage.hits > 0 && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#b8860b" }}>COVERED</span>}
                       {lead.coverage?.checked && lead.coverage.hits === 0 && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#1a7f37" }}>CLEAR</span>}
                       {!lead.completed && lead.stale && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#6e6e73" }}>OLD PERMIT</span>}
@@ -517,11 +604,25 @@ export default function LeadDeskPanel() {
                     {lead.reasons.length > 0 && (
                       <span style={{ display: "block", fontSize: "0.78rem", color: TEXT_DARK, marginTop: 4 }}>
                         {lead.reasons.map(([pts, label]) => `+${pts} ${label}`).join("  ·  ")}
+                        {lead.ai && lead.ruleScore != null && lead.ruleScore !== lead.topScore ? `  ·  reader rated ${lead.ai.newsworthy}/10` : ""}
                       </span>
                     )}
                   </span>
                   <span style={{ color: TEXT_MUTED, fontSize: "0.8rem", flexShrink: 0 }}>{isOpen ? "▾" : "▸"}</span>
                 </button>
+                {/* Triage: one tap decides what happens to this lead. */}
+                <div style={{ display: "flex", gap: 6, padding: "0 1rem 0.7rem", flexWrap: "wrap" }}>
+                  {(["pursue", "ignore", "done"] as TriageState[]).map(s => {
+                    const on = lead.triage?.state === s;
+                    const label = s === "pursue" ? "Pursue" : s === "ignore" ? "Ignore" : "Written";
+                    return (
+                      <button key={s} onClick={() => triage(lead, on ? "clear" : s)}
+                        style={{ fontFamily: FONT, fontSize: "0.75rem", fontWeight: 700, padding: "0.25rem 0.7rem", borderRadius: 14, cursor: "pointer", border: `1px solid ${on ? (s === "pursue" ? "#1a7f37" : "#6e6e73") : BORDER}`, background: on ? (s === "pursue" ? "#1a7f37" : "#6e6e73") : "white", color: on ? "white" : TEXT_DARK }}>
+                        {on ? `${label} ✓` : label}
+                      </button>
+                    );
+                  })}
+                </div>
                 {isOpen && (
                   <div style={{ borderTop: `1px solid ${BORDER}`, padding: "0.5rem 1rem 0.85rem" }}>
                     {lead.permits.map(p => (
