@@ -32,11 +32,20 @@ export default function MagFooter() {
           font-size: 15px;
           color: #000000;
         }
+        .mag-footer-illo {
+          display: block;
+          width: clamp(260px, 36vw, 420px);
+          height: auto;
+          margin: 0 auto 6px;
+        }
         @media (max-width: 900px) {
           .mag-footer { padding: 32px 20px 26px; }
           .mag-footer-links { gap: 24px; }
+          .mag-footer-illo { width: min(80vw, 300px); }
         }
       `}</style>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="mag-footer-illo" src="/rooster.webp" alt="" width={1200} height={858} loading="lazy" decoding="async" />
       <nav className="mag-footer-links">
         <Link href="/authors">Authors</Link>
         <Link href="/submit">Submit</Link>

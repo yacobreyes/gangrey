@@ -28,7 +28,7 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
 
   const logoInner = (
     // eslint-disable-next-line @next/next/no-img-element
-    <img className="mag-wordmark-img" src="/Wordmark.png?v=9" alt="The Sunland Tribune" fetchPriority="high" decoding="sync" />
+    <img className="mag-wordmark-img" src="/Wordmark.png?v=10" alt="The Sunland Tribune" fetchPriority="high" decoding="sync" />
   );
 
   return (
@@ -44,7 +44,7 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
         /* ---- Masthead: wordmark / vol-no bar ---- */
         .mag-masthead { padding: 8px 32px 0; max-width: 1290px; margin: 0 auto; box-sizing: border-box; }
         .mag-wordmark-link { display: block; width: fit-content; margin: 2px auto 8px; line-height: 0; background: none; border: none; padding: 0; cursor: pointer; }
-        .mag-wordmark-img { display: block; height: clamp(44px, 6.3vw, 64px); width: auto; margin: 0 auto; }
+        .mag-wordmark-img { display: block; height: clamp(56px, 7.6vw, 100px); width: auto; margin: 0 auto; }
         .mag-volno {
           border-top: 1px solid #000000;
           border-bottom: 2px solid #490000;
@@ -164,7 +164,7 @@ export default function MagHeader({ onLogoClick }: { onLogoClick?: () => void })
         .mag-nav-right-mobile { display: none; }
 
         @media (max-width: 700px) {
-          .mag-wordmark-img { height: 38px; }
+          .mag-wordmark-img { height: 50px; }
         }
         @media (max-width: 1100px) {
           .mag-masthead { padding: 10px 20px 0; }

@@ -288,7 +288,7 @@ function renderNewsletterContent(raw: NlOpts, opts: { masthead: boolean; web?: b
           <a href="${SITE_URL}" target="_blank" rel="noopener" style="text-decoration:none;">
             ${raw.classics
               ? `<img src="${base}/wordmark-classics-email-hd.png" alt="Sunland Tribune Classics" width="290" height="54" style="width:290px;height:54px;max-width:80%;display:block;margin:0 auto 20px;border:0;" />`
-              : `<img src="${base}/wordmark-white-email-hd.png" alt="The Sunland Tribune" width="290" height="106" style="width:290px;height:106px;max-width:80%;display:block;margin:0 auto 20px;border:0;" />`
+              : `<img src="${base}/wordmark-white-email-hd.png" alt="The Sunland Tribune" width="360" height="60" style="width:360px;height:60px;max-width:80%;display:block;margin:0 auto 20px;border:0;" />`
             }
           </a>
           <div style="width:40px;height:2px;background:${CRIMSON};margin:0 auto 20px;"></div>
