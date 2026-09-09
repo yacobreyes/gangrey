@@ -1,5 +1,4 @@
 import { collectState, getBrief, ingestRecords, leadsDb, type SourceId } from "./store";
-import { readUnread, readerAvailable } from "./reader";
 import { notify } from "@/lib/push";
 
 // Server-side collection for the feeds the VPS can reach. Verified: the box
@@ -79,14 +78,6 @@ export async function maybeCollectLeadsOnServer(): Promise<string[]> {
     if (last && Date.now() - Date.parse(last) < 20 * 3600 * 1000) continue;
     try { out.push(await collectFeedOnServer(id, state[id].since)); }
     catch (e) { out.push(`${id}: failed (${e instanceof Error ? e.message : e})`); }
-  }
-  // The reader works through whatever is unread, a batch per cron pass, so
-  // verdicts are in place before the morning brief.
-  if (readerAvailable()) {
-    try {
-      const r = await readUnread(40);
-      if (r.read || r.error) out.push(`reader: ${r.read} read${r.error ? ` (${r.error})` : ""}`);
-    } catch (e) { out.push(`reader: failed (${e instanceof Error ? e.message : e})`); }
   }
   const brief = maybeSendDailyBrief();
   if (brief) out.push(brief);

@@ -230,36 +230,23 @@ describe("lead desk pipeline", () => {
     expect(ingestRecords("tampa", rows).alreadyIngested).toBe(true);
   });
 
-  it("the reader's verdict lifts news and caps noise; triage and the brief follow it", async () => {
-    const { leadsDb, setTriage, getBrief } = await import("./store");
+  it("triage and the brief follow the reporter's calls", async () => {
+    const { setTriage, getBrief } = await import("./store");
     const now = Date.now();
     ingestRecords("tampa", [
-      tampaRow({ RECORD_ID: "BDE-26-0800001", PROJECTNAME2: "", PROJECTDESCRIPTION: "Tenant buildout for restaurant, hood and Ansul", ADDRESS: "800 W Kennedy Blvd", LASTUPDATE: now, CREATEDDATE: now }),
-      tampaRow({ RECORD_ID: "BDE-26-0800002", PROJECTNAME2: "", PROJECTDESCRIPTION: "Interior remodel, replace hood", ADDRESS: "900 W Kennedy Blvd", LASTUPDATE: now, CREATEDDATE: now }),
+      tampaRow({ RECORD_ID: "BDE-26-0800001", PROJECTNAME2: "Yard House", PROJECTDESCRIPTION: "Tenant buildout for restaurant, hood and Ansul", ADDRESS: "800 W Kennedy Blvd", LASTUPDATE: now, CREATEDDATE: now }),
     ]);
-    const db = leadsDb();
-    const save = db.prepare(`UPDATE permits SET ai_json = ? WHERE uid LIKE ?`);
-    save.run(JSON.stringify({ verdict: "new_business", name: "Yard House", kind: "restaurant", newsworthy: 9, headline: "Yard House coming to 800 W Kennedy Blvd", why: "Named chain, first Tampa location." }), "%BDE-26-0800001%");
-    save.run(JSON.stringify({ verdict: "existing_business_work", name: "", kind: "restaurant", newsworthy: 2, headline: "Kitchen hood replaced at an existing restaurant", why: "Maintenance." }), "%BDE-26-0800002%");
-
     const q = getQueue({ sort: "score", sinceDays: 1 });
     const yard = q.leads.find(l => l.address === "800 W Kennedy Blvd")!;
-    const hood = q.leads.find(l => l.address === "900 W Kennedy Blvd")!;
-    expect(yard.ai?.name).toBe("Yard House");
-    expect(yard.topScore).toBeGreaterThanOrEqual(9); // never below the reader's rating
-    expect(hood.topScore).toBeLessThanOrEqual(2);
-
-    const brief = getBrief({ days: 1 });
-    expect(brief.items.map(i => i.title)).toContain("Yard House coming to 800 W Kennedy Blvd");
-    expect(brief.items.find(i => i.address === "900 W Kennedy Blvd")).toBeUndefined();
+    expect(yard.topScore).toBeGreaterThanOrEqual(4);
+    expect(getBrief({ days: 1 }).items.find(i => i.clusterKey === yard.clusterKey)?.title).toContain("800 W Kennedy Blvd");
 
     setTriage(yard.clusterKey, "ignore", "already ran");
     expect(getQueue({ sinceDays: 1 }).leads.find(l => l.clusterKey === yard.clusterKey)).toBeUndefined();
     expect(getQueue({ sinceDays: 1, includeDone: true }).leads.find(l => l.clusterKey === yard.clusterKey)?.triage?.state).toBe("ignore");
     expect(getBrief({ days: 1 }).items.find(i => i.clusterKey === yard.clusterKey)).toBeUndefined();
     setTriage(yard.clusterKey, "pursue");
-    const pursuing = getQueue({ triage: "pursue", sinceDays: 1 });
-    expect(pursuing.leads.map(l => l.clusterKey)).toEqual([yard.clusterKey]);
+    expect(getQueue({ triage: "pursue", sinceDays: 1 }).leads.map(l => l.clusterKey)).toEqual([yard.clusterKey]);
     setTriage(yard.clusterKey, "clear");
     expect(getQueue({ sinceDays: 1 }).leads.find(l => l.clusterKey === yard.clusterKey)?.triage).toBeNull();
   });

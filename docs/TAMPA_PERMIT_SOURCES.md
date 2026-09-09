@@ -224,8 +224,7 @@ ADMIN_LT_FEE, LT_FEE_REASON, ENFCMT_COMMENT. Address: NUM/DIR/STREET_NAME/
 TYPE/SUFFIX and PERMIT_ADDR. No Accela link field. Ingested as "tampaab";
 scored by class, operator changes, dry status and enforcement.
 
-## The reader, the brief and triage (how the queue is read)
+## The brief and triage (how the queue is read)
 
-- Reader: with `ANTHROPIC_API_KEY` set in `.env.selfhost`, every new record that could matter (rule score 3+, or any plan/case/alcohol row) is read once by the model (`src/lib/leads/reader.ts`) and stored as `permits.ai_json`: verdict (new_business, development, existing_business_work, residential_noise, government_or_infrastructure, other), name, kind, newsworthy 0-10, headline, why. Runs from the panel after each load (POST `/api/admin/leads/read`) and from the publish cron, 40 records a pass. The queue lifts a lead's score to the reader's rating and caps noise verdicts at 2. No key: rule scoring alone.
-- Brief: GET `/api/admin/leads/brief` is the day's short list (new, score 4+, last 3 days, not triaged, not read as noise). Shown at the top of Lead Desk and pushed once a day on the first cron pass after 7am Eastern (`maybeSendDailyBrief`, `meta.brief_sent`).
+- Brief: GET `/api/admin/leads/brief` is the day's short list (new, score 4+, last 3 days, not triaged). Shown at the top of Lead Desk and pushed once a day on the first cron pass after 7am Eastern (`maybeSendDailyBrief`, `meta.brief_sent`).
 - Triage: `triage` table (pursue / ignore / done). Ignored and done leads leave the queue and the brief; the Pursuing chip shows only what was marked Pursue.

@@ -55,12 +55,11 @@ type LeadPermit = {
   firstSeenAt: string; changedAt: string | null; whatChanged?: string;
 };
 type LeadContext = { owner: string; dba: string; justValue: number | null; saleAmt: number | null; saleDate: string; yearBuilt: number | null };
-type AiVerdict = { verdict: string; name: string; kind: string; newsworthy: number; headline: string; why: string };
 type TriageState = "pursue" | "ignore" | "done";
 type Lead = {
   clusterKey: string; address: string; jurisdiction: string; parcel: string;
-  firstSeen: string; permitCount: number; topScore: number; ruleScore?: number;
-  ai: AiVerdict | null; triage: null | { state: TriageState; note: string; updatedAt: string };
+  firstSeen: string; permitCount: number; topScore: number;
+  triage: null | { state: TriageState; note: string; updatedAt: string };
   isNew: boolean; isChanged: boolean; completed: boolean; stale: boolean; newestSourceDate: string; latestActivity: string;
   reasons: [number, string][]; permits: LeadPermit[];
   context: LeadContext | null; contextChecked: boolean;
@@ -70,7 +69,7 @@ type QueueResponse = {
   leads: Lead[]; total: number; bands: { high: number; watch: number };
   state: Record<SourceId, { lastCollect: string | null; since: string }>;
 };
-type BriefItem = { clusterKey: string; title: string; line: string; score: number; address: string; jurisdiction: string; filed: string; covered: boolean; kind: string };
+type BriefItem = { clusterKey: string; title: string; line: string; score: number; address: string; jurisdiction: string; filed: string; covered: boolean };
 type Brief = { date: string; items: BriefItem[]; considered: number };
 
 const money = (n: number | null) => n == null ? "" : "$" + Math.round(n).toLocaleString("en-US");
@@ -107,8 +106,6 @@ const day = (iso: string) => iso ? new Date(iso).toLocaleDateString("en-US", { m
 // capitalized; the description's first segment is often the project name
 // ("Dutch Bros Coffee - NEW CONSTRUCTION FOR...").
 function leadTitle(lead: Lead): string {
-  // The reader's name for the thing beats every heuristic below.
-  if (lead.ai?.name) return lead.ai.name;
   // The permit's own project name is what the work IS; the parcel's DBA is
   // only where it is (a hotel's DBA on a ground-floor tenant's remodel).
   const brand = lead.reasons.map(r => r[1]).find(l => /^[A-Z]/.test(l) && !/^(Ansul)/.test(l));
@@ -141,13 +138,6 @@ function nameCore(name: string): string {
 
 // One plain-English line: what, who, where, when, and what we know around it.
 function plainSummary(lead: Lead): string {
-  // When the reader has read this one, its headline and reason are the
-  // summary. The rule-built sentence below is the fallback.
-  if (lead.ai?.headline) {
-    const stop = lead.permits.some(p => p.stopWork) ? " A STOP WORK ORDER is on this permit." : "";
-    const cov = lead.coverage?.checked ? (lead.coverage.hits > 0 ? " Some coverage exists (see below)." : " No coverage found.") : "";
-    return `${lead.ai.headline.replace(/[.]?$/, ".")} ${lead.ai.why}${stop}${cov}`.trim();
-  }
   const labels = lead.reasons.map(r => r[1]);
   const name = projectName(lead) || (lead.reasons.map(r => r[1]).find(l => /^[A-Z]/.test(l) && l !== "Ansul system") ?? "");
   const remodel = labels.some(l => l.startsWith("remodel by the existing"));
@@ -193,7 +183,6 @@ export default function LeadDeskPanel() {
   const [open, setOpen] = useState<string | null>(null);
   const [brief, setBrief] = useState<Brief | null>(null);
   const [briefOpen, setBriefOpen] = useState(true);
-  const [readerOn, setReaderOn] = useState<boolean | null>(null);
   const [coverage, setCoverage] = useState<Record<string, { loading?: boolean; hits?: { title: string; link: string; source: string; date: string }[]; error?: string }>>({});
   const collectedOnce = useRef(false);
 
@@ -221,28 +210,6 @@ export default function LeadDeskPanel() {
   }, [kind, onlyNew, onlyChanged, onlyUncovered, minScore, days, sort, area, showDone, pursuing, search]);
 
   useEffect(() => { load(); }, [load]);
-
-  // The reader: after the queue loads, read whatever is still unread (the
-  // server only reads records once). Reloads when verdicts land so titles,
-  // summaries and scores update in place.
-  const reading = useRef(false);
-  useEffect(() => {
-    if (!data || reading.current || collecting || readerOn === false) return;
-    const unread = data.leads.some(l => !l.ai && !l.completed);
-    if (!unread && readerOn !== null) return;
-    reading.current = true;
-    (async () => {
-      try {
-        const r = await fetch("/api/admin/leads/read?limit=40", { method: "POST" });
-        const d = await r.json() as { read?: number; available?: boolean; error?: string };
-        setReaderOn(!!d.available);
-        if (d.error) setStatus(`Reader: ${d.error}`);
-        if (d.read) load();
-      } catch { /* try again next load */ }
-      reading.current = false;
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, collecting]);
 
   // Pursue / ignore / done. Optimistic: the card updates now, the queue
   // reloads after.
@@ -485,7 +452,7 @@ export default function LeadDeskPanel() {
           <button onClick={() => setBriefOpen(v => !v)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: FONT }}>
             <span style={{ fontWeight: 800, fontSize: "0.95rem", color: CRIMSON }}>Today's brief · {day(brief.date)}</span>
             <span style={{ fontSize: "0.8rem", color: TEXT_MUTED }}>
-              {brief.items.length ? `${brief.items.length} to look at` : "nothing new"}{readerOn === false ? " · reader off (no API key)" : ""} {briefOpen ? "▾" : "▸"}
+              {brief.items.length ? `${brief.items.length} to look at` : "nothing new"}{" "}{briefOpen ? "▾" : "▸"}
             </span>
           </button>
           {briefOpen && brief.items.length > 0 && (
@@ -569,7 +536,6 @@ export default function LeadDeskPanel() {
                       {lead.triage?.state === "pursue" && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#1a7f37" }}>PURSUING</span>}
                       {lead.triage?.state === "ignore" && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#6e6e73" }}>IGNORED</span>}
                       {lead.triage?.state === "done" && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#6e6e73" }}>WRITTEN</span>}
-                      {lead.ai && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: lead.ai.verdict === "new_business" || lead.ai.verdict === "development" ? "#1a5276" : "#9a9a9e" }}>{lead.ai.verdict.replace(/_/g, " ").toUpperCase()}</span>}
                       {lead.coverage?.checked && lead.coverage.hits > 0 && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#b8860b" }}>COVERED</span>}
                       {lead.coverage?.checked && lead.coverage.hits === 0 && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#1a7f37" }}>CLEAR</span>}
                       {!lead.completed && lead.stale && <span style={{ marginLeft: 8, fontSize: "0.68rem", fontWeight: 800, letterSpacing: ".06em", color: "#6e6e73" }}>OLD PERMIT</span>}
@@ -604,7 +570,6 @@ export default function LeadDeskPanel() {
                     {lead.reasons.length > 0 && (
                       <span style={{ display: "block", fontSize: "0.78rem", color: TEXT_DARK, marginTop: 4 }}>
                         {lead.reasons.map(([pts, label]) => `+${pts} ${label}`).join("  ·  ")}
-                        {lead.ai && lead.ruleScore != null && lead.ruleScore !== lead.topScore ? `  ·  reader rated ${lead.ai.newsworthy}/10` : ""}
                       </span>
                     )}
                   </span>

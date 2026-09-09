@@ -97,8 +97,6 @@ export function leadsDb(): Database.Database {
       updated_at TEXT NOT NULL
     );
   `);
-  // Additive columns on existing databases. ai_json holds the reader's verdict.
-  try { _db.exec(`ALTER TABLE permits ADD COLUMN ai_json TEXT DEFAULT ''`); } catch { /* exists */ }
   // Additive migration for databases created before the contact column.
   try { _db.exec(`ALTER TABLE permits ADD COLUMN contact TEXT DEFAULT ''`); } catch { /* exists */ }
   pruneOutOfAreaCounty(_db);
@@ -645,21 +643,7 @@ export function collectState() {
 
 export type QueueFilter = { sinceDays?: number; onlyNew?: boolean; onlyChanged?: boolean; restaurants?: boolean; development?: boolean; uncovered?: boolean; includeDone?: boolean; minScore?: number; source?: SourceId; sort?: "score" | "date"; q?: string; triage?: "pursue" | "ignore" | "done" };
 
-export type AiVerdict = { verdict: string; name: string; kind: string; newsworthy: number; headline: string; why: string };
 export type TriageState = "pursue" | "ignore" | "done";
-
-// The reader's verdicts that mean "not a lead": the rule score gets capped so
-// a remodel with a hood permit stops outranking a real opening.
-const AI_NOISE = new Set(["existing_business_work", "residential_noise", "government_or_infrastructure", "other"]);
-
-function parseAi(raw: unknown): AiVerdict | null {
-  if (!raw || typeof raw !== "string") return null;
-  try {
-    const v = JSON.parse(raw) as Partial<AiVerdict>;
-    if (!v || typeof v !== "object" || !v.verdict) return null;
-    return { verdict: String(v.verdict), name: String(v.name ?? ""), kind: String(v.kind ?? ""), newsworthy: Number(v.newsworthy) || 0, headline: String(v.headline ?? ""), why: String(v.why ?? "") };
-  } catch { return null; }
-}
 
 const RESTAURANT_RE = /restaurant|cafe|café|coffee|\bbar\b|brewery|taproom|pizza|grill|kitchen|hood|grease|ansul|drive.?thr|assembly|food/i;
 const DEVELOPMENT_RE = /new construction|addition|demolition|mixed.?use|multifamily|multi-family|apartments|hotel|tower|warehouse/i;
@@ -748,16 +732,9 @@ export function getQueue(f: QueueFilter = {}) {
       for (const r of rs) if (!seen.has(r[1])) { seen.add(r[1]); reasons.push(r); }
     }
     const hay = permits.map(p => `${p.record_type} ${p.type2} ${p.description} ${p.occupancy}`).join(" ");
-    // The reader's call on the cluster: the verdict it rated most newsworthy.
-    // Anything it reads as noise caps the rule score; anything it reads as
-    // news lifts the score to its own rating, so the queue follows the reader
-    // where the reader has spoken and the rules where it has not.
-    const verdicts = permits.map(p => parseAi(p.ai_json)).filter((v): v is AiVerdict => !!v);
-    const ai = verdicts.sort((a, b) => b.newsworthy - a.newsworthy)[0] ?? null;
-    const ruleScore = Number(top.score ?? 0) + (Number(top.score ?? 0) >= cfg.watchMin ? Math.min(3, permits.length - 1) : 0);
-    const topScore = !ai ? ruleScore
-      : AI_NOISE.has(ai.verdict) && ai.newsworthy < 6 ? Math.min(ruleScore, 2)
-      : Math.max(ruleScore, ai.newsworthy);
+    // A project with several permits is realer than one with one, so the
+    // cluster earns up to +3 beyond its strongest permit.
+    const topScore = Number(top.score ?? 0) + (Number(top.score ?? 0) >= cfg.watchMin ? Math.min(3, permits.length - 1) : 0);
     const lead = {
       clusterKey,
       address: String(top.address ?? ""),
@@ -765,7 +742,7 @@ export function getQueue(f: QueueFilter = {}) {
       parcel: String(top.parcel ?? ""),
       firstSeen: permits.map(p => String(p.first_seen_at)).sort()[0],
       permitCount: permits.length,
-      topScore, ruleScore, ai,
+      topScore,
       triage: null as null | { state: TriageState; note: string; updatedAt: string },
       isNew, isChanged, completed, stale, newestSourceDate, latestActivity,
       reasons: reasons.sort((a, b) => b[0] - a[0]).slice(0, 8),
@@ -866,22 +843,22 @@ export function setTriage(clusterKey: string, state: TriageState | "clear", note
 
 // ---------- the daily brief ----------
 
-export type BriefItem = { clusterKey: string; title: string; line: string; score: number; address: string; jurisdiction: string; filed: string; covered: boolean; kind: string };
+export type BriefItem = { clusterKey: string; title: string; line: string; score: number; address: string; jurisdiction: string; filed: string; covered: boolean };
 
 // The morning's short list: what is new, worth a call, and not yet handled.
-// Prefers the reader's headline; falls back to the rules' strongest label.
+// Titled by the rules' strongest label; the address is the fallback.
 export function getBrief(opts: { days?: number; limit?: number; minScore?: number } = {}): { date: string; items: BriefItem[]; considered: number } {
   const days = opts.days ?? 3, limit = opts.limit ?? 10, minScore = opts.minScore ?? 4;
   const { leads } = getQueue({ sinceDays: days, onlyNew: true, minScore, sort: "score" });
   const items: BriefItem[] = [];
   for (const l of leads) {
     if (l.triage) continue; // already pursued, ignored or finished
-    if (l.ai && AI_NOISE.has(l.ai.verdict)) continue;
     const covered = !!l.coverage && l.coverage.hits > 0;
     const label = l.reasons[0]?.[1] ?? "";
-    const title = l.ai?.headline || (l.ai?.name ? `${l.ai.name} (${l.ai.kind || "new business"})` : label ? `${label.charAt(0).toUpperCase()}${label.slice(1)} at ${l.address}` : l.address);
-    const line = l.ai?.why || `${l.address}${l.jurisdiction ? `, ${l.jurisdiction}` : ""}. ${l.reasons.slice(0, 3).map(r => r[1]).join(", ")}.`;
-    items.push({ clusterKey: l.clusterKey, title, line, score: l.topScore, address: l.address, jurisdiction: l.jurisdiction, filed: l.newestSourceDate, covered, kind: l.ai?.kind ?? "" });
+    const brand = l.reasons.map(r => r[1]).find(x => /^[A-Z]/.test(x) && x !== "Ansul system");
+    const title = brand ? `${brand} at ${l.address}` : label ? `${label.charAt(0).toUpperCase()}${label.slice(1)} at ${l.address}` : l.address;
+    const line = `${l.jurisdiction || "Tampa"}. ${l.reasons.slice(0, 3).map(r => r[1]).join(", ")}.`;
+    items.push({ clusterKey: l.clusterKey, title, line, score: l.topScore, address: l.address, jurisdiction: l.jurisdiction, filed: l.newestSourceDate, covered });
     if (items.length >= limit) break;
   }
   return { date: new Date().toISOString().slice(0, 10), items, considered: leads.length };
